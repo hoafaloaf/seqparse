@@ -43,14 +43,9 @@ class Seqparse(object):
                 ext = seq[file_ext]
                 pad = len(frame)
                 ext[pad].add(frame)
-        '''
-        print self._seqs
-        dog = sorted(self._seqs)[0]
-        print self._seqs[dog]["jpg"]
-        for pad in sorted(self._seqs[dog]["jpg"]):
-            print self._seqs[dog]['jpg'][pad]
-        '''
 
-    def output(self):
+    def output(self, tree=False):
         """Return a list of the file sequences contained by the instance."""
-        print self._seqs
+        for base_name, file_seq in sorted(self.sequences.items()):
+            for output in file_seq.output():
+                yield ".".join(tuple([base_name] + output))

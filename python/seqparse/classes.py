@@ -18,6 +18,7 @@ class FrameChunk(object):
             first=None, last=None, length=None, pad=int(pad), step=None)
         self._output = None
 
+        # This will calculate the string output as well!
         self.set_frames(first, last, step)
 
     def __len__(self):
@@ -78,7 +79,6 @@ class FrameChunk(object):
             self._output += "x%d" % step
 
         self._data.update(first=first, last=last, length=(1 + bits), step=step)
-
         return self._output
 
 
@@ -130,7 +130,7 @@ class FrameSequence(MutableSet):
         """String reprentation of the frame sequence."""
         if self.is_dirty:
             self.calculate()
-
+            self._dirty = False
         return self._output
 
     @property
@@ -211,6 +211,8 @@ class FrameSequence(MutableSet):
                 chunk = self._chunk_from_frames(current_frames, step, self.pad)
                 self._chunks.append(chunk)
 
+        # TODO: Optimize padding in cases similar to 1, 2, 1000.
+        self._output = ",".join(str(x) for x in self._chunks)
         self._dirty = False
 
     def _chunk_from_frames(self, frames, step, pad):
@@ -254,7 +256,7 @@ class FileExtension(FileParent):
 
     _CHILD_CLASS = FrameSequence
 
-    def __init__(self):
+    def __init__(self, name=None):
         """Initialise the instance."""
         super(FileExtension, self).__init__()
 
@@ -267,7 +269,7 @@ class FileExtension(FileParent):
 
     def __repr__(self):
         """Pretty representation of the instance."""
-        blurb = ("{name}(pads={pads})")
+        blurb = "{name}(pads={pads})"
         return blurb.format(name=type(self).__name__, pads=sorted(self))
 
     def __setitem__(self, key, value):
@@ -279,6 +281,11 @@ class FileExtension(FileParent):
             raise ValueError
 
         self.__dict__[key] = value
+
+    def output(self):
+        """Return a formatted list of all contained file extentions."""
+        for pad, frames in sorted(self.items()):
+            yield str(frames)
 
 
 ###############################################################################
@@ -315,3 +322,9 @@ class FileSequence(FileParent):
             raise ValueError
 
         self.__dict__[key] = value
+
+    def output(self):
+        """Return a formatted list of all contained file sequences."""
+        for ext, data in sorted(self.items()):
+            for output in data.output():
+                yield [output, ext]
