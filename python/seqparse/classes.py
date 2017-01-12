@@ -102,7 +102,7 @@ class FrameSequence(MutableSet):
 
     def __initialise(self):
         """Define initial attributes for the class."""
-        self.__set = set()
+        self.__data = set()
 
         self._chunks = list()
         self._dirty = True
@@ -111,20 +111,20 @@ class FrameSequence(MutableSet):
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        return int(item) in self.__set
+        return int(item) in self.__data
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        return iter(self.__set)
+        return iter(self.__data)
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
-        return len(self.__set)
+        return len(self.__data)
 
     def __repr__(self):
         """Pretty representation of the instance."""
         blurb = "%s(pad=%d, frames=set(%s))"
-        return blurb % (type(self).__name__, self.pad, sorted(self.__set))
+        return blurb % (type(self).__name__, self.pad, sorted(self.__data))
 
     def __str__(self):
         """String reprentation of the frame sequence."""
@@ -160,12 +160,12 @@ class FrameSequence(MutableSet):
                 message = "Specified value is incorrectly padded (%d < %d)"
                 raise AttributeError(message % (len_item, self.pad))
 
-        self.__set.add(int(item))
+        self.__data.add(int(item))
         self._dirty = True
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
-        self.__set.discard(item)
+        self.__data.discard(item)
         self._dirty = True
 
     def update(self, iterable):
@@ -183,7 +183,6 @@ class FrameSequence(MutableSet):
             return
 
         all_frames = sorted(self)
-
         if num_frames == 1:
             self._chunks.append(FrameChunk(all_frames[0]))
 
@@ -222,36 +221,10 @@ class FrameSequence(MutableSet):
 
 
 ###############################################################################
-# Class: FileParent
-
-
-class FileParent(MutableMapping):
-    """Base class for FileExtension and FileSequence classes."""
-
-    _CHILD_CLASS = dict
-
-    def __init__(self):
-        """Initialise the instance."""
-        super(FileParent, self).__init__()
-
-    def __delitem__(self, key):
-        """Define key deletion logic (per standard dictionary)."""
-        del self.__dict__[key]
-
-    def __iter__(self):
-        """Define key iteration logic (per standard dictionary)."""
-        return iter(self.__dict__)
-
-    def __len__(self):
-        """Define item length logic (per standard dictionary)."""
-        return len(self.__dict__)
-
-
-###############################################################################
 # Class: FileExtensionn
 
 
-class FileExtension(FileParent):
+class FileExtension(MutableMapping):
     """Container for frame sequences, indexed by zero-padding."""
 
     _CHILD_CLASS = FrameSequence
@@ -259,13 +232,26 @@ class FileExtension(FileParent):
     def __init__(self, name=None):
         """Initialise the instance."""
         super(FileExtension, self).__init__()
+        self.__data = dict()
+
+    def __delitem__(self, key):
+        """Define key deletion logic (per standard dictionary)."""
+        del self.__data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__dict__:
-            self.__dict__[key] = self._CHILD_CLASS(pad=key)
+        if key not in self.__data:
+            self.__data[key] = self._CHILD_CLASS(pad=key)
 
-        return self.__dict__[key]
+        return self.__data[key]
+
+    def __iter__(self):
+        """Define key iteration logic (per standard dictionary)."""
+        return iter(self.__data)
+
+    def __len__(self):
+        """Define item length logic (per standard dictionary)."""
+        return len(self.__data)
 
     def __repr__(self):
         """Pretty representation of the instance."""
@@ -280,7 +266,7 @@ class FileExtension(FileParent):
         if not isinstance(value, self._CHILD_CLASS) or value is None:
             raise ValueError
 
-        self.__dict__[key] = value
+        self.__data[key] = value
 
     def output(self):
         """Return a formatted list of all contained file extentions."""
@@ -292,7 +278,7 @@ class FileExtension(FileParent):
 # Class: FileSequence
 
 
-class FileSequence(FileParent):
+class FileSequence(MutableMapping):
     """Representative for file sequences, indexed by file extension."""
 
     _CHILD_CLASS = FileExtension
@@ -300,13 +286,26 @@ class FileSequence(FileParent):
     def __init__(self):
         """Initialise the instance."""
         super(FileSequence, self).__init__()
+        self.__data = dict()
+
+    def __delitem__(self, key):
+        """Define key deletion logic (per standard dictionary)."""
+        del self.__data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__dict__:
-            self.__dict__[key] = self._CHILD_CLASS()
+        if key not in self.__data:
+            self.__data[key] = self._CHILD_CLASS()
 
-        return self.__dict__[key]
+        return self.__data[key]
+
+    def __iter__(self):
+        """Define key iteration logic (per standard dictionary)."""
+        return iter(self.__data)
+
+    def __len__(self):
+        """Define item length logic (per standard dictionary)."""
+        return len(self.__data)
 
     def __repr__(self):
         """Pretty representation of the instance."""
@@ -321,7 +320,7 @@ class FileSequence(FileParent):
         if not isinstance(value, self._CHILD_CLASS) or value is None:
             raise ValueError
 
-        self.__dict__[key] = value
+        self.__data[key] = value
 
     def output(self):
         """Return a formatted list of all contained file sequences."""
