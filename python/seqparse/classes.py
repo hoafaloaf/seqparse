@@ -183,32 +183,40 @@ class FrameSequence(MutableSet):
             return
 
         all_frames = sorted(self)
-        print "all:", all_frames
 
         if num_frames == 1:
             self._chunks.append(FrameChunk(all_frames[0]))
 
         else:
             current_frames = set()
-            last_step = 0
+            prev_step = 0
             for ii in xrange(num_frames - 1):
                 frames = all_frames[ii:ii + 2]
                 step = frames[1] - frames[0]
-                if not last_step:
-                    last_step = step
 
-                if last_step != step:
-                    chunk = FrameChunk(
-                        frames[0], frames[-1], step=step, pad=self.pad)
+                if not prev_step:
+                    prev_step = step
+
+                if prev_step != step:
+                    chunk = self._chunk_from_frames(current_frames, prev_step,
+                                                    self.pad)
                     self._chunks.append(chunk)
-                    last_step = 0
+                    prev_step = 0
                     current_frames = set([frames[1]])
 
                 else:
                     current_frames.update(frames)
 
-        print self._chunks
+            if current_frames:
+                chunk = self._chunk_from_frames(current_frames, step, self.pad)
+                self._chunks.append(chunk)
+
         self._dirty = False
+
+    def _chunk_from_frames(self, frames, step, pad):
+        """Internal shortcut for creating FrameChunk from a list of frames."""
+        frames = sorted(frames)
+        return FrameChunk(frames[0], frames[-1], step, pad)
 
 
 ###############################################################################
@@ -257,6 +265,11 @@ class FileExtension(FileParent):
 
         return self.__dict__[key]
 
+    def __repr__(self):
+        """Pretty representation of the instance."""
+        blurb = ("{name}(pads={pads})")
+        return blurb.format(name=type(self).__name__, pads=sorted(self))
+
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if isinstance(value, (list, tuple, set)):
@@ -287,6 +300,11 @@ class FileSequence(FileParent):
             self.__dict__[key] = self._CHILD_CLASS()
 
         return self.__dict__[key]
+
+    def __repr__(self):
+        """Pretty representation of the instance."""
+        blurb = ("{name}(exts={exts})")
+        return blurb.format(name=type(self).__name__, exts=sorted(self))
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""

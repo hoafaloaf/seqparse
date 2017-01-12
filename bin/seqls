@@ -31,6 +31,8 @@ def main(*args):
     for root, dir_names, file_names in scandir.walk(search_path):
         seqs.add_from_walk(root, file_names)
 
+    print seqs.output()
+
 
 if __name__ == "__main__":
     sys.exit(main(*sys.argv[1:]))
