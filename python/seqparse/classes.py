@@ -108,6 +108,7 @@ class FrameSequence(MutableSet):
         self._dirty = True
         self._output = None
         self._pad = 1
+        self._is_padded = False
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
@@ -137,6 +138,13 @@ class FrameSequence(MutableSet):
     def is_dirty(self):
         """Whether the output needs to be recalculated after an update."""
         return self._dirty
+
+    @property
+    def is_padded(self):
+        """Return whether the FrameSequence contains any zero-padded frames."""
+        if self.is_dirty:
+            self.calculate()
+        return self._is_padded
 
     @property
     def pad(self):
@@ -175,6 +183,7 @@ class FrameSequence(MutableSet):
 
     def calculate(self):
         """Calculate the output file sequence."""
+        self._is_padded = False
         self._output = ""
         del self._chunks[:]
 
@@ -210,7 +219,11 @@ class FrameSequence(MutableSet):
                 chunk = self._chunk_from_frames(current_frames, step, self.pad)
                 self._chunks.append(chunk)
 
-        # TODO: Optimize padding in cases similar to 1, 2, 1000.
+        # This will be used by the parent FileExtension instance during the
+        # zero-pad consolidation stage of the output process.
+        self._is_padded = all_frames[0] < 10**(self.pad - 1)
+
+        # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._chunks)
         self._dirty = False
 
@@ -244,7 +257,6 @@ class FileExtension(MutableMapping):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self.__data:
             self.__data[key] = self._CHILD_CLASS(pad=key)
-
         return self.__data[key]
 
     def __iter__(self):
@@ -264,7 +276,6 @@ class FileExtension(MutableMapping):
         """Define item setting logic (per standard dictionary)."""
         if isinstance(value, (list, tuple, set)):
             value = self._CHILD_CLASS(value)
-
         if not isinstance(value, self._CHILD_CLASS) or value is None:
             raise ValueError
 
@@ -283,6 +294,18 @@ class FileExtension(MutableMapping):
 
     def output(self):
         """Return a formatted list of all contained file extentions."""
+        # First, check to see if we need to consolidate our frame sequences.
+        data = sorted(self.items(), reverse=True)
+        while len(data) > 1:
+            pad, frames = data.pop(0)
+
+            # NOTE: the is_padded() method will force recalculation if the
+            # object is dirty.
+            if not frames.is_padded:
+                prev_pad, prev_frames = data[0]
+                prev_frames.update(frames)
+                del self[pad]
+
         for pad, frames in sorted(self.items()):
             yield str(frames)
 

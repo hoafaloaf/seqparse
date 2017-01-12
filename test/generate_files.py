@@ -5,7 +5,7 @@ import os
 import sys
 
 
-def generate_files(loc=None):
+def generate_files(loc=None, name="dog", ext="jpg"):
     """Generate some file sequences for Jakub's Python training ..."""
     if loc is None:
         loc = "."
@@ -25,7 +25,8 @@ def generate_files(loc=None):
 
     for pad, frame_list in sorted(frames.items()):
         for frame in frame_list:
-            file_name = os.path.join(loc, "dog.%0*d.jpg" % (pad, frame))
+            file_name = os.path.join(loc, "%s.%0*d.%s" %
+                                     (name, pad, frame, ext))
             if not os.path.exists(file_name):
                 print "Creating:", file_name
                 open(file_name, "a").close()
