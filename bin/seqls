@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+"""Command line tool for listing file sequences."""
+
+# Standard Libraries
+import inspect
+import os
+import sys
+
+# Third Party Libraries
+import scandir
+
+try:
+    import seqparse
+except:
+    ROOT_DIR = os.path.dirname(inspect.getsourcefile(lambda: None))
+    ROOT_DIR = os.path.dirname(os.path.abspath(ROOT_DIR))
+    sys.path.insert(0, os.path.join(ROOT_DIR, "python"))
+    import seqparse
+
+
+def main(*args):
+    """Wrap and initialise the seqparse class."""
+    search_path = "."
+    if args:
+        search_path = args[0]
+
+    search_path = os.path.abspath(search_path)
+
+    # Grab the files from the file system.
+    seqs = seqparse.Seqparse()
+    for root, dir_names, file_names in scandir.walk(search_path):
+        seqs.add_from_walk(root, file_names)
+
+
+if __name__ == "__main__":
+    sys.exit(main(*sys.argv[1:]))

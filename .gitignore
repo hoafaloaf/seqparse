@@ -1,0 +1,9 @@
+*.s?o
+*.pyc
+*.sw?
+.svn/
+.project
+.pydevproject
+.metadata.xml
+build/
+ideas/
