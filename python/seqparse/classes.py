@@ -234,6 +234,8 @@ class FileExtension(MutableMapping):
         super(FileExtension, self).__init__()
         self.__data = dict()
 
+        self.name = name
+
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
         del self.__data[key]
@@ -268,6 +270,17 @@ class FileExtension(MutableMapping):
 
         self.__data[key] = value
 
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = None
+        if val:
+            self._name = str(val)
+
     def output(self):
         """Return a formatted list of all contained file extentions."""
         for pad, frames in sorted(self.items()):
@@ -283,10 +296,12 @@ class FileSequence(MutableMapping):
 
     _CHILD_CLASS = FileExtension
 
-    def __init__(self):
+    def __init__(self, name=None):
         """Initialise the instance."""
         super(FileSequence, self).__init__()
         self.__data = dict()
+
+        self.name = name
 
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
@@ -295,7 +310,7 @@ class FileSequence(MutableMapping):
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self.__data:
-            self.__data[key] = self._CHILD_CLASS()
+            self.__data[key] = self._CHILD_CLASS(name=key)
 
         return self.__data[key]
 
@@ -322,8 +337,23 @@ class FileSequence(MutableMapping):
 
         self.__data[key] = value
 
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self._name
+
+    @name.setter
+    def name(self, val):
+        self._name = None
+        if val:
+            self._name = str(val)
+
     def output(self):
         """Return a formatted list of all contained file sequences."""
         for ext, data in sorted(self.items()):
             for output in data.output():
-                yield [output, ext]
+                if self.name:
+                    bits = (self.name, output, ext)
+                else:
+                    bits = (output, ext)
+                yield ".".join(bits)

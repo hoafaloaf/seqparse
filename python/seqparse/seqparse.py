@@ -39,7 +39,11 @@ class Seqparse(object):
             smatch = SEQ_EXPR.match(str(file_name))
             if smatch:
                 base_name, frame, file_ext = smatch.groups()
-                seq = self.sequences[os.path.join(root, base_name)]
+                base_name = os.path.join(root, base_name)
+
+                seq = self.sequences[base_name]
+                seq.name = base_name
+
                 ext = seq[file_ext]
                 pad = len(frame)
                 ext[pad].add(frame)
@@ -48,4 +52,4 @@ class Seqparse(object):
         """Return a list of the file sequences contained by the instance."""
         for base_name, file_seq in sorted(self.sequences.items()):
             for output in file_seq.output():
-                yield ".".join(tuple([base_name] + output))
+                yield output
