@@ -1,8 +1,86 @@
 """Classes utilized by the Seqparse class."""
 
+# Standard Libraries
 from collections import MutableMapping, MutableSet
 
 __all__ = ("FileExtension", "FileSequence", "FrameSequence")
+
+###############################################################################
+# Class: FrameChunk
+
+
+class FrameChunk(object):
+    """Representative for chunks of frames in a FrameSequence."""
+
+    def __init__(self, first, last=None, step=1, pad=1):
+        """Initialise the instance."""
+        self._data = dict(
+            first=None, last=None, length=None, pad=int(pad), step=None)
+        self._output = None
+
+        self.set_frames(first, last, step)
+
+    def __len__(self):
+        """Return the length of the frame chunk."""
+        return self._data["length"]
+
+    def __repr__(self):
+        """Pretty representation of the instance."""
+        blurb = ("{name}(first={first}, last={last}, step={step}, "
+                 "length={length}, pad={pad})")
+        return blurb.format(name=type(self).__name__, **self._data)
+
+    def __str__(self):
+        """String representation of the frame chunk."""
+        return self._output
+
+    @property
+    def first(self):
+        """The first frame of the chunk."""
+        return self._data["first"]
+
+    @property
+    def last(self):
+        """The last frame of the chunk."""
+        return self._data["last"]
+
+    @property
+    def pad(self):
+        """Integer zero-padding for the frames contained by the object."""
+        return self._data["pad"]
+
+    def set_frames(self, first, last=None, step=1):
+        """Set and validate the first and last frames of the chunk."""
+        if last is None:
+            last = first
+
+        first = int(first)
+        last = int(last)
+
+        if last < first:
+            message = "Last frame is less than first frame: %d < %d"
+            raise ValueError(message % (last, first))
+
+        # Calculate the length and the real last frame of the chunk.
+        step = max(1, int(step))
+        bits = (last - first) / step
+        last = first + bits * step
+        step = min(last - first, step)
+
+        # Calculate the string representation of the frame chunk.
+        self._output = "%0*d" % (self.pad, first)
+        if bits == 1:
+            self._output += ",%0*d" % (self.pad, last)
+        elif bits > 1:
+            self._output += "-%0*d" % (self.pad, last)
+
+        if step > 1:
+            self._output += "x%d" % step
+
+        self._data.update(first=first, last=last, length=(1 + bits), step=step)
+
+        return self._output
+
 
 ###############################################################################
 # Class: FrameSequence
@@ -15,11 +93,25 @@ class FrameSequence(MutableSet):
         """Initialise the instance."""
         super(FrameSequence, self).__init__()
 
-        self.__set = set()
+        self.__initialise()
+
         self.pad = pad
 
         for item in iterable or []:
             self.add(item)
+
+    def __initialise(self):
+        """Define initial attributes for the class."""
+        self.__set = set()
+
+        self._chunks = list()
+        self._dirty = True
+        self._output = None
+        self._pad = 1
+
+    def __contains__(self, item):
+        """Defining containment logic (per standard set)."""
+        return int(item) in self.__set
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
@@ -29,14 +121,22 @@ class FrameSequence(MutableSet):
         """Defining item length logic (per standard set)."""
         return len(self.__set)
 
-    def __contains__(self, item):
-        """Defining containment logic (per standard set)."""
-        return int(item) in self.__set
-
     def __repr__(self):
-        """String representation of the object instance."""
-        blurb = "%s(pad=%d, frames=%s)"
-        return blurb % (type(self).__name__, self.pad, self.__set)
+        """Pretty representation of the instance."""
+        blurb = "%s(pad=%d, frames=set(%s))"
+        return blurb % (type(self).__name__, self.pad, sorted(self.__set))
+
+    def __str__(self):
+        """String reprentation of the frame sequence."""
+        if self.is_dirty:
+            self.calculate()
+
+        return self._output
+
+    @property
+    def is_dirty(self):
+        """Whether the output needs to be recalculated after an update."""
+        return self._dirty
 
     @property
     def pad(self):
@@ -61,13 +161,54 @@ class FrameSequence(MutableSet):
                 raise AttributeError(message % (len_item, self.pad))
 
         self.__set.add(int(item))
+        self._dirty = True
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
         self.__set.discard(item)
+        self._dirty = True
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
+        for item in iterable:
+            self.add(item)
+
+    def calculate(self):
+        """Calculate the output file sequence."""
+        self._output = ""
+        del self._chunks[:]
+
+        num_frames = len(self)
+        if not num_frames:
+            return
+
+        all_frames = sorted(self)
+        print "all:", all_frames
+
+        if num_frames == 1:
+            self._chunks.append(FrameChunk(all_frames[0]))
+
+        else:
+            current_frames = set()
+            last_step = 0
+            for ii in xrange(num_frames - 1):
+                frames = all_frames[ii:ii + 2]
+                step = frames[1] - frames[0]
+                if not last_step:
+                    last_step = step
+
+                if last_step != step:
+                    chunk = FrameChunk(
+                        frames[0], frames[-1], step=step, pad=self.pad)
+                    self._chunks.append(chunk)
+                    last_step = 0
+                    current_frames = set([frames[1]])
+
+                else:
+                    current_frames.update(frames)
+
+        print self._chunks
+        self._dirty = False
 
 
 ###############################################################################

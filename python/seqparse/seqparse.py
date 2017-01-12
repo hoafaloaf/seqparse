@@ -35,11 +35,11 @@ class Seqparse(object):
         for file_name in file_names:
             smatch = SEQ_EXPR.match(file_name)
             if smatch:
-                bits = smatch.groupdict()
-                seq = self.sequences[bits["base"]]
-                ext = seq[bits["ext"]]
-                pad = len(bits["frame"])
+                base_name, frame, file_ext = smatch.groups()
+                seq = self.sequences[base_name]
+                ext = seq[file_ext]
+                pad = len(frame)
 
-                ext[pad].add(bits["frame"])
+                ext[pad].add(frame)
 
-                print ext[pad]
+        print self._seqs['dog']['jpg'][4]
