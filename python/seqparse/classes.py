@@ -75,7 +75,7 @@ class FrameChunk(object):
         elif bits > 1:
             self._output += "-%0*d" % (self.pad, last)
 
-        if step > 1:
+        if step > 1 and bits > 1:
             self._output += "x%d" % step
 
         self._data.update(first=first, last=last, length=(1 + bits), step=step)

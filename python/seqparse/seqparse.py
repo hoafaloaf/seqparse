@@ -24,8 +24,15 @@ class Seqparse(object):
 
     def __init__(self):
         """Initialise the instance."""
+        self._locs = defaultdict(
+            lambda: dict(seqs=defaultdict(FileSequence), singletons=set()))
         self._seqs = defaultdict(FileSequence)
         self._singletons = set()
+
+    @property
+    def locations(self):
+        """A dictionary of tracked singletons and file sequences."""
+        return self._locs
 
     @property
     def sequences(self):
