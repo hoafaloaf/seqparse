@@ -9,7 +9,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 
 try:
     from seqparse import get_parser
-except:
+except ImportError:
     ROOT_DIR = os.path.dirname(inspect.getsourcefile(lambda: None))
     ROOT_DIR = os.path.dirname(os.path.abspath(ROOT_DIR))
     sys.path.insert(0, os.path.join(ROOT_DIR, "python"))

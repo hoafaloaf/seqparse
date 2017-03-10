@@ -23,7 +23,7 @@ class FrameChunk(object):
 
     def __len__(self):
         """Return the length of the frame chunk."""
-        return self._data["length"]
+        return self._data["length"] or 0
 
     def __repr__(self):
         """Pretty representation of the instance."""
@@ -91,17 +91,6 @@ class FrameSequence(MutableSet):
 
     def __init__(self, pad=1, iterable=None):
         """Initialise the instance."""
-        super(FrameSequence, self).__init__()
-
-        self.__initialise()
-
-        self.pad = pad
-
-        for item in iterable or []:
-            self.add(item)
-
-    def __initialise(self):
-        """Define initial attributes for the class."""
         self.__data = set()
 
         self._chunks = list()
@@ -109,6 +98,11 @@ class FrameSequence(MutableSet):
         self._output = None
         self._pad = 1
         self._is_padded = False
+
+        self.pad = pad
+
+        for item in iterable or []:
+            self.add(item)
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
@@ -198,8 +192,8 @@ class FrameSequence(MutableSet):
         else:
             current_frames = set()
             prev_step = 0
-            for ii in xrange(num_frames - 1):
-                frames = all_frames[ii:ii + 2]
+            for index in xrange(num_frames - 1):
+                frames = all_frames[index:index + 2]
                 step = frames[1] - frames[0]
 
                 if not prev_step:
@@ -227,7 +221,8 @@ class FrameSequence(MutableSet):
         self._output = ",".join(str(x) for x in self._chunks)
         self._dirty = False
 
-    def _chunk_from_frames(self, frames, step, pad):
+    @staticmethod
+    def _chunk_from_frames(frames, step, pad):
         """Internal shortcut for creating FrameChunk from a list of frames."""
         frames = sorted(frames)
         return FrameChunk(frames[0], frames[-1], step, pad)
@@ -244,8 +239,8 @@ class FileExtension(MutableMapping):
 
     def __init__(self, name=None):
         """Initialise the instance."""
-        super(FileExtension, self).__init__()
         self.__data = dict()
+        self.__name = None
 
         self.name = name
 
@@ -284,13 +279,13 @@ class FileExtension(MutableMapping):
     @property
     def name(self):
         """The (base) name of the file sequence."""
-        return self._name
+        return self.__name
 
     @name.setter
     def name(self, val):
-        self._name = None
+        self.__name = None
         if val:
-            self._name = str(val)
+            self.__name = str(val)
 
     def output(self):
         """Return a formatted list of all contained file extentions."""
@@ -302,7 +297,9 @@ class FileExtension(MutableMapping):
             # NOTE: the is_padded() method will force recalculation if the
             # object is dirty.
             if not frames.is_padded:
-                prev_pad, prev_frames = data[0]
+                # TODO: prev_pad is unused, but leaving here for reference.
+                # prev_pad, prev_frames = data[0]
+                prev_frames = data[0][1]
                 prev_frames.update(frames)
                 del self[pad]
 
@@ -321,8 +318,8 @@ class FileSequence(MutableMapping):
 
     def __init__(self, name=None):
         """Initialise the instance."""
-        super(FileSequence, self).__init__()
         self.__data = dict()
+        self.__name = None
 
         self.name = name
 
@@ -363,13 +360,13 @@ class FileSequence(MutableMapping):
     @property
     def name(self):
         """The (base) name of the file sequence."""
-        return self._name
+        return self.__name
 
     @name.setter
     def name(self, val):
-        self._name = None
+        self.__name = None
         if val:
-            self._name = str(val)
+            self.__name = str(val)
 
     def output(self):
         """Return a formatted list of all contained file sequences."""
