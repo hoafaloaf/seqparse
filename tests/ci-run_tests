@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pp=$(dirname $(readlink -f $0))
+pp=$(dirname $(dirname $(readlink -f $0)))
 export PYTHONPATH=${pp}/python:$PYTHONPATH
 
 nosetests -v -s tests --with-xunit --all-modules --traverse-namespace \

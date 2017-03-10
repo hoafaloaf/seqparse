@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pp=$(dirname $(readlink -f $0))
+pp=$(dirname $(dirname $(readlink -f $0)))
 export PYTHONPATH=${pp}/python:$PYTHONPATH
 
 nosetests -v -s tests --with-xunit --all-modules --traverse-namespace \
@@ -9,5 +9,5 @@ nosetests -v -s tests --with-xunit --all-modules --traverse-namespace \
 python -m coverage xml --include=seqparse*
 
 pylint -d I0011,R0204,R0801 seqparse \
-  --msg-template='{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}]' \
+  --msg-template='{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}' \
   > pylint.out

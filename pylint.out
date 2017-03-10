@@ -1,7 +1,7 @@
 ************* Module seqparse.classes
-python\seqparse\classes.py:300: [W0511(fixme), ] TODO: prev_pad is unused, but leaving here for reference.]
+python\seqparse\classes.py:300: [W0511(fixme), ] TODO: prev_pad is unused, but leaving here for reference.]
 ************* Module seqparse.seqparse
-python\seqparse\seqparse.py:84: [W0511(fixme), ] TODO: Implement tree option.]
+python\seqparse\seqparse.py:84: [W0511(fixme), ] TODO: Implement tree option.]
 python\seqparse\seqparse.py:98: [W0612(unused-variable), Seqparse.scan_path] Unused variable 'dir_names']
 
 
