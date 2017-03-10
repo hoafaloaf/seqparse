@@ -10,4 +10,4 @@ pipelines:
     - step:
       script: # Modify the commands below to build your repository.
         - pip install -U coverage mock nose pylint scandir
-        - bash tests/ci-run_tests
+        - bash seqparse/test/ci-run_tests
