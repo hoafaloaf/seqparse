@@ -4,13 +4,13 @@ python\seqparse\classes.py:300: [W0511(fixme), ] TODO: prev_pad is unused, but l
 python\seqparse\seqparse.py:84: [W0511(fixme), ] TODO: Implement tree option.]
 python\seqparse\seqparse.py:98: [W0612(unused-variable), Seqparse.scan_path] Unused variable 'dir_names']
 
-
-Report
-======
-268 statements analysed.
-
-Statistics by type
-------------------
+
+Report
+======
+268 statements analysed.
+
+Statistics by type
+------------------
 
 +---------+-------+-----------+-----------+------------+---------+
 |type     |number |old number |difference |%documented |%badname |
@@ -23,20 +23,20 @@ Statistics by type
 +---------+-------+-----------+-----------+------------+---------+
 |function |2      |2          |=          |100.00      |0.00     |
 +---------+-------+-----------+-----------+------------+---------+
-
-
-
-External dependencies
----------------------
+
+
+
+External dependencies
+---------------------
 ::
-
-    scandir (seqparse.seqparse)
-    seqparse (seqparse.seqparse)
-
-
-
-Raw metrics
------------
+
+    scandir (seqparse.seqparse)
+    seqparse (seqparse.seqparse)
+
+
+
+Raw metrics
+-----------
 
 +----------+-------+------+---------+-----------+
 |type      |number |%     |previous |difference |
@@ -49,11 +49,11 @@ Raw metrics
 +----------+-------+------+---------+-----------+
 |empty     |123    |24.31 |123      |=          |
 +----------+-------+------+---------+-----------+
-
-
-
-Duplication
------------
+
+
+
+Duplication
+-----------
 
 +-------------------------+------+---------+-----------+
 |                         |now   |previous |difference |
@@ -62,11 +62,11 @@ Duplication
 +-------------------------+------+---------+-----------+
 |percent duplicated lines |0.000 |0.000    |=          |
 +-------------------------+------+---------+-----------+
-
-
-
-Messages by category
---------------------
+
+
+
+Messages by category
+--------------------
 
 +-----------+-------+---------+-----------+
 |type       |number |previous |difference |
@@ -79,11 +79,11 @@ Messages by category
 +-----------+-------+---------+-----------+
 |error      |0      |0        |=          |
 +-----------+-------+---------+-----------+
-
-
-
-% errors / warnings by module
------------------------------
+
+
+
+% errors / warnings by module
+-----------------------------
 
 +------------------+------+--------+---------+-----------+
 |module            |error |warning |refactor |convention |
@@ -92,11 +92,11 @@ Messages by category
 +------------------+------+--------+---------+-----------+
 |seqparse.classes  |0.00  |33.33   |0.00     |0.00       |
 +------------------+------+--------+---------+-----------+
-
-
-
-Messages
---------
+
+
+
+Messages
+--------
 
 +----------------+------------+
 |message id      |occurrences |
@@ -105,10 +105,10 @@ Messages
 +----------------+------------+
 |unused-variable |1           |
 +----------------+------------+
-
-
-
-Global evaluation
------------------
-Your code has been rated at 9.89/10 (previous run: 9.89/10, +0.00)
-
+
+
+
+Global evaluation
+-----------------
+Your code has been rated at 9.89/10 (previous run: 9.89/10, +0.00)
+

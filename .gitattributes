@@ -1,0 +1,6 @@
+*.cfg text eol=lf
+*.out text eol=lf
+*.py text eol=lf
+*rc text eol=lf
+*.bat text eol=crlf
+Dockerfile text eol=crlf
