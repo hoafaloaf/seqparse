@@ -8,6 +8,6 @@ image: python:2.7.13
 pipelines:
   default:
     - step:
-        script: # Modify the commands below to build your repository.
-          - pip install -U coverage mock nose pylint scandir
-          - bash bitbucket-run_tests
+      script: # Modify the commands below to build your repository.
+        - pip install -U coverage mock nose pylint scandir
+        - bash ci-run_tests
