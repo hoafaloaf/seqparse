@@ -1,9 +1,12 @@
-*.s?o
 *.pyc
+*.s?o
 *.sw?
 .svn/
 .project
 .pydevproject
 .metadata.xml
-build/
-ideas/
+/*.egg-info
+/*.egg
+/build/
+/dist/
+/ideas/
