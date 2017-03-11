@@ -154,7 +154,7 @@ class FrameSequence(MutableSet):
         if isinstance(item, basestring):
             try:
                 int(item)
-            except:
+            except AttributeError:
                 raise AttributeError("Invalid value specified (%s)" % item)
 
             len_item = len(item)

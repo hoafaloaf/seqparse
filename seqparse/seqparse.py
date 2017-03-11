@@ -87,11 +87,11 @@ class Seqparse(object):
         """Yield a list of contained file sequences and singletons."""
         for loc, data in sorted(self.locations.items()):
             for file_seq in sorted(data["seqs"].values()):
-                for output in file_seq.output():
-                    yield os.path.join(loc, output)
+                for seq_name in file_seq.output():
+                    yield os.path.join(loc, seq_name)
 
-                for file_name in sorted(data["files"]):
-                    yield os.path.join(loc, file_name)
+            for file_name in sorted(data["files"]):
+                yield os.path.join(loc, file_name)
 
     def scan_path(self, search_path):
         """Scan supplied path, add all discovered files to the instance."""
