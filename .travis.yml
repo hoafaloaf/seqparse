@@ -4,5 +4,5 @@ python:
 install:
   - pip install -U coverage mock nose pylint scandir
 script:
-  - chmod -R a-x seqparse
+  - chmod a-x seqparse/test/*.py
   - bash seqparse/test/ci-run_tests
