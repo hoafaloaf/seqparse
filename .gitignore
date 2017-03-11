@@ -7,6 +7,10 @@
 .metadata.xml
 /*.egg-info
 /*.egg
+/*.xml
+/.coverage
+/.noseids
 /build/
+/cover/
 /dist/
 /ideas/
