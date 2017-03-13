@@ -117,7 +117,7 @@ class TestFileDiscovery(unittest.TestCase):
         self.assertEqual(str(frame_seq), frame_seq_output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_sequences_complex(self, mock_walk):
+    def test_scan_path__complex1(self, mock_walk):
         """Test complex file sequence discovery from disk location."""
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],

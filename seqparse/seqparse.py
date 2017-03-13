@@ -86,7 +86,7 @@ class Seqparse(object):
     # def output(self, tree=False):
     def output(self):
         """Yield a list of contained file sequences and singletons."""
-        for loc, data in sorted(self.locations.items()):
+        for data in sorted(self.locations.values()):
             for file_seq in sorted(data["seqs"].values()):
                 for seq_name in file_seq.output():
                     yield seq_name
