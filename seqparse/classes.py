@@ -405,7 +405,6 @@ class Singletons(MutableSet):
         self.__data = set()
 
         self._path = None
-        self._output = None
 
         for item in iterable or []:
             self.add(item)
@@ -434,11 +433,6 @@ class Singletons(MutableSet):
         return "\n".join(list(self.output()))
 
     @property
-    def is_dirty(self):
-        """Whether the output needs to be recalculated after an update."""
-        return self._dirty
-
-    @property
     def path(self):
         """Directory in which the contained files are located."""
         return self._path
@@ -450,7 +444,6 @@ class Singletons(MutableSet):
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         self.__data.add(str(item))
-        self._dirty = True
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""

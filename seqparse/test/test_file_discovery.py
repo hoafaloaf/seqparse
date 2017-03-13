@@ -13,11 +13,7 @@ from seqparse import get_parser
 def _generate_files(name="dog", ext="jpg", frames=None):
     """Generate some file sequences for seqparse testing."""
     if frames is None:
-        frames = {
-            1: [5, 6, 7, 8, 114, 199, 2000],
-            3: [8, 9, 10, 12],
-            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
-        }
+        frames = {4: [0]}
 
     file_names = set()
 
@@ -119,3 +115,63 @@ class TestFileDiscovery(unittest.TestCase):
 
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_scan_path_sequences_complex(self, mock_walk):
+        """Test complex file sequence discovery from disk location."""
+        frames = {
+            1: [5, 6, 7, 8, 114, 199, 2000],
+            3: [8, 9, 10, 12],
+            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
+        }
+
+        input_files = _generate_files(
+            ext=self._source_ext, frames=frames, name=self._source_file_name)
+
+        # Expected output frame sequences. Note how frames 114, 199 move to the
+        # "pad 3" group and 2000 moves to the "pad 4" group!
+        output_seqs = {
+            1: "5-8",
+            3: "008-010,012,114,199",
+            4: "0000-0006,0008-0012x2,0101,2000"
+        }
+
+        # Expected final output (where "/" is os.sep):
+        # test_dir/TEST_DIR.5-8.exr
+        # test_dir/TEST_DIR.008-010,012,114,199.exr
+        # test_dir/TEST_DIR.0000-0006,0008-0012x2,0101,2000.exr
+
+        mock_walk.return_value = [(self._source_path, (), input_files)]
+
+        parser = get_parser()
+        parser.scan_path(self._source_path)
+
+        final_output = list()
+        for pad, seq_frames in sorted(output_seqs.items()):
+            bits = (self._source_file_name, seq_frames, self._source_ext)
+            final_output.append(
+                os.path.join(self._source_path, ".".join(bits)))
+
+        data = parser.sequences
+
+        # Check the structure of the sequences property.
+        self.assertIn(self._source_path, data)
+        self.assertEqual(len(data), 1)
+        self.assertIn(self._source_file_name, data[self._source_path])
+        self.assertEqual(len(data[self._source_path]), 1)
+
+        # Now check the file sequence itself.
+        file_seq = data[self._source_path][self._source_file_name]
+
+        test_output = list(file_seq.output())
+        self.assertEqual(len(test_output), 3)
+        self.assertEqual(test_output, final_output)
+
+        self.assertIn(self._source_ext, file_seq)
+        self.assertEqual(len(file_seq), 1)
+        self.assertEqual(set(file_seq[self._source_ext]), set(output_seqs))
+
+        # And finally, the frame sequences.
+        for pad in sorted(output_seqs):
+            self.assertEqual(output_seqs[pad],
+                             str(file_seq[self._source_ext][pad]))
