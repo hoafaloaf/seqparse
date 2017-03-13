@@ -8,7 +8,7 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequence
+from .classes import FileSequence, Singletons
 
 __all__ = ("Seqparse", )
 
@@ -26,7 +26,7 @@ class Seqparse(object):
     def __init__(self):
         """Initialise the instance."""
         self._locs = defaultdict(
-            lambda: dict(seqs=defaultdict(FileSequence), files=set()))
+            lambda: dict(seqs=defaultdict(FileSequence), files=Singletons()))
 
     @property
     def locations(self):
@@ -36,22 +36,12 @@ class Seqparse(object):
     @property
     def sequences(self):
         """A dictionary of tracked file sequences."""
-        seqs = dict()
-        for loc, data in self.locations.iteritems():
-            if data["seqs"]:
-                seqs[loc] = data["seqs"]
-
-        return seqs
+        return self._get_data("seqs")
 
     @property
     def singletons(self):
         """A dictionary of tracked singleton files."""
-        file_names = dict()
-        for loc, data in self.locations.iteritems():
-            if data["files"]:
-                file_names[loc] = data["files"]
-
-        return file_names
+        return self._get_data("files")
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
@@ -62,17 +52,28 @@ class Seqparse(object):
             dir_name, base_name = os.path.split(base_name)
 
             loc = self.locations[dir_name]
-            seq = loc["seqs"][base_name]
-            seq.name = base_name
+            sequence = loc["seqs"][base_name]
 
-            ext = seq[file_ext]
+            # Set the name and path properties at initialization.
+            if not sequence:
+                sequence.name = base_name
+                sequence.path = dir_name
+
+            ext = sequence[file_ext]
             pad = len(frame)
             ext[pad].add(frame)
 
         else:
             dir_name, base_name = os.path.split(file_name)
             loc = self.locations[dir_name]
-            loc["files"].add(base_name)
+
+            singletons = loc["files"]
+
+            # Set the path properties at initialization.
+            if not singletons:
+                singletons.path = dir_name
+
+            singletons.add(base_name)
 
     def add_from_walk(self, root, file_names):
         """Shortcut for adding file sequences from os/scandir.walk."""
@@ -88,15 +89,24 @@ class Seqparse(object):
         for loc, data in sorted(self.locations.items()):
             for file_seq in sorted(data["seqs"].values()):
                 for seq_name in file_seq.output():
-                    yield os.path.join(loc, seq_name)
+                    yield seq_name
 
-            for file_name in sorted(data["files"]):
-                yield os.path.join(loc, file_name)
+            for file_name in sorted(data["files"].output()):
+                yield file_name
 
     def scan_path(self, search_path):
         """Scan supplied path, add all discovered files to the instance."""
         for root, dir_names, file_names in scandir.walk(search_path):
             self.add_from_walk(root, file_names)
+
+    def _get_data(self, typ):
+        """Return dictionary of the specified data type from the instance."""
+        output = dict()
+        for loc, data in self.locations.iteritems():
+            if data[typ]:
+                output[loc] = data[typ]
+
+        return output
 
     @classmethod
     def validate_frame_sequence(cls, frame_seq):

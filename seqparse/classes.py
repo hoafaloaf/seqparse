@@ -1,9 +1,10 @@
 """Classes utilized by the Seqparse class."""
 
 # Standard Libraries
+import os
 from collections import MutableMapping, MutableSet
 
-__all__ = ("FileExtension", "FileSequence", "FrameSequence")
+__all__ = ("FileExtension", "FileSequence", "FrameSequence", "Singletons")
 
 ###############################################################################
 # Class: FrameChunk
@@ -240,7 +241,7 @@ class FileExtension(MutableMapping):
     def __init__(self, name=None):
         """Initialise the instance."""
         self.__data = dict()
-        self.__name = None
+        self._name = None
 
         self.name = name
 
@@ -279,13 +280,13 @@ class FileExtension(MutableMapping):
     @property
     def name(self):
         """The (base) name of the file sequence."""
-        return self.__name
+        return self._name
 
     @name.setter
     def name(self, val):
-        self.__name = None
+        self._name = None
         if val:
-            self.__name = str(val)
+            self._name = str(val)
 
     def output(self):
         """Return a formatted list of all contained file extentions."""
@@ -316,12 +317,15 @@ class FileSequence(MutableMapping):
 
     _CHILD_CLASS = FileExtension
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, file_path=None):
         """Initialise the instance."""
         self.__data = dict()
-        self.__name = None
+
+        self._name = None
+        self._path = None
 
         self.name = name
+        self.path = file_path
 
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
@@ -344,8 +348,9 @@ class FileSequence(MutableMapping):
 
     def __repr__(self):
         """Pretty representation of the instance."""
-        blurb = ("{name}(exts={exts})")
-        return blurb.format(name=type(self).__name__, exts=sorted(self))
+        blurb = ("{name}(path='{path}', exts={exts})")
+        return blurb.format(
+            name=type(self).__name__, exts=sorted(self), path=self.path)
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
@@ -360,13 +365,22 @@ class FileSequence(MutableMapping):
     @property
     def name(self):
         """The (base) name of the file sequence."""
-        return self.__name
+        return self._name
 
     @name.setter
     def name(self, val):
-        self.__name = None
+        self._name = None
         if val:
-            self.__name = str(val)
+            self._name = str(val)
+
+    @property
+    def path(self):
+        """Directory in which the contained files are located."""
+        return self._path
+
+    @path.setter
+    def path(self, val):
+        self._path = str(val or "")
 
     def output(self):
         """Return a formatted list of all contained file sequences."""
@@ -376,4 +390,78 @@ class FileSequence(MutableMapping):
                     bits = (self.name, output, ext)
                 else:
                     bits = (output, ext)
-                yield ".".join(bits)
+                yield os.path.join(self.path, ".".join(bits))
+
+
+###############################################################################
+# class: Singletons
+
+
+class Singletons(MutableSet):
+    """Representative for singleton files."""
+
+    def __init__(self, iterable=None, file_path=None):
+        """Initialise the instance."""
+        self.__data = set()
+
+        self._path = None
+        self._output = None
+
+        for item in iterable or []:
+            self.add(item)
+
+        self.path = file_path
+
+    def __contains__(self, item):
+        """Defining containment logic (per standard set)."""
+        return str(item) in self.__data
+
+    def __iter__(self):
+        """Defining item iteration logic (per standard set)."""
+        return iter(self.__data)
+
+    def __len__(self):
+        """Defining item length logic (per standard set)."""
+        return len(self.__data)
+
+    def __repr__(self):
+        """Pretty representation of the instance."""
+        blurb = "%s(path='%s', files=set(%s))"
+        return blurb % (type(self).__name__, self.path, sorted(self.__data))
+
+    def __str__(self):
+        """String reprentation of the singleton files."""
+        return "\n".join(list(self.output()))
+
+    @property
+    def is_dirty(self):
+        """Whether the output needs to be recalculated after an update."""
+        return self._dirty
+
+    @property
+    def path(self):
+        """Directory in which the contained files are located."""
+        return self._path
+
+    @path.setter
+    def path(self, val):
+        self._path = str(val or "")
+
+    def add(self, item):
+        """Defining item addition logic (per standard set)."""
+        self.__data.add(str(item))
+        self._dirty = True
+
+    def discard(self, item):
+        """Defining item discard logic (per standard set)."""
+        self.__data.discard(item)
+
+    def update(self, iterable):
+        """Defining item update logic (per standard set)."""
+        for item in iterable:
+            self.add(item)
+
+    def output(self):
+        """Return a formatted list of all contained file sequences."""
+        for file_name in sorted(self):
+            yield os.path.join(self.path, file_name)

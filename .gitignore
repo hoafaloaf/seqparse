@@ -10,6 +10,7 @@
 /*.xml
 /.coverage
 /.noseids
+/pylint.out
 /build/
 /cover/
 /dist/

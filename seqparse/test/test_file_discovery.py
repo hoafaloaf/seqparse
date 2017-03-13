@@ -14,9 +14,9 @@ def _generate_files(name="dog", ext="jpg", frames=None):
     """Generate some file sequences for seqparse testing."""
     if frames is None:
         frames = {
-            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101],
+            1: [5, 6, 7, 8, 114, 199, 2000],
             3: [8, 9, 10, 12],
-            1: [5, 6, 7, 8, 114, 199, 2000]
+            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
         }
 
     file_names = set()
@@ -60,6 +60,7 @@ class TestFileDiscovery(unittest.TestCase):
         file_names = parser.singletons
 
         self.assertIn(self._source_path, file_names)
+        self.assertEqual(self._source_path, file_names[self._source_path].path)
         self.assertEqual(len(file_names), 1)
         self.assertEqual(
             len(file_names[self._source_path]), len(self._singletons))
@@ -104,8 +105,9 @@ class TestFileDiscovery(unittest.TestCase):
         file_seq = data[self._source_path][self._source_file_name]
 
         test_output = list(file_seq.output())
+
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], file_seq_output)
+        self.assertEqual(test_output[0], final_output)
 
         self.assertIn(self._source_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
