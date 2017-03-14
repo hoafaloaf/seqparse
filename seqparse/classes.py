@@ -26,7 +26,7 @@ class FrameChunk(object):
         """Return the length of the frame chunk."""
         return self._data["length"] or 0
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = ("{name}(first={first}, last={last}, step={step}, "
                  "length={length}, pad={pad})")
@@ -117,7 +117,7 @@ class FrameSequence(MutableSet):
         """Defining item length logic (per standard set)."""
         return len(self.__data)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "%s(pad=%d, frames=set(%s))"
         return blurb % (type(self).__name__, self.pad, sorted(self.__data))
@@ -263,7 +263,7 @@ class FileExtension(MutableMapping):
         """Define item length logic (per standard dictionary)."""
         return len(self.__data)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "{name}(pads={pads})"
         return blurb.format(name=type(self).__name__, pads=sorted(self))
@@ -346,7 +346,7 @@ class FileSequence(MutableMapping):
         """Define item length logic (per standard dictionary)."""
         return len(self.__data)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = ("{name}(path='{path}', exts={exts})")
         return blurb.format(
@@ -423,7 +423,7 @@ class Singletons(MutableSet):
         """Defining item length logic (per standard set)."""
         return len(self.__data)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "%s(path='%s', files=set(%s))"
         return blurb % (type(self).__name__, self.path, sorted(self.__data))
