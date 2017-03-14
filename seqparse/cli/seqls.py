@@ -2,21 +2,14 @@
 """Command line tool for listing file sequences."""
 
 # Standard Libraries
-import inspect
 import os
 import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-try:
-    from seqparse import get_parser
-except ImportError:
-    ROOT_DIR = os.path.dirname(inspect.getsourcefile(lambda: None))
-    ROOT_DIR = os.path.dirname(os.path.abspath(ROOT_DIR))
-    sys.path.insert(0, os.path.join(ROOT_DIR, "python"))
-    from seqparse import get_parser
+from seqparse import get_parser
 
 
-def main(search_path=None, level=0):
+def seqls(search_path=None, level=0):
     """Wrap and initialise the seqparse class."""
     if not search_path:
         search_paths = ["."]
@@ -39,7 +32,8 @@ def main(search_path=None, level=0):
         print output
 
 
-if __name__ == "__main__":
+def main():
+    """Main entry point to the seqls script."""
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument(
@@ -60,4 +54,8 @@ if __name__ == "__main__":
     # Parse the arguments.
     args = parser.parse_args()
 
-    sys.exit(main(**vars(args)))
+    sys.exit(seqls(**vars(args)))
+
+
+if __name__ == "__main__":
+    main()
