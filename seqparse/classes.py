@@ -15,7 +15,7 @@ class FrameChunk(object):
 
     def __init__(self, first, last=None, step=1, pad=1):
         """Initialise the instance."""
-        self._data = dict(
+        self.__data = dict(
             first=None, last=None, length=None, pad=int(pad), step=None)
         self._output = None
 
@@ -24,13 +24,13 @@ class FrameChunk(object):
 
     def __len__(self):
         """Return the length of the frame chunk."""
-        return self._data["length"] or 0
+        return self.__data["length"] or 0
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = ("{name}(first={first}, last={last}, step={step}, "
                  "length={length}, pad={pad})")
-        return blurb.format(name=type(self).__name__, **self._data)
+        return blurb.format(name=type(self).__name__, **self.__data)
 
     def __str__(self):
         """String representation of the frame chunk."""
@@ -39,17 +39,22 @@ class FrameChunk(object):
     @property
     def first(self):
         """The first frame of the chunk."""
-        return self._data["first"]
+        return self.__data["first"]
 
     @property
     def last(self):
         """The last frame of the chunk."""
-        return self._data["last"]
+        return self.__data["last"]
 
     @property
     def pad(self):
         """Integer zero-padding for the frames contained by the object."""
-        return self._data["pad"]
+        return self.__data["pad"]
+
+    @property
+    def step(self):
+        """Integer step size for the frame chunk."""
+        return max(self.__data["step"] or 1, 1)
 
     def set_frames(self, first, last=None, step=1):
         """Set and validate the first and last frames of the chunk."""
@@ -79,7 +84,8 @@ class FrameChunk(object):
         if step > 1 and bits > 1:
             self._output += "x%d" % step
 
-        self._data.update(first=first, last=last, length=(1 + bits), step=step)
+        self.__data.update(
+            first=first, last=last, length=(1 + bits), step=step)
         return self._output
 
 
