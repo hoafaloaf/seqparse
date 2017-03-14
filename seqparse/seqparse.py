@@ -8,9 +8,13 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequence
+from .classes import FileSequence, FrameChunk, Singletons
 
 __all__ = ("Seqparse", )
+
+# TODO: Add support for ...
+# 1. Negative increments
+# 2. Negative frame numbers
 
 ###############################################################################
 # Class: Seqparse
@@ -19,14 +23,16 @@ __all__ = ("Seqparse", )
 class Seqparse(object):
     """Storage and parsing engine for file sequences."""
 
-    FILE_EXPR = re.compile(r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)")
+    BITS_EXPR = re.compile(
+        r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$")
+    FILE_EXPR = re.compile(r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$")
     SEQ_EXPR = re.compile(
-        r"(\d+(?:-\d+(?:x\d+)?)?(?:,\d+(?:-\d+(?:x\d+)?)?)*)")
+        r",*(\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*),*$")
 
     def __init__(self):
         """Initialise the instance."""
         self._locs = defaultdict(
-            lambda: dict(seqs=defaultdict(FileSequence), files=set()))
+            lambda: dict(seqs=defaultdict(FileSequence), files=Singletons()))
 
     @property
     def locations(self):
@@ -36,22 +42,12 @@ class Seqparse(object):
     @property
     def sequences(self):
         """A dictionary of tracked file sequences."""
-        seqs = dict()
-        for loc, data in self.locations.iteritems():
-            if data["seqs"]:
-                seqs[loc] = data["seqs"]
-
-        return seqs
+        return self._get_data("seqs")
 
     @property
     def singletons(self):
         """A dictionary of tracked singleton files."""
-        file_names = dict()
-        for loc, data in self.locations.iteritems():
-            if data["files"]:
-                file_names[loc] = data["files"]
-
-        return file_names
+        return self._get_data("files")
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
@@ -62,17 +58,28 @@ class Seqparse(object):
             dir_name, base_name = os.path.split(base_name)
 
             loc = self.locations[dir_name]
-            seq = loc["seqs"][base_name]
-            seq.name = base_name
+            sequence = loc["seqs"][base_name]
 
-            ext = seq[file_ext]
+            # Set the name and path properties at initialization.
+            if not sequence:
+                sequence.name = base_name
+                sequence.path = dir_name
+
+            ext = sequence[file_ext]
             pad = len(frame)
             ext[pad].add(frame)
 
         else:
             dir_name, base_name = os.path.split(file_name)
             loc = self.locations[dir_name]
-            loc["files"].add(base_name)
+
+            singletons = loc["files"]
+
+            # Set the path properties at initialization.
+            if not singletons:
+                singletons.path = dir_name
+
+            singletons.add(base_name)
 
     def add_from_walk(self, root, file_names):
         """Shortcut for adding file sequences from os/scandir.walk."""
@@ -85,22 +92,47 @@ class Seqparse(object):
     # def output(self, tree=False):
     def output(self):
         """Yield a list of contained file sequences and singletons."""
-        for loc, data in sorted(self.locations.items()):
+        for data in sorted(self.locations.values()):
             for file_seq in sorted(data["seqs"].values()):
-                for output in file_seq.output():
-                    yield os.path.join(loc, output)
+                for seq_name in file_seq.output():
+                    yield seq_name
 
-                for file_name in sorted(data["files"]):
-                    yield os.path.join(loc, file_name)
+            for file_name in sorted(data["files"].output()):
+                yield file_name
 
     def scan_path(self, search_path):
         """Scan supplied path, add all discovered files to the instance."""
         for root, dir_names, file_names in scandir.walk(search_path):
             self.add_from_walk(root, file_names)
 
+    def _get_data(self, typ):
+        """Return dictionary of the specified data type from the instance."""
+        output = dict()
+        for loc, data in self.locations.iteritems():
+            if data[typ]:
+                output[loc] = data[typ]
+
+        return output
+
     @classmethod
     def validate_frame_sequence(cls, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
         if cls.SEQ_EXPR.match(frame_seq):
-            return True
-        return False
+            bits = list()
+            for bit in frame_seq.split(","):
+                if not bit:
+                    continue
+
+                first, last, step = cls.BITS_EXPR.match(bit).groups()
+
+                try:
+                    chunk = FrameChunk(first, last, step, len(first))
+                except ValueError:
+                    return None
+
+                bits.append(str(chunk))
+
+            # Looks good!
+            return ",".join(bits)
+
+        return None
