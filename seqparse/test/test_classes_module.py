@@ -29,12 +29,12 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
             self.assertEqual(len(chunk), bit[-1])
-            print "o %s -> %s (%r, %d frames)" % (bit, chunk, chunk,
-                                                  len(chunk))
+            print "  o %s -> %s (%r, %d frames)" % (bit, chunk, chunk,
+                                                    len(chunk))
 
         print "\n  BAD CHUNKS\n  -------------"
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
             except ValueError as error:
-                print "o ERROR: %s --> %s" % (bit, error)
+                print "  o ERROR: %s --> %s" % (bit, error)

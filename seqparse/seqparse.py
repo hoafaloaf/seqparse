@@ -81,7 +81,7 @@ class Seqparse(object):
 
             singletons.add(base_name)
 
-    def add_from_walk(self, root, file_names):
+    def add_from_scan(self, root, file_names):
         """Shortcut for adding file sequences from os/scandir.walk."""
         root = str(root)
 
@@ -100,10 +100,18 @@ class Seqparse(object):
             for file_name in sorted(data["files"].output()):
                 yield file_name
 
-    def scan_path(self, search_path):
+    def scan_path(self, search_path, level=0):
         """Scan supplied path, add all discovered files to the instance."""
+        search_path = search_path.rstrip(os.path.sep)
+        search_seps = search_path.count(os.path.sep)
+
         for root, dir_names, file_names in scandir.walk(search_path):
-            self.add_from_walk(root, file_names)
+            # Cheap and easy way to limit our search depth: count path
+            # separators!
+            cur_level = root.count(os.path.sep) - search_seps
+            if level > 0 and cur_level >= level:
+                continue
+            self.add_from_scan(root, file_names)
 
     def _get_data(self, typ):
         """Return dictionary of the specified data type from the instance."""

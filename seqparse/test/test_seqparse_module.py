@@ -117,7 +117,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(str(frame_seq), frame_seq_output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path__complex1(self, mock_walk):
+    def test_scan_path__complex(self, mock_walk):
         """Test complex file sequence discovery from disk location."""
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],
@@ -175,6 +175,48 @@ class TestSeqparseModule(unittest.TestCase):
         for pad in sorted(output_seqs):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._source_ext][pad]))
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_scan_path_sequences_level(self, mock_walk):
+        """Test simple file sequence discovery from disk location."""
+        frames = {4: [0, 1, 2, 3, 4]}
+        level1_path = "level1"
+        level2_path = os.path.join(level1_path, "level2")
+        level3_path = os.path.join(level2_path, "level3")
+
+        level1_files = _generate_files(
+            ext=self._source_ext, frames=frames, name="level1")
+        level2_files = _generate_files(
+            ext=self._source_ext, frames=frames, name="level2")
+        level3_files = _generate_files(
+            ext=self._source_ext, frames=frames, name="level3")
+
+        mock_walk.return_value = [
+            (level1_path, ("level2"), level1_files),
+            (level2_path, ("level3"), level2_files),
+            (level3_path, (), level3_files),
+        ]
+
+        print "\n  SEQUENCES\n  ---------"
+        parser = get_parser()
+        parser.scan_path(self._source_path)
+        for seq in parser.output():
+            print " ", seq
+
+        print "\n  LEVELS\n  ------"
+        for level in xrange(0, 4):
+            parser = get_parser()
+            parser.scan_path(self._source_path, level=level)
+
+            expected_seqs = 3
+            if level in (1, 2):
+                expected_seqs = level
+
+            seqs = list(parser.output())
+            print "  o level == %d: %d entries" % (level, len(seqs))
+            for seq in seqs:
+                print "    -", seq
+            self.assertEqual(len(seqs), expected_seqs)
 
     def test_valid_frame_sequences(self):
         """Test validity of simple frame ranges."""
