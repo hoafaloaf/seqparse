@@ -2,5 +2,8 @@ language: python
 python:
   - "2.7"
 install:
-  - pip install -U coverage mock nose pylint scandir
-script: bash tests/ci-run_tests
+  - pip install -U coverage mock nose pylint scandir setuptools
+script:
+  - chmod a-x seqparse/test/*.py
+  - python setup.py install
+  - bash seqparse/test/ci-run_tests
