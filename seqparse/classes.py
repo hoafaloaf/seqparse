@@ -58,13 +58,13 @@ class FrameChunk(object):
 
         first = int(first)
         last = int(last)
+        step = max(1, int(step or 1))
 
         if last < first:
             message = "Last frame is less than first frame: %d < %d"
             raise ValueError(message % (last, first))
 
         # Calculate the length and the real last frame of the chunk.
-        step = max(1, int(step))
         bits = (last - first) / step
         last = first + bits * step
         step = min(last - first, step)

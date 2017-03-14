@@ -8,9 +8,13 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequence, Singletons
+from .classes import FileSequence, FrameChunk, Singletons
 
 __all__ = ("Seqparse", )
+
+# TODO: Add support for ...
+# 1. Negative increments
+# 2. Negative frame numbers
 
 ###############################################################################
 # Class: Seqparse
@@ -19,9 +23,11 @@ __all__ = ("Seqparse", )
 class Seqparse(object):
     """Storage and parsing engine for file sequences."""
 
-    FILE_EXPR = re.compile(r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)")
+    BITS_EXPR = re.compile(
+        r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$")
+    FILE_EXPR = re.compile(r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$")
     SEQ_EXPR = re.compile(
-        r"(\d+(?:-\d+(?:x\d+)?)?(?:,\d+(?:-\d+(?:x\d+)?)?)*)")
+        r",*(\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*),*$")
 
     def __init__(self):
         """Initialise the instance."""
@@ -112,5 +118,21 @@ class Seqparse(object):
     def validate_frame_sequence(cls, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
         if cls.SEQ_EXPR.match(frame_seq):
-            return True
-        return False
+            bits = list()
+            for bit in frame_seq.split(","):
+                if not bit:
+                    continue
+
+                first, last, step = cls.BITS_EXPR.match(bit).groups()
+
+                try:
+                    chunk = FrameChunk(first, last, step, len(first))
+                except ValueError:
+                    return None
+
+                bits.append(str(chunk))
+
+            # Looks good!
+            return ",".join(bits)
+
+        return None

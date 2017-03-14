@@ -7,7 +7,7 @@ import unittest
 # Third Party Libraries
 import mock
 
-from seqparse import get_parser
+from seqparse import get_parser, validate_frame_sequence
 
 
 def _generate_files(name="dog", ext="jpg", frames=None):
@@ -27,10 +27,10 @@ def _generate_files(name="dog", ext="jpg", frames=None):
 
 
 ###############################################################################
-# class: TestFileDiscovery
+# class: TestSeqparseModule
 
 
-class TestFileDiscovery(unittest.TestCase):
+class TestSeqparseModule(unittest.TestCase):
     """Test file discovery on the seqparse module."""
 
     _source_ext = "exr"
@@ -175,3 +175,28 @@ class TestFileDiscovery(unittest.TestCase):
         for pad in sorted(output_seqs):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._source_ext][pad]))
+
+    def test_valid_frame_sequences(self):
+        """Test validity of simple frame ranges."""
+        good_frame_seqs = [
+            "0001", ",0001", "0001,", "0001-0001", "0001-0001x0",
+            "0001-0003x3", "0001,0003", "0001,,0003", "0001-0010",
+            "0001-0010x0", "0001-0011x2", "0001-0012x2", "0001-0005,0007-0010",
+            "0001-0005x2,0007-0010", "0001-0005,0007-0011x2",
+            "0001-0005,0006,0008-0012x2", "0001,0003-0007,0009-0015x2"
+        ]
+        bad_frame_seqs = [
+            "-0001", "0001-", "0001x2", "x2", "0001,0003x2", "0001-0005x",
+            "0010-0001", "x", ",", ",,", ""
+        ]
+
+        print "\n  GOOD SEQUENCES\n  --------------"
+        for frame_seq in good_frame_seqs:
+            output = validate_frame_sequence(frame_seq)
+            print '  o "%s" --> %s' % (frame_seq, output)
+            self.assertTrue(output)
+
+        print "\n  BAD SEQUENCES\n  -------------"
+        for frame_seq in bad_frame_seqs:
+            print '  o "%s"' % frame_seq
+            self.assertFalse(validate_frame_sequence(frame_seq))
