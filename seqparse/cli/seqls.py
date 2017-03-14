@@ -32,8 +32,16 @@ def seqls(search_path=None, level=0):
         print output
 
 
-def main():
+def main():  # pragma: no cover
     """Main entry point to the seqls script."""
+    args = parse_args(sys.argv[1:])
+
+    seqls(**vars(args))
+    return 0
+
+
+def parse_args(args):
+    """Parse any input arguments."""
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument(
@@ -45,17 +53,15 @@ def main():
     parser.add_argument(
         "-l",
         "--level",
-        default=0,
+        default=["0"],
         help=("Maximum number of levels that you'd like to search. Values "
               "less than zero are equivalent to infinite depth."),
         nargs=1,
         required=False)
 
     # Parse the arguments.
-    args = parser.parse_args()
-
-    sys.exit(seqls(**vars(args)))
+    return parser.parse_args(args)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
