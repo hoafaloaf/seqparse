@@ -7,23 +7,8 @@ import unittest
 # Third Party Libraries
 import mock
 
-from seqparse import get_parser, validate_frame_sequence
-
-
-def _generate_files(name="dog", ext="jpg", frames=None):
-    """Generate some file sequences for seqparse testing."""
-    if frames is None:
-        frames = {4: [0]}
-
-    file_names = set()
-
-    for pad, frame_list in frames.iteritems():
-        for frame in frame_list:
-            file_names.add("%s.%0*d.%s" % (name, pad, frame, ext))
-
-    # Casting the set() to a list() so that we're pretty much guaranteed a non-
-    # sorted list of files.
-    return list(file_names)
+from . import generate_files
+from .. import get_parser, validate_frame_sequence
 
 
 ###############################################################################
@@ -77,7 +62,7 @@ class TestSeqparseModule(unittest.TestCase):
             (self._source_file_name, frame_seq_output, self._source_ext))
         final_output = os.path.join(self._source_path, file_seq_output)
 
-        input_files = _generate_files(
+        input_files = generate_files(
             ext=self._source_ext, frames=frames, name=self._source_file_name)
 
         mock_walk.return_value = [(self._source_path, (), input_files)]
@@ -125,7 +110,7 @@ class TestSeqparseModule(unittest.TestCase):
             4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
         }
 
-        input_files = _generate_files(
+        input_files = generate_files(
             ext=self._source_ext, frames=frames, name=self._source_file_name)
 
         # Expected output frame sequences. Note how frames 114, 199 move to the
@@ -184,17 +169,17 @@ class TestSeqparseModule(unittest.TestCase):
         level2_path = os.path.join(level1_path, "level2")
         level3_path = os.path.join(level2_path, "level3")
 
-        level1_files = _generate_files(
+        level1_files = generate_files(
             ext=self._source_ext, frames=frames, name="level1")
-        level2_files = _generate_files(
+        level2_files = generate_files(
             ext=self._source_ext, frames=frames, name="level2")
-        level3_files = _generate_files(
+        level3_files = generate_files(
             ext=self._source_ext, frames=frames, name="level3")
 
         mock_walk.return_value = [
-            (level1_path, ("level2"), level1_files),
-            (level2_path, ("level3"), level2_files),
-            (level3_path, (), level3_files),
+            (level1_path, ["level2"], level1_files),
+            (level2_path, ["level3"], level2_files),
+            (level3_path, [], level3_files),
         ]
 
         print "\n  SEQUENCES\n  ---------"
@@ -213,7 +198,9 @@ class TestSeqparseModule(unittest.TestCase):
                 expected_seqs = level
 
             seqs = list(parser.output())
-            print "  o level == %d: %d entries" % (level, len(seqs))
+            blurb = "  o level == %d: %d (%d expected) entries"
+            print blurb % (level, len(seqs), expected_seqs)
+
             for seq in seqs:
                 print "    -", seq
             self.assertEqual(len(seqs), expected_seqs)

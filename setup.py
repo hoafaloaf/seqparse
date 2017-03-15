@@ -21,7 +21,9 @@ setup(
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
-    entry_points={'console_scripts': ['seqls = seqparse.cli.seqls:main']},
+    entry_points={
+        'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
+    },
     install_requires=['scandir'],
     keywords='command-line file sequence',
     license='MIT',

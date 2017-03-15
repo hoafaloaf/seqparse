@@ -6,11 +6,17 @@ import os
 import sys
 from argparse import ArgumentParser, RawTextHelpFormatter
 
-from seqparse import get_parser
+from .. import get_parser
 
 
-def seqls(search_path=None, level=0):
-    """Wrap and initialise the seqparse class."""
+def _entry_point():
+    """Main entry point into the script."""
+    args = vars(parse_args(sys.argv[1:]))
+    main(**args)
+
+
+def main(search_path=None, level=0, _debug=False):
+    """Wrap and initialise the Seqparse class."""
     if not search_path:
         search_paths = ["."]
     elif isinstance(search_path, (list, set, tuple)):
@@ -28,16 +34,11 @@ def seqls(search_path=None, level=0):
         seqs = get_parser()
         seqs.scan_path(search_path, level=level)
 
+    if _debug:
+        return list(seqs.output())
+
     for output in seqs.output():
         print output
-
-
-def main():  # pragma: no cover
-    """Main entry point to the seqls script."""
-    args = parse_args(sys.argv[1:])
-
-    seqls(**vars(args))
-    return 0
 
 
 def parse_args(args):
@@ -64,4 +65,5 @@ def parse_args(args):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    _entry_point()
+    sys.exit(0)
