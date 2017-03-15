@@ -109,8 +109,8 @@ class Seqparse(object):
             # Cheap and easy way to limit our search depth: count path
             # separators!
             cur_level = root.count(os.path.sep) - search_seps
-            if level > 0 and cur_level >= level:
-                continue
+            if level > 0 and cur_level + 1 == level:
+                del dir_names[:]
             self.add_from_scan(root, file_names)
 
     def _get_data(self, typ):
