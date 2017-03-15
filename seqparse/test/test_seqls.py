@@ -1,44 +1,13 @@
 """Tests for the seqls script (seqparse.cli.seqls)."""
 
 # Standard Libraries
-import os
-import sys
 import unittest
 
 # Third Party Libraries
 import mock
 
-from . import generate_files
+from . import mock_walk_deep
 from ..cli import seqls
-
-
-def mock_walk_deep(search_path="."):
-    """A mocked version of scandir.walk for testing purposes."""
-    frames = {4: [0, 1, 2, 3, 4]}
-    level1_path = os.path.join(search_path, "level1")
-    level2_path = os.path.join(level1_path, "level2")
-    level3_path = os.path.join(level2_path, "level3")
-
-    level0_files = generate_files(ext="exr", frames=frames, name="level0")
-    level1_files = generate_files(ext="exr", frames=frames, name="level1")
-    level2_files = generate_files(ext="exr", frames=frames, name="level2")
-    level3_files = generate_files(ext="exr", frames=frames, name="level3")
-
-    return_value = [(search_path, ["level1"], level0_files),
-                    (level1_path, ["level2"], level1_files),
-                    (level2_path, ["level3"], level2_files),
-                    (level3_path, [], level3_files)]
-
-    dir_names = list()
-    for index, entry in enumerate(return_value):
-        if index and not dir_names:
-            raise StopIteration
-
-        del dir_names[:]
-        dir_names.extend(entry[1])
-        root, file_names = entry[0], entry[2]
-        yield root, dir_names, file_names
-
 
 ###############################################################################
 # class: TestFrameSequences
@@ -64,9 +33,11 @@ class TestSeqls(unittest.TestCase):
         args = vars(seqls.parse_args(["test_dir", "-l", "1"]))
         self.assertEqual(args, dict(level=["1"], search_path=["test_dir"]))
 
-    @mock.patch("seqparse.seqparse.scandir.walk", side_effect=mock_walk_deep)
-    def test_seqls_with_arguments(self, mock_walk_deep):
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_seqls_with_arguments(self, mock_api_call):
         """Test seqls with supplied arguments."""
+        mock_api_call.side_effect = mock_walk_deep
+
         print "\n  SEQUENCES\n  ---------"
         seqs = list(seqls.main("test_dir", _debug=True))
         for seq in seqs:

@@ -4,7 +4,7 @@
 # Standard Libraries
 import os
 import sys
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import ArgumentParser
 
 from .. import get_parser
 

@@ -7,37 +7,8 @@ import unittest
 # Third Party Libraries
 import mock
 
-from . import generate_files
+from . import generate_files, mock_walk_deep
 from .. import get_parser, validate_frame_sequence
-
-
-def mock_walk_deep(search_path="."):
-    """A mocked version of scandir.walk for testing purposes."""
-    frames = {4: [0, 1, 2, 3, 4]}
-    level1_path = os.path.join(search_path, "level1")
-    level2_path = os.path.join(level1_path, "level2")
-    level3_path = os.path.join(level2_path, "level3")
-
-    level0_files = generate_files(ext="exr", frames=frames, name="level0")
-    level1_files = generate_files(ext="exr", frames=frames, name="level1")
-    level2_files = generate_files(ext="exr", frames=frames, name="level2")
-    level3_files = generate_files(ext="exr", frames=frames, name="level3")
-
-    return_value = [(search_path, ["level1"], level0_files),
-                    (level1_path, ["level2"], level1_files),
-                    (level2_path, ["level3"], level2_files),
-                    (level3_path, [], level3_files)]
-
-    dir_names = list()
-    for index, entry in enumerate(return_value):
-        if index and not dir_names:
-            raise StopIteration
-
-        del dir_names[:]
-        dir_names.extend(entry[1])
-        root, file_names = entry[0], entry[2]
-        yield root, dir_names, file_names
-
 
 ###############################################################################
 # class: TestSeqparseModule
@@ -56,9 +27,10 @@ class TestSeqparseModule(unittest.TestCase):
         pass
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_singletons(self, mock_walk):
+    def test_scan_path_singletons(self, mock_api_call):
         """Test file singleton discovery from disk location."""
-        mock_walk.return_value = [(self._source_path, [], self._singletons)]
+        mock_api_call.return_value = [(self._source_path, [], self._singletons)
+                                      ]
 
         # Expected outputs ...
         output = [os.path.join(self._source_path, x) for x in self._singletons]
@@ -80,7 +52,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(sorted(parser.output()), output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_sequences_simple(self, mock_walk):
+    def test_scan_path_sequences_simple(self, mock_api_call):
         """Test simple file sequence discovery from disk location."""
         frames = {4: [0, 1, 2, 3, 4]}
 
@@ -93,7 +65,7 @@ class TestSeqparseModule(unittest.TestCase):
         input_files = generate_files(
             ext=self._source_ext, frames=frames, name=self._source_file_name)
 
-        mock_walk.return_value = [(self._source_path, [], input_files)]
+        mock_api_call.return_value = [(self._source_path, [], input_files)]
 
         parser = get_parser()
         parser.scan_path(self._source_path)
@@ -130,7 +102,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(str(frame_seq), frame_seq_output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path__complex(self, mock_walk):
+    def test_scan_path__complex(self, mock_api_call):
         """Test complex file sequence discovery from disk location."""
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],
@@ -154,7 +126,7 @@ class TestSeqparseModule(unittest.TestCase):
         # test_dir/TEST_DIR.008-010,012,114,199.exr
         # test_dir/TEST_DIR.0000-0006,0008-0012x2,0101,2000.exr
 
-        mock_walk.return_value = [(self._source_path, [], input_files)]
+        mock_api_call.return_value = [(self._source_path, [], input_files)]
 
         parser = get_parser()
         parser.scan_path(self._source_path)
@@ -189,9 +161,11 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._source_ext][pad]))
 
-    @mock.patch("seqparse.seqparse.scandir.walk", side_effect=mock_walk_deep)
-    def test_scan_path_sequences_level(self, mock_walk_deep):
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_scan_path_sequences_level(self, mock_api_call):
         """Test simple file sequence discovery from disk location."""
+        mock_api_call.side_effect = mock_walk_deep
+
         print "\n  SEQUENCES\n  ---------"
         parser = get_parser()
         parser.scan_path(self._source_path)
