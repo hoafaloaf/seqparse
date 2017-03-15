@@ -12,7 +12,7 @@ from . import generate_files
 from ..cli import seqls
 
 
-def mock_walk(search_path="."):
+def mock_walk_deep(search_path="."):
     """A mocked version of scandir.walk for testing purposes."""
     frames = {4: [0, 1, 2, 3, 4]}
     level1_path = os.path.join(search_path, "level1")
@@ -64,8 +64,8 @@ class TestSeqls(unittest.TestCase):
         args = vars(seqls.parse_args(["test_dir", "-l", "1"]))
         self.assertEqual(args, dict(level=["1"], search_path=["test_dir"]))
 
-    @mock.patch("seqparse.seqparse.scandir.walk", side_effect=mock_walk)
-    def test_seqls_with_arguments(self, mock_walk):
+    @mock.patch("seqparse.seqparse.scandir.walk", side_effect=mock_walk_deep)
+    def test_seqls_with_arguments(self, mock_walk_deep):
         """Test seqls with supplied arguments."""
         print "\n  SEQUENCES\n  ---------"
         seqs = list(seqls.main("test_dir", _debug=True))
