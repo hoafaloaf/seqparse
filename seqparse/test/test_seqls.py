@@ -78,9 +78,13 @@ class TestSeqls(unittest.TestCase):
             if level == 0:
                 expected_seqs = 4
 
+            # Mimicking argparse output (everything's a string)
+            level = str(level)
+
             seqs = list(
-                seqls.main(search_path="test_dir", level=level, _debug=True))
-            blurb = "  o level == %d: %d entries (%d expected)"
+                seqls.main(
+                    search_path=["test_dir"], level=[level], _debug=True))
+            blurb = "  o level == %s: %d entries (%d expected)"
             print blurb % (level, len(seqs), expected_seqs)
 
             for seq in seqs:

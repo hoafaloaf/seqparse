@@ -9,7 +9,7 @@ from argparse import ArgumentParser, RawTextHelpFormatter
 from .. import get_parser
 
 
-def _entry_point():
+def _entry_point():  #pragma: no cover
     """Main entry point into the script."""
     args = vars(parse_args(sys.argv[1:]))
     main(**args)
@@ -37,7 +37,7 @@ def main(search_path=None, level=0, _debug=False):
     if _debug:
         return list(seqs.output())
 
-    for output in seqs.output():
+    for output in seqs.output():  # pragma: no cover
         print output
 
 
