@@ -266,3 +266,40 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertFalse(validate_frame_sequence(frame_seq))
 
         print
+
+    def test_add_file_sequence(self):
+        """Test file sequence addition via seqparse.add_file."""
+        frames = {4: [0, 1, 2, 3, 4]}
+        input_file = ".".join((self._test_file_name, "0005", self._test_ext))
+        input_file = os.path.join(self._test_root, input_file)
+
+        # Expected outputs ...
+        input_frame_seq = "0000-0004"
+        output_frame_seq = "0000-0005"
+        input_file_seq = ".".join(
+            (self._test_file_name, input_frame_seq, self._test_ext))
+        input_file_seq = os.path.join(self._test_root, input_file_seq)
+        output_file_seq = ".".join(
+            (self._test_file_name, output_frame_seq, self._test_ext))
+        output_file_seq = os.path.join(self._test_root, output_file_seq)
+
+        print "\n\n  INPUT FILES\n  -----------"
+        print "  o", input_file_seq
+        print "  o", input_file
+
+        parser = get_parser()
+        parser.add_file(input_file_seq)
+        parser.add_file(input_file)
+
+        output = list(parser.output())
+
+        print "\n  OUTPUT FILES\n  ------------"
+        for line in output:
+            print "  o", line
+
+        print "\n  EXPECTED OUTPUT\n  ---------------"
+        print "  o", output_file_seq
+        print
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], output_file_seq)
