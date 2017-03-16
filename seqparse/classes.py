@@ -4,7 +4,8 @@
 import os
 from collections import MutableMapping, MutableSet
 
-__all__ = ("FileExtension", "FileSequence", "FrameSequence", "Singletons")
+__all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence",
+           "SingletonContainer")
 
 ###############################################################################
 # Class: FrameChunk
@@ -21,6 +22,27 @@ class FrameChunk(object):
 
         # This will calculate the string output as well!
         self.set_frames(first, last, step)
+
+    def __contains__(self, item):
+        """Whether the chunk contains the specified (non-)padded frame."""
+        frame_num = int(item)
+        for frame in xrange(self.first, self.last + 1, self.step):
+            if frame < frame_num:
+                continue
+            elif frame_num == frame:
+                if isinstance(item, basestring):
+                    frame_len = len(item)
+                    if item.startswith("0"):
+                        return frame_len == self.pad
+                    return frame_len >= self.pad
+                return True
+
+            return False
+
+    def __iter__(self):
+        """Iterate over the frames contained by the chunk."""
+        for frame in xrange(self.first, self.last + 1, self.step):
+            yield "%0*d" % (self.pad, frame)
 
     def __len__(self):
         """Return the length of the frame chunk."""
@@ -315,10 +337,10 @@ class FileExtension(MutableMapping):
 
 
 ###############################################################################
-# Class: FileSequence
+# Class: FileSequenceContainer
 
 
-class FileSequence(MutableMapping):
+class FileSequenceContainer(MutableMapping):
     """Representative for file sequences, indexed by file extension."""
 
     _CHILD_CLASS = FileExtension
@@ -400,10 +422,10 @@ class FileSequence(MutableMapping):
 
 
 ###############################################################################
-# class: Singletons
+# class: SingletonContainer
 
 
-class Singletons(MutableSet):
+class SingletonContainer(MutableSet):
     """Representative for singleton files."""
 
     def __init__(self, iterable=None, file_path=None):
