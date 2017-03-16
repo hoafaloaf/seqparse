@@ -60,9 +60,6 @@ class Seqparse(object):
         fmatch = self._fseq_expr.match(str(file_name))
         smatch = self._file_expr.match(str(file_name))
 
-        # if fmatch:
-        # print file_name, fmatch.groupdict()
-
         if smatch:
             base_name, frame, file_ext = smatch.groups()
             dir_name, base_name = os.path.split(base_name)
@@ -78,6 +75,18 @@ class Seqparse(object):
             ext = sequence[file_ext]
             pad = len(frame)
             ext[pad].add(frame)
+
+        elif fmatch:
+            base_name, frame_seq, ext = fmatch.groups()
+            for bit in frame_seq.split(","):
+                if not bit:
+                    continue
+
+                first, last, step = self._bits_expr.match(bit).groups()
+                for frame in FrameChunk(first, last, step, len(first)):
+                    file_name = ".".join((base_name, frame, ext))
+                    self.add_file(file_name)
+                continue
 
         else:
             dir_name, base_name = os.path.split(file_name)

@@ -4,7 +4,8 @@
 import os
 from collections import MutableMapping, MutableSet
 
-__all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence", "SingletonContainer")
+__all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence",
+           "SingletonContainer")
 
 ###############################################################################
 # Class: FrameChunk
@@ -21,6 +22,11 @@ class FrameChunk(object):
 
         # This will calculate the string output as well!
         self.set_frames(first, last, step)
+
+    def __iter__(self):
+        """Iterate over the frames contained by the chunk."""
+        for frame in xrange(self.first, self.last + 1, self.step):
+            yield "%0*d" % (self.pad, frame)
 
     def __len__(self):
         """Return the length of the frame chunk."""
