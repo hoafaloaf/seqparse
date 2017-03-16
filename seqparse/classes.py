@@ -4,7 +4,7 @@
 import os
 from collections import MutableMapping, MutableSet
 
-__all__ = ("FileExtension", "FileSequence", "FrameSequence", "Singletons")
+__all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence", "SingletonContainer")
 
 ###############################################################################
 # Class: FrameChunk
@@ -315,10 +315,10 @@ class FileExtension(MutableMapping):
 
 
 ###############################################################################
-# Class: FileSequence
+# Class: FileSequenceContainer
 
 
-class FileSequence(MutableMapping):
+class FileSequenceContainer(MutableMapping):
     """Representative for file sequences, indexed by file extension."""
 
     _CHILD_CLASS = FileExtension
@@ -400,10 +400,10 @@ class FileSequence(MutableMapping):
 
 
 ###############################################################################
-# class: Singletons
+# class: SingletonContainer
 
 
-class Singletons(MutableSet):
+class SingletonContainer(MutableSet):
     """Representative for singleton files."""
 
     def __init__(self, iterable=None, file_path=None):

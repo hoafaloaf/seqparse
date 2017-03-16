@@ -10,7 +10,6 @@ import mock
 from . import generate_files, mock_walk_deep
 from .. import get_parser, validate_frame_sequence
 
-
 ###############################################################################
 # class: TestSeqparseModule
 

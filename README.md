@@ -10,5 +10,5 @@
 1. Add ability to calculate/output total size of file sequences and
    singletons.
 1. Add ability to only output singletons/file sequences.
-1. Add glob-like capabilities when reading from disk (ie, "dog.*" or 
+1. Add glob-like capabilities when reading from disk (ie, "dog.*" or
    individual frames).

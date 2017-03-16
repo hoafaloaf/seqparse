@@ -8,7 +8,7 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequence, FrameChunk, Singletons
+from .classes import FileSequenceContainer, FrameChunk, SingletonContainer
 
 __all__ = ("Seqparse", )
 
@@ -32,7 +32,7 @@ class Seqparse(object):
     def __init__(self):
         """Initialise the instance."""
         self._locs = defaultdict(
-            lambda: dict(seqs=defaultdict(FileSequence), files=Singletons()))
+            lambda: dict(seqs=defaultdict(FileSequenceContainer), files=SingletonContainer()))
 
     @property
     def locations(self):
@@ -91,7 +91,7 @@ class Seqparse(object):
     # TODO: Implement tree option.
     # def output(self, tree=False):
     def output(self):
-        """Yield a list of contained file sequences and singletons."""
+        """Yield a list of contained singletons and file sequences."""
         for data in sorted(self.locations.values()):
             for file_seq in sorted(data["seqs"].values()):
                 for seq_name in file_seq.output():
