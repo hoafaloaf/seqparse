@@ -5,6 +5,7 @@ import unittest
 
 from seqparse.classes import FrameChunk
 
+
 ###############################################################################
 # class: TestFrameSequences
 

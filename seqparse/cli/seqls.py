@@ -2,22 +2,21 @@
 """Command line tool for listing file sequences."""
 
 # Standard Libraries
-import inspect
 import os
 import sys
-from argparse import ArgumentParser, RawTextHelpFormatter
+from argparse import ArgumentParser
 
-try:
-    from seqparse import get_parser
-except ImportError:
-    ROOT_DIR = os.path.dirname(inspect.getsourcefile(lambda: None))
-    ROOT_DIR = os.path.dirname(os.path.abspath(ROOT_DIR))
-    sys.path.insert(0, os.path.join(ROOT_DIR, "python"))
-    from seqparse import get_parser
+from .. import get_parser
 
 
-def main(search_path=None, level=0):
-    """Wrap and initialise the seqparse class."""
+def _entry_point():  #pragma: no cover
+    """Main entry point into the script."""
+    args = vars(parse_args(sys.argv[1:]))
+    main(**args)
+
+
+def main(search_path=None, level=0, _debug=False):
+    """Wrap and initialise the Seqparse class."""
     if not search_path:
         search_paths = ["."]
     elif isinstance(search_path, (list, set, tuple)):
@@ -35,11 +34,15 @@ def main(search_path=None, level=0):
         seqs = get_parser()
         seqs.scan_path(search_path, level=level)
 
-    for output in seqs.output():
+    if _debug:
+        return list(seqs.output())
+
+    for output in seqs.output():  # pragma: no cover
         print output
 
 
-if __name__ == "__main__":
+def parse_args(args):
+    """Parse any input arguments."""
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument(
@@ -51,13 +54,16 @@ if __name__ == "__main__":
     parser.add_argument(
         "-l",
         "--level",
-        default=0,
+        default=["0"],
         help=("Maximum number of levels that you'd like to search. Values "
               "less than zero are equivalent to infinite depth."),
         nargs=1,
         required=False)
 
     # Parse the arguments.
-    args = parser.parse_args()
+    return parser.parse_args(args)
 
-    sys.exit(main(**vars(args)))
+
+if __name__ == "__main__":
+    _entry_point()
+    sys.exit(0)

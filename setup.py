@@ -2,7 +2,7 @@
 """Set up the seqparse module."""
 
 # Third Party Libraries
-from setuptools import setup
+from setuptools import find_packages, setup
 
 
 def readme():
@@ -21,14 +21,15 @@ setup(
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
-    keywords='command-line file sequence',
-    include_packaging_data=True,
+    entry_points={
+        'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
+    },
     install_requires=['scandir'],
+    keywords='command-line file sequence',
     license='MIT',
-    packages=['seqparse'],
-    scripts=['bin/seqls'],
+    packages=find_packages(exclude=['*test']),
     test_suite='nose.collector',
     tests_require=['nose'],
     url='http://github.com/hoafaloaf/seqparse',
-    version='0.1',
+    version='0.1.1',
     zip_safe=False)
