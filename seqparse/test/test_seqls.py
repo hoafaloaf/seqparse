@@ -9,6 +9,7 @@ import mock
 from . import mock_walk_deep
 from ..cli import seqls
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -62,3 +63,5 @@ class TestSeqls(unittest.TestCase):
                 print "    -", seq
 
             self.assertEqual(len(seqs), expected_seqs)
+
+        print

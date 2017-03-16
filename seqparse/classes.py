@@ -194,7 +194,7 @@ class FrameSequence(MutableSet):
 
         all_frames = sorted(self)
         if num_frames == 1:
-            self._chunks.append(FrameChunk(all_frames[0]))
+            self._chunks.append(FrameChunk(all_frames[0], pad=self.pad))
 
         else:
             current_frames = set()

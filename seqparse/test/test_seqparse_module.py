@@ -10,6 +10,7 @@ import mock
 from . import generate_files, mock_walk_deep
 from .. import get_parser, validate_frame_sequence
 
+
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -17,9 +18,9 @@ from .. import get_parser, validate_frame_sequence
 class TestSeqparseModule(unittest.TestCase):
     """Test file discovery on the seqparse module."""
 
-    _source_ext = "exr"
-    _source_file_name = "TEST_DIR"
-    _source_path = "test_dir"
+    _test_ext = "exr"
+    _test_file_name = "TEST_DIR"
+    _test_root = "test_dir"
     _singletons = ["singleton0.jpg", "singleton1.jpg"]
 
     def setUp(self):
@@ -27,48 +28,47 @@ class TestSeqparseModule(unittest.TestCase):
         pass
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_singletons(self, mock_api_call):
+    def test_singletons(self, mock_api_call):
         """Test file singleton discovery from disk location."""
-        mock_api_call.return_value = [(self._source_path, [], self._singletons)
-                                      ]
+        mock_api_call.return_value = [(self._test_root, [], self._singletons)]
 
         # Expected outputs ...
-        output = [os.path.join(self._source_path, x) for x in self._singletons]
+        output = [os.path.join(self._test_root, x) for x in self._singletons]
 
         parser = get_parser()
-        parser.scan_path(self._source_path)
+        parser.scan_path(self._test_root)
 
         file_names = parser.singletons
 
-        self.assertIn(self._source_path, file_names)
-        self.assertEqual(self._source_path, file_names[self._source_path].path)
+        self.assertIn(self._test_root, file_names)
+        self.assertEqual(self._test_root, file_names[self._test_root].path)
         self.assertEqual(len(file_names), 1)
         self.assertEqual(
-            len(file_names[self._source_path]), len(self._singletons))
+            len(file_names[self._test_root]), len(self._singletons))
         self.assertEqual(
-            sorted(self._singletons), sorted(file_names[self._source_path]))
+            sorted(self._singletons), sorted(file_names[self._test_root]))
 
         # Check parser output ...
         self.assertEqual(sorted(parser.output()), output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_sequences_simple(self, mock_api_call):
-        """Test simple file sequence discovery from disk location."""
-        frames = {4: [0, 1, 2, 3, 4]}
+    def test_single_padded_file(self, mock_api_call):
+        """Test single padded file sequence discovery from disk location."""
+        frames = {4: [1]}
 
         # Expected outputs ...
-        frame_seq_output = "0000-0004"
+        frame_seq_output = "0001"
         file_seq_output = ".".join(
-            (self._source_file_name, frame_seq_output, self._source_ext))
-        final_output = os.path.join(self._source_path, file_seq_output)
+            (self._test_file_name, frame_seq_output, self._test_ext))
+        final_output = os.path.join(self._test_root, file_seq_output)
 
         input_files = generate_files(
-            ext=self._source_ext, frames=frames, name=self._source_file_name)
+            ext=self._test_ext, frames=frames, name=self._test_file_name)
 
-        mock_api_call.return_value = [(self._source_path, [], input_files)]
+        mock_api_call.return_value = [(self._test_root, [], input_files)]
 
         parser = get_parser()
-        parser.scan_path(self._source_path)
+        parser.scan_path(self._test_root)
 
         data = parser.sequences
 
@@ -77,32 +77,82 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(test_output[0], final_output)
 
         # Check the structure of the sequences property.
-        self.assertIn(self._source_path, data)
+        self.assertIn(self._test_root, data)
         self.assertEqual(len(data), 1)
-        self.assertIn(self._source_file_name, data[self._source_path])
-        self.assertEqual(len(data[self._source_path]), 1)
+        self.assertIn(self._test_file_name, data[self._test_root])
+        self.assertEqual(len(data[self._test_root]), 1)
 
         # Now check the file sequence itself.
-        file_seq = data[self._source_path][self._source_file_name]
+        file_seq = data[self._test_root][self._test_file_name]
 
         test_output = list(file_seq.output())
 
         self.assertEqual(len(test_output), 1)
         self.assertEqual(test_output[0], final_output)
 
-        self.assertIn(self._source_ext, file_seq)
+        self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
-        self.assertTrue(4 in file_seq[self._source_ext])
-        self.assertEqual(len(file_seq[self._source_ext]), 1)
+        self.assertTrue(4 in file_seq[self._test_ext])
+        self.assertEqual(len(file_seq[self._test_ext]), 1)
 
         # And finally, the frame sequence.
-        frame_seq = file_seq[self._source_ext][4]
+        frame_seq = file_seq[self._test_ext][4]
 
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path__complex(self, mock_api_call):
+    def test_simple_sequence(self, mock_api_call):
+        """Test simple file sequence discovery from disk location."""
+        frames = {4: [0, 1, 2, 3, 4]}
+
+        # Expected outputs ...
+        frame_seq_output = "0000-0004"
+        file_seq_output = ".".join(
+            (self._test_file_name, frame_seq_output, self._test_ext))
+        final_output = os.path.join(self._test_root, file_seq_output)
+
+        input_files = generate_files(
+            ext=self._test_ext, frames=frames, name=self._test_file_name)
+
+        mock_api_call.return_value = [(self._test_root, [], input_files)]
+
+        parser = get_parser()
+        parser.scan_path(self._test_root)
+
+        data = parser.sequences
+
+        test_output = list(parser.output())
+        self.assertEqual(len(test_output), 1)
+        self.assertEqual(test_output[0], final_output)
+
+        # Check the structure of the sequences property.
+        self.assertIn(self._test_root, data)
+        self.assertEqual(len(data), 1)
+        self.assertIn(self._test_file_name, data[self._test_root])
+        self.assertEqual(len(data[self._test_root]), 1)
+
+        # Now check the file sequence itself.
+        file_seq = data[self._test_root][self._test_file_name]
+
+        test_output = list(file_seq.output())
+
+        self.assertEqual(len(test_output), 1)
+        self.assertEqual(test_output[0], final_output)
+
+        self.assertIn(self._test_ext, file_seq)
+        self.assertEqual(len(file_seq), 1)
+        self.assertTrue(4 in file_seq[self._test_ext])
+        self.assertEqual(len(file_seq[self._test_ext]), 1)
+
+        # And finally, the frame sequence.
+        frame_seq = file_seq[self._test_ext][4]
+
+        self.assertEqual(len(frame_seq), len(frames[4]))
+        self.assertEqual(str(frame_seq), frame_seq_output)
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_complex_sequence(self, mock_api_call):
         """Test complex file sequence discovery from disk location."""
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],
@@ -111,7 +161,7 @@ class TestSeqparseModule(unittest.TestCase):
         }
 
         input_files = generate_files(
-            ext=self._source_ext, frames=frames, name=self._source_file_name)
+            ext=self._test_ext, frames=frames, name=self._test_file_name)
 
         # Expected output frame sequences. Note how frames 114, 199 move to the
         # "pad 3" group and 2000 moves to the "pad 4" group!
@@ -126,56 +176,55 @@ class TestSeqparseModule(unittest.TestCase):
         # test_dir/TEST_DIR.008-010,012,114,199.exr
         # test_dir/TEST_DIR.0000-0006,0008-0012x2,0101,2000.exr
 
-        mock_api_call.return_value = [(self._source_path, [], input_files)]
+        mock_api_call.return_value = [(self._test_root, [], input_files)]
 
         parser = get_parser()
-        parser.scan_path(self._source_path)
+        parser.scan_path(self._test_root)
 
         final_output = list()
         for pad, seq_frames in sorted(output_seqs.items()):
-            bits = (self._source_file_name, seq_frames, self._source_ext)
-            final_output.append(
-                os.path.join(self._source_path, ".".join(bits)))
+            bits = (self._test_file_name, seq_frames, self._test_ext)
+            final_output.append(os.path.join(self._test_root, ".".join(bits)))
 
         data = parser.sequences
 
         # Check the structure of the sequences property.
-        self.assertIn(self._source_path, data)
+        self.assertIn(self._test_root, data)
         self.assertEqual(len(data), 1)
-        self.assertIn(self._source_file_name, data[self._source_path])
-        self.assertEqual(len(data[self._source_path]), 1)
+        self.assertIn(self._test_file_name, data[self._test_root])
+        self.assertEqual(len(data[self._test_root]), 1)
 
         # Now check the file sequence itself.
-        file_seq = data[self._source_path][self._source_file_name]
+        file_seq = data[self._test_root][self._test_file_name]
 
         test_output = list(file_seq.output())
         self.assertEqual(len(test_output), 3)
         self.assertEqual(test_output, final_output)
 
-        self.assertIn(self._source_ext, file_seq)
+        self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
-        self.assertEqual(set(file_seq[self._source_ext]), set(output_seqs))
+        self.assertEqual(set(file_seq[self._test_ext]), set(output_seqs))
 
         # And finally, the frame sequences.
         for pad in sorted(output_seqs):
             self.assertEqual(output_seqs[pad],
-                             str(file_seq[self._source_ext][pad]))
+                             str(file_seq[self._test_ext][pad]))
 
     @mock.patch("seqparse.seqparse.scandir.walk")
-    def test_scan_path_sequences_level(self, mock_api_call):
-        """Test simple file sequence discovery from disk location."""
+    def test_nested_sequences(self, mock_api_call):
+        """Test file sequence discovery in nested directories."""
         mock_api_call.side_effect = mock_walk_deep
 
-        print "\n  SEQUENCES\n  ---------"
+        print "\n\n  SEQUENCES\n  ---------"
         parser = get_parser()
-        parser.scan_path(self._source_path)
+        parser.scan_path(self._test_root)
         for seq in parser.output():
             print " ", seq
 
         print "\n  LEVELS\n  ------"
         for level in xrange(0, 5):
             parser = get_parser()
-            parser.scan_path(self._source_path, level=level)
+            parser.scan_path(self._test_root, level=level)
 
             expected_seqs = level
             if level == 0:
@@ -188,6 +237,8 @@ class TestSeqparseModule(unittest.TestCase):
             for seq in seqs:
                 print "    -", seq
             self.assertEqual(len(seqs), expected_seqs)
+
+        print
 
     def test_valid_frame_sequences(self):
         """Test validity of simple frame ranges."""
@@ -203,7 +254,7 @@ class TestSeqparseModule(unittest.TestCase):
             "0010-0001", "x", ",", ",,", ""
         ]
 
-        print "\n  GOOD SEQUENCES\n  --------------"
+        print "\n\n  GOOD SEQUENCES\n  --------------"
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
             print '  o "%s" --> %s' % (frame_seq, output)
@@ -213,3 +264,5 @@ class TestSeqparseModule(unittest.TestCase):
         for frame_seq in bad_frame_seqs:
             print '  o "%s"' % frame_seq
             self.assertFalse(validate_frame_sequence(frame_seq))
+
+        print
