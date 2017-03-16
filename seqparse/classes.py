@@ -23,6 +23,22 @@ class FrameChunk(object):
         # This will calculate the string output as well!
         self.set_frames(first, last, step)
 
+    def __contains__(self, item):
+        """Whether the chunk contains the specified (non-)padded frame."""
+        frame_num = int(item)
+        for frame in xrange(self.first, self.last + 1, self.step):
+            if frame < frame_num:
+                continue
+            elif frame_num == frame:
+                if isinstance(item, basestring):
+                    frame_len = len(item)
+                    if item.startswith("0"):
+                        return frame_len == self.pad
+                    return frame_len >= self.pad
+                return True
+
+            return False
+
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
         for frame in xrange(self.first, self.last + 1, self.step):
