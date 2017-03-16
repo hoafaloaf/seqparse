@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from .. import get_parser
 
 
-def _entry_point():  #pragma: no cover
+def _entry_point():  # pragma: no cover
     """Main entry point into the script."""
     args = vars(parse_args(sys.argv[1:]))
     main(**args)

@@ -10,7 +10,6 @@ import mock
 from . import generate_files, mock_walk_deep
 from .. import get_parser, validate_frame_sequence
 
-
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -269,7 +268,6 @@ class TestSeqparseModule(unittest.TestCase):
 
     def test_add_file_sequence(self):
         """Test file sequence addition via seqparse.add_file."""
-        frames = {4: [0, 1, 2, 3, 4]}
         input_file = ".".join((self._test_file_name, "0005", self._test_ext))
         input_file = os.path.join(self._test_root, input_file)
 

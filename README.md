@@ -9,3 +9,4 @@
 1. Add support for negative frame numbers.
 1. Add support negative frame increments (read only).
 1. Add ability to only output singletons/file sequences.
+1. Implement tree-style output for `Seqparse.output`.

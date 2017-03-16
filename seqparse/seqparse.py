@@ -12,10 +12,6 @@ from .classes import FileSequenceContainer, FrameChunk, SingletonContainer
 
 __all__ = ("Seqparse", )
 
-# TODO: Add support for ...
-# 1. Negative increments
-# 2. Negative frame numbers
-
 BITS_EXPR = r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$"
 FILE_EXPR = r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$"
 FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
@@ -77,16 +73,8 @@ class Seqparse(object):
             ext[pad].add(frame)
 
         elif fmatch:
-            base_name, frame_seq, ext = fmatch.groups()
-            for bit in frame_seq.split(","):
-                if not bit:
-                    continue
-
-                first, last, step = self._bits_expr.match(bit).groups()
-                for frame in FrameChunk(first, last, step, len(first)):
-                    file_name = ".".join((base_name, frame, ext))
-                    self.add_file(file_name)
-                continue
+            for file_name in self._iterate_over_sequence(*fmatch.groups()):
+                self.add_file(file_name)
 
         else:
             dir_name, base_name = os.path.split(file_name)
@@ -107,8 +95,6 @@ class Seqparse(object):
         for file_name in file_names:
             self.add_file(os.path.join(root, file_name))
 
-    # TODO: Implement tree option.
-    # def output(self, tree=False):
     def output(self):
         """Yield a list of contained singletons and file sequences."""
         for data in sorted(self.locations.values()):
@@ -131,6 +117,22 @@ class Seqparse(object):
             if level > 0 and cur_level + 1 == level:
                 del dir_names[:]
             self.add_from_scan(root, file_names)
+
+    def _iterate_over_sequence(self, base_name, frame_seq, ext):
+        """Iterate with given base name, frame sequence, and file extension."""
+        for bit in frame_seq.split(","):
+            if not bit:
+                continue
+
+            # TODO: Address this once the new FileSequence class has been
+            # implemented, a la
+            # >>> FileSequence("dog", "exr", first=1, last=10, pad=4)
+            # dog.0001-0010.exr
+            first, last, step = self._bits_expr.match(bit).groups()
+            for frame in FrameChunk(first, last, step, len(first)):
+                yield ".".join((base_name, frame, ext))
+
+            continue
 
     def _get_data(self, typ):
         """Return dictionary of the specified data type from the instance."""
