@@ -16,6 +16,11 @@ __all__ = ("Seqparse", )
 # 1. Negative increments
 # 2. Negative frame numbers
 
+BITS_EXPR = r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$"
+FILE_EXPR = r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$"
+FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
+FSEQ_EXPR = r"(?P<base>.*)\.(?P<frame>%s)\.(?P<ext>[^\.]+)$" % FRAME_EXPR
+
 ###############################################################################
 # Class: Seqparse
 
@@ -23,16 +28,17 @@ __all__ = ("Seqparse", )
 class Seqparse(object):
     """Storage and parsing engine for file sequences."""
 
-    BITS_EXPR = re.compile(
-        r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$")
-    FILE_EXPR = re.compile(r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$")
-    SEQ_EXPR = re.compile(
-        r",*(\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*),*$")
+    _bits_expr = re.compile(BITS_EXPR)
+    _file_expr = re.compile(FILE_EXPR)
+    _frame_expr = re.compile(r",*%s,*$" % FRAME_EXPR)
+    _fseq_expr = re.compile(FSEQ_EXPR)
 
     def __init__(self):
         """Initialise the instance."""
         self._locs = defaultdict(
-            lambda: dict(seqs=defaultdict(FileSequenceContainer), files=SingletonContainer()))
+            lambda: dict(
+                seqs=defaultdict(FileSequenceContainer),
+                files=SingletonContainer()))
 
     @property
     def locations(self):
@@ -51,7 +57,11 @@ class Seqparse(object):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
-        smatch = self.FILE_EXPR.match(str(file_name))
+        fmatch = self._fseq_expr.match(str(file_name))
+        smatch = self._file_expr.match(str(file_name))
+
+        # if fmatch:
+        # print file_name, fmatch.groupdict()
 
         if smatch:
             base_name, frame, file_ext = smatch.groups()
@@ -125,13 +135,13 @@ class Seqparse(object):
     @classmethod
     def validate_frame_sequence(cls, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
-        if cls.SEQ_EXPR.match(frame_seq):
+        if cls._frame_expr.match(frame_seq):
             bits = list()
             for bit in frame_seq.split(","):
                 if not bit:
                     continue
 
-                first, last, step = cls.BITS_EXPR.match(bit).groups()
+                first, last, step = cls._bits_expr.match(bit).groups()
 
                 try:
                     chunk = FrameChunk(first, last, step, len(first))
