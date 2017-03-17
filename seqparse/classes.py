@@ -326,8 +326,6 @@ class FileExtension(MutableMapping):
             # NOTE: the is_padded() method will force recalculation if the
             # object is dirty.
             if not frames.is_padded:
-                # TODO: prev_pad is unused, but leaving here for reference.
-                # prev_pad, prev_frames = data[0]
                 prev_frames = data[0][1]
                 prev_frames.update(frames)
                 del self[pad]
