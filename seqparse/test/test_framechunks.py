@@ -25,7 +25,7 @@ class TestFrameChunks(unittest.TestCase):
         pass
 
     def test_chunk_length(self):
-        """Test chunk length (number of included frames)."""
+        """FrameChunk: Test chunk length (number of included frames)."""
         print "\n  GOOD CHUNKS\n  --------------"
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
@@ -44,7 +44,7 @@ class TestFrameChunks(unittest.TestCase):
                 assert True
 
     def test_frame_containment(self):
-        """Test if a frame is contained by a chunk."""
+        """FrameChunk: Test if a frame is contained by a chunk."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         for frame in xrange(1, 6):
             self.assertIn(frame, chunk)
@@ -79,7 +79,7 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn("%02d" % frame, chunk)
 
     def test_iteration(self):
-        """Test iteration over a FrameChunk instance."""
+        """FrameChunk: Test iteration over a FrameChunk instance."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         frames = ["%04d" % x for x in xrange(1, 6)]
 

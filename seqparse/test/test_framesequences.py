@@ -5,6 +5,7 @@ import unittest
 
 from seqparse.classes import FrameChunk, FrameSequence, SeqparsePadException
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -17,7 +18,7 @@ class TestFrameSequences(unittest.TestCase):
         pass
 
     def test_simple_containment(self):
-        """Test if frames are contained by a sequence."""
+        """FrameSequence: Test if frames are contained by a sequence."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in xrange(1, 12)]
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
@@ -74,7 +75,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(FrameSequence()), "")
 
     def test_frame_add(self):
-        """Test the addition of frames of various types."""
+        """FrameSequence: Test the addition of frames of various types."""
         chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
         frames3 = ["%04d" % x for x in xrange(91, 103, 2)]
 
@@ -107,3 +108,6 @@ class TestFrameSequences(unittest.TestCase):
 
         self.assertEqual(
             str(seq), "0001-0004,0010-0020x2,0030-0040x2,0091-0101x2")
+
+    def test_setlike_methods(self):
+        """FrameSequence: Test set-like methods."""
