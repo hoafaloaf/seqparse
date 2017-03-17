@@ -5,7 +5,11 @@ omit =
     *encodings*
     *funcsigs*
     *mock*
+    *nose*
+    *packaging*
+    *pkg_resources*
     *pbr*
+    *pyparsing*
     *scandir*
     *six.py
     *uuid.py
