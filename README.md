@@ -1,6 +1,7 @@
 # seqparse.py
 
-[![Build Status](https://travis-ci.org/hoafaloaf/seqparse.svg?branch=master)](https://travis-ci.org/hoafaloaf/seqparse) [![Coverage Status](https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg?branch=feature%2Fmaster)](https://coveralls.io/github/hoafaloaf/seqparse?branch=feature%2Fmaster)
+[![Build Status](https://travis-ci.org/hoafaloaf/seqparse.svg?branch=master)](https://travis-ci.org/hoafaloaf/seqparse) [![Coverage Status](https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg?branch=feature%2Fmaster)](https://coveralls.io/github/hoafaloaf/seqparse?branch=feature%2Fmaster) [![Code Health](https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat)](https://landscape.io/github/hoafaloaf/seqparse/develop)
+
 
 A nifty way to list your file sequences.
 
