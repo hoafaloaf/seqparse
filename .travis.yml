@@ -1,7 +1,7 @@
 language: python
 python:
   - "2.7"
-before_install:
+install:
   - pip install -U coverage mock nose pylint pyyaml scandir setuptools
   - pip install -U coveralls
 script:
