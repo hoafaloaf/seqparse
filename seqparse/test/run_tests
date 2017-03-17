@@ -4,10 +4,9 @@ pp=$(dirname $(dirname $(readlink -f $0)))
 export PYTHONPATH=${pp}:$PYTHONPATH
 
 nosetests -v -s seqparse --with-xunit --all-modules --traverse-namespace \
-  --cover-erase --cover-html --cover-inclusive --cover-package \
-  --with-coverage --with-id
+  --cover-erase --cover-html --cover-inclusive --with-coverage --with-id
 
-python -m coverage xml --include=seqparse*
+#python -m coverage xml --include=seqparse*
 
 pylint -d I0011,R0204,R0801 seqparse \
   --msg-template='{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}' \
