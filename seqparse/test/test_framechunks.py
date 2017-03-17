@@ -1,4 +1,4 @@
-"""Test the individual classes."""
+"""Test the FrameChunk class."""
 
 # Standard Libraries
 import unittest
@@ -7,7 +7,7 @@ from seqparse.classes import FrameChunk
 
 
 ###############################################################################
-# class: TestFrameSequences
+# class: TestFrameChunks
 
 
 class TestFrameChunks(unittest.TestCase):
@@ -74,3 +74,15 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn(frame, chunk)
             self.assertNotIn(str(frame), chunk)
             self.assertNotIn("%02d" % frame, chunk)
+
+    def test_iteration(self):
+        """Test iteration over a FrameChunk instance."""
+        chunk = FrameChunk(first=1, last=5, step=1, pad=4)
+        frames = ["%04d" % x for x in xrange(1, 6)]
+
+        self.assertEqual(set(frames), set(chunk))
+
+        chunk = FrameChunk(first=1, last=20, step=2, pad=1)
+        frames = [str(x) for x in xrange(1, 21, 2)]
+
+        self.assertEqual(set(frames), set(chunk))
