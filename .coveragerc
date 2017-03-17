@@ -1,3 +1,19 @@
+[run]
+omit =
+    *argparse*
+    *ctypes*
+    *encodings*
+    *funcsigs*
+    *mock*
+    *nose*
+    *packaging*
+    *pkg_resources*
+    *pbr*
+    *pyparsing*
+    *scandir*
+    *six.py
+    *uuid.py
+
 [report]
 exclude_lines =
     pragma: no cover
@@ -5,13 +21,3 @@ exclude_lines =
     raise NotImplementedError
     if 0:
     if __name__ == .__main__.:
-omit =
-    *argparse*
-    *ctypes*
-    *encodings*
-    *funcsigs*
-    *mock*
-    *pbr*
-    *scandir*
-    *six.py
-    *uuid.py
