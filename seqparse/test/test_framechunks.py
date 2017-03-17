@@ -37,8 +37,11 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
+                assert False
+
             except ValueError as error:
                 print "  o ERROR: %s --> %s" % (bit, error)
+                assert True
 
     def test_frame_containment(self):
         """Test if a frame is contained by a chunk."""

@@ -118,7 +118,7 @@ class FrameChunk(object):
 class FrameSequence(MutableSet):
     """Representative for zero-padded frame sequences."""
 
-    def __init__(self, pad=1, iterable=None):
+    def __init__(self, iterable=None, pad=1):
         """Initialise the instance."""
         self.__data = set()
 
@@ -128,6 +128,8 @@ class FrameSequence(MutableSet):
         self._pad = 1
         self._is_padded = False
 
+        if isinstance(iterable, (FrameChunk, FrameSequence)):
+            pad = iterable.pad
         self.pad = pad
 
         for item in iterable or []:
@@ -196,10 +198,14 @@ class FrameSequence(MutableSet):
             except AttributeError:
                 raise AttributeError("Invalid value specified (%s)" % item)
 
-            len_item = len(item)
-            if len_item < self.pad:
-                message = "Specified value is incorrectly padded (%d < %d)"
-                raise AttributeError(message % (len_item, self.pad))
+        elif isinstance(item, (list, set, tuple)):
+            map(self.add, item)
+            return
+
+        elif isinstance(item, (FrameChunk, FrameSequence)):
+            if item.pad != self.pad:
+                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                raise AttributeError(blurb % (item, item.pad, self.pad))
 
         self.__data.add(int(item))
         self._dirty = True
