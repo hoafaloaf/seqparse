@@ -11,9 +11,10 @@ set PYTHONPATH=%PYTHONPATH%;%pythonpath_bak%
 echo PYTHONPATH: %PYTHONPATH%
 
 nosetests -v -s seqparse --with-xunit --all-modules --traverse-namespace ^
-  --cover-erase --cover-html --cover-inclusive --with-coverage --with-id
+  --cover-erase --cover-html --cover-inclusive --cover-package=seqparse ^
+  --with-coverage --with-id
 
-rem python -m coverage xml --include=seqparse*
+python -m coverage xml --include=seqparse*
 
 >pylint.out (
   pylint -d I0011,R0204,R0801 seqparse ^
