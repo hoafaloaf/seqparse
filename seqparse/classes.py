@@ -135,11 +135,21 @@ class FrameSequence(MutableSet):
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        return int(item) in self.__data
+        if int(item) in self.__data:
+            if isinstance(item, basestring) and item.startswith("0"):
+                return len(item) == self.pad
+            return True
+
+        return False
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        return iter(self.__data)
+        if self.is_dirty:
+            self.calculate()
+
+        for chunk in self._chunks:
+            for frame in chunk:
+                yield frame
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
@@ -210,11 +220,11 @@ class FrameSequence(MutableSet):
         self._output = ""
         del self._chunks[:]
 
-        num_frames = len(self)
+        num_frames = len(self.__data)
         if not num_frames:
             return
 
-        all_frames = sorted(self)
+        all_frames = sorted(self.__data)
         if num_frames == 1:
             self._chunks.append(FrameChunk(all_frames[0], pad=self.pad))
 
