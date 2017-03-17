@@ -40,7 +40,7 @@ class TestFrameChunks(unittest.TestCase):
                 assert False
 
             except ValueError as error:
-                print "  o ERROR: %s --> %s" % (bit, error)
+                print "  o EXPECTED ERROR: %s --> %s" % (bit, error)
                 assert True
 
     def test_frame_containment(self):

@@ -5,7 +5,19 @@ import os
 from collections import MutableMapping, MutableSet
 
 __all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence",
-           "SingletonContainer")
+           "SeqparsePadException", "SingletonContainer")
+
+###############################################################################
+# Class: SeqparsePadException
+
+
+class SeqparsePadException(Exception):
+    """Exception thrown when unexpected frame padding is encountered."""
+
+    def __init__(self, message):
+        """Initialise the instance."""
+        super(SeqparsePadException, self).__init__(message)
+
 
 ###############################################################################
 # Class: FrameChunk
@@ -198,16 +210,25 @@ class FrameSequence(MutableSet):
             except AttributeError:
                 raise AttributeError("Invalid value specified (%s)" % item)
 
+            item_pad = len(item)
+            if item.startswith("0") and item_pad != self.pad:
+                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                raise SeqparsePadException(blurb % (item, item_pad, self.pad))
+
+            self.__data.add(int(item))
+
         elif isinstance(item, (list, set, tuple)):
             map(self.add, item)
-            return
 
         elif isinstance(item, (FrameChunk, FrameSequence)):
             if item.pad != self.pad:
                 blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
-                raise AttributeError(blurb % (item, item.pad, self.pad))
+                raise SeqparsePadException(blurb % (item, item.pad, self.pad))
+            map(self.add, item)
 
-        self.__data.add(int(item))
+        else:
+            self.__data.add(int(item))
+
         self._dirty = True
 
     def discard(self, item):
