@@ -45,6 +45,15 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
 
+        for frame in xrange(1, 12):
+            self.assertIn(frame, seq)
+            self.assertIn(str(frame), seq)
+            self.assertNotIn("%04d" % frame, seq)
+
+        self.assertNotIn(13, seq)
+        self.assertNotIn("13", seq)
+        self.assertNotIn("0013", seq)
+
         seq = FrameSequence(frames2, pad=4)
         self.assertEqual(str(chunk2), str(seq))
         self.assertEqual(set(chunk2), set(seq))
@@ -60,6 +69,9 @@ class TestFrameSequences(unittest.TestCase):
 
         seq2 = FrameSequence(seq1)
         self.assertEqual(str(seq1), str(seq2))
+
+        # Empty FrameSequence ...
+        self.assertEqual(str(FrameSequence()), "")
 
     def test_frame_add(self):
         """Test the addition of frames of various types."""

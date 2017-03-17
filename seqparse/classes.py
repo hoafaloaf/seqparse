@@ -207,8 +207,8 @@ class FrameSequence(MutableSet):
         if isinstance(item, basestring):
             try:
                 int(item)
-            except AttributeError:
-                raise AttributeError("Invalid value specified (%s)" % item)
+            except ValueError:
+                raise ValueError("Invalid value specified (%r)" % item)
 
             item_pad = len(item)
             if item.startswith("0") and item_pad != self.pad:
