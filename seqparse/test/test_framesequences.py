@@ -162,3 +162,36 @@ class TestFrameSequences(unittest.TestCase):
         print "  o backward:", ", ".join(list(reversed(seq)))
 
         self.assertEqual(set(frames), set(seq))
+
+    def test_inversion(self):
+        """FrameSequence: Test frame inversion (ie, report missing frames)."""
+        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
+        seq = FrameSequence(chunk)
+        expected = FrameChunk(first=2, last=10, step=2, pad=4)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input frames:   ", seq
+        print "  expected frames:", expected
+        inverted = seq.invert()
+        print "  returned frames:", inverted
+
+        self.assertEqual(str(inverted), str(expected))
+
+        chunk1 = FrameChunk(first=1, last=9, step=2, pad=4)
+        chunk2 = FrameChunk(first=10, last=20, step=5, pad=4)
+        seq = FrameSequence(chunk1)
+        seq.add(chunk2)
+        seq.add("0021")
+
+        expected = FrameSequence(pad=4)
+        expected.add(chunk1.invert())
+        expected.add(chunk2.invert())
+
+        print "\n  COMPLEX FRAME\n  ------------"
+        print "  input frames:   ", seq
+        print "  expected frames:", expected
+        inverted = seq.invert()
+        print "  returned frames:", inverted
+        print
+
+        self.assertEqual(str(inverted), str(expected))

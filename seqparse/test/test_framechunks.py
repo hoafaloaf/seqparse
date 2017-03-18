@@ -108,22 +108,22 @@ class TestFrameChunks(unittest.TestCase):
         """FrameChunk: Test frame inversion (ie, report missing frames)."""
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         expected = FrameChunk(first=2, last=10, step=2, pad=4)
-        inverted = chunk.invert()
 
         print "\n\n  SEQUENCE\n  --------"
         print "  input frames:   ", chunk
         print "  expected frames:", expected
+        inverted = chunk.invert()
         print "  returned frames:", inverted
 
         self.assertEqual(str(inverted), str(expected))
 
         chunk = FrameChunk(first=10, pad=4)
         expected = ""
-        inverted = chunk.invert()
 
         print "\n  SINGLE FRAME\n  -----------"
         print "  input frames:   ", chunk
         print "  expected frames:", expected
+        inverted = chunk.invert()
         print "  returned frames:", inverted
         print
 
