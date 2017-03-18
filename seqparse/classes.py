@@ -96,7 +96,8 @@ class FrameChunk(object):
 
     def invert(self):
         """Return an iterator for the frames missing from the chunk."""
-        raise NotImplementedError
+        full_range = set(xrange(self.first, self.last + 1))
+        return FrameSequence(full_range - set(map(int, self)), pad=self.pad)
 
     def set_frames(self, first, last=None, step=1):
         """Set and validate the first and last frames of the chunk."""

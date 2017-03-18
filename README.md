@@ -15,6 +15,8 @@ Coming soon.
    frames).
 1. Implement `FileSequence` class, use built in functionality to replace the
    `Seqparse._iterate_over_sequence` method.
+1. Make sure we can measure equality between FrameChunk, FrameSequence
+   instances.
 1. Make `Seqparse.sequences` iterable (and possible add a containment test).
 1. Make `Seqparse.singletons` iterable (and possible add a containment test).
 1. Add ability to calculate/output total size of file sequences.
