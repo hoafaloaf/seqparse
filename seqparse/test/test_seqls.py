@@ -22,7 +22,7 @@ class TestSeqls(unittest.TestCase):
         pass
 
     def test_parse_args(self):
-        """Test seqls argument parsing."""
+        """Seqls: Test seqls argument parsing."""
         args = vars(seqls.parse_args([]))
         self.assertEqual(args, dict(level=["0"], search_path=["."]))
         args = vars(seqls.parse_args(["-l", "1"]))
@@ -36,7 +36,7 @@ class TestSeqls(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_seqls_with_arguments(self, mock_api_call):
-        """Test seqls with supplied arguments."""
+        """Seqls: Test seqls with supplied arguments."""
         mock_api_call.side_effect = mock_walk_deep
 
         print "\n  SEQUENCES\n  ---------"

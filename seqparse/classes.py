@@ -5,7 +5,19 @@ import os
 from collections import MutableMapping, MutableSet
 
 __all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence",
-           "SingletonContainer")
+           "SeqparsePadException", "SingletonContainer")
+
+###############################################################################
+# Class: SeqparsePadException
+
+
+class SeqparsePadException(Exception):
+    """Exception thrown when unexpected frame padding is encountered."""
+
+    def __init__(self, message):
+        """Initialise the instance."""
+        super(SeqparsePadException, self).__init__(message)
+
 
 ###############################################################################
 # Class: FrameChunk
@@ -118,7 +130,7 @@ class FrameChunk(object):
 class FrameSequence(MutableSet):
     """Representative for zero-padded frame sequences."""
 
-    def __init__(self, pad=1, iterable=None):
+    def __init__(self, iterable=None, pad=1):
         """Initialise the instance."""
         self.__data = set()
 
@@ -128,6 +140,8 @@ class FrameSequence(MutableSet):
         self._pad = 1
         self._is_padded = False
 
+        if isinstance(iterable, (FrameChunk, FrameSequence)):
+            pad = iterable.pad
         self.pad = pad
 
         for item in iterable or []:
@@ -135,11 +149,21 @@ class FrameSequence(MutableSet):
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        return int(item) in self.__data
+        if int(item) in self.__data:
+            if isinstance(item, basestring) and item.startswith("0"):
+                return len(item) == self.pad
+            return True
+
+        return False
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        return iter(self.__data)
+        if self.is_dirty:
+            self.calculate()
+
+        for chunk in self._chunks:
+            for frame in chunk:
+                yield frame
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
@@ -183,19 +207,42 @@ class FrameSequence(MutableSet):
         if isinstance(item, basestring):
             try:
                 int(item)
-            except AttributeError:
-                raise AttributeError("Invalid value specified (%s)" % item)
+            except ValueError:
+                raise ValueError("Invalid value specified (%r)" % item)
 
-            len_item = len(item)
-            if len_item < self.pad:
-                message = "Specified value is incorrectly padded (%d < %d)"
-                raise AttributeError(message % (len_item, self.pad))
+            item_pad = len(item)
+            if item.startswith("0") and item_pad != self.pad:
+                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                raise SeqparsePadException(blurb % (item, item_pad, self.pad))
 
-        self.__data.add(int(item))
+            self.__data.add(int(item))
+
+        elif isinstance(item, (list, set, tuple)):
+            map(self.add, item)
+
+        elif isinstance(item, (FrameChunk, FrameSequence)):
+            if item.pad != self.pad:
+                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                raise SeqparsePadException(blurb % (item, item.pad, self.pad))
+            map(self.add, item)
+
+        else:
+            self.__data.add(int(item))
+
         self._dirty = True
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
+        if isinstance(item, basestring):
+            if item.startswith("0"):
+                if len(item) != self.pad:
+                    blurb = ("Specified value (%r) is incorrectly padded "
+                             "(%d < %d))")
+                    raise SeqparsePadException(blurb %
+                                               (item, item.pad, self.pad))
+
+            item = int(item)
+
         self.__data.discard(item)
         self._dirty = True
 
@@ -210,11 +257,11 @@ class FrameSequence(MutableSet):
         self._output = ""
         del self._chunks[:]
 
-        num_frames = len(self)
+        num_frames = len(self.__data)
         if not num_frames:
             return
 
-        all_frames = sorted(self)
+        all_frames = sorted(self.__data)
         if num_frames == 1:
             self._chunks.append(FrameChunk(all_frames[0], pad=self.pad))
 
@@ -258,7 +305,7 @@ class FrameSequence(MutableSet):
 
 
 ###############################################################################
-# Class: FileExtensionn
+# Class: FileExtension
 
 
 class FileExtension(MutableMapping):

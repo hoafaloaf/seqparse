@@ -10,9 +10,9 @@ set PYTHONPATH=%PYTHONPATH:~0,-1%
 set PYTHONPATH=%PYTHONPATH%;%pythonpath_bak%
 echo PYTHONPATH: %PYTHONPATH%
 
-nosetests -v -s seqparse --with-xunit --all-modules --traverse-namespace ^
-  --cover-erase --cover-html --cover-inclusive --cover-package=seqparse ^
-  --with-coverage --with-id
+nosetests -v -s seqparse --all-modules --cover-erase --cover-html ^
+  --cover-package=seqparse --traverse-namespace --with-coverage ^
+  --cover-inclusive --with-id --with-xunit
 
 python -m coverage xml --include=seqparse*
 

@@ -10,6 +10,7 @@ import mock
 from . import generate_files, mock_walk_deep
 from .. import get_parser, validate_frame_sequence
 
+
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -28,7 +29,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_singletons(self, mock_api_call):
-        """Test file singleton discovery from disk location."""
+        """Seqparse: Test file singleton discovery from disk location."""
         mock_api_call.return_value = [(self._test_root, [], self._singletons)]
 
         # Expected outputs ...
@@ -52,7 +53,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_single_padded_file(self, mock_api_call):
-        """Test single padded file sequence discovery from disk location."""
+        """Seqparse: Test single padded file sequence discovery."""
         frames = {4: [1]}
 
         # Expected outputs ...
@@ -102,7 +103,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_simple_sequence(self, mock_api_call):
-        """Test simple file sequence discovery from disk location."""
+        """Seqparse: Test simple file sequence discoveryn."""
         frames = {4: [0, 1, 2, 3, 4]}
 
         # Expected outputs ...
@@ -152,7 +153,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_complex_sequence(self, mock_api_call):
-        """Test complex file sequence discovery from disk location."""
+        """Seqparse: Test complex file sequence discovery."""
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],
             3: [8, 9, 10, 12],
@@ -211,7 +212,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_nested_sequences(self, mock_api_call):
-        """Test file sequence discovery in nested directories."""
+        """Seqparse: Test file sequence discovery in nested directories."""
         mock_api_call.side_effect = mock_walk_deep
 
         print "\n\n  SEQUENCES\n  ---------"
@@ -240,7 +241,7 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
     def test_valid_frame_sequences(self):
-        """Test validity of simple frame ranges."""
+        """Seqparse: Test validity of simple frame ranges."""
         good_frame_seqs = [
             "0001", ",0001", "0001,", "0001-0001", "0001-0001x0",
             "0001-0003x3", "0001,0003", "0001,,0003", "0001-0010",
@@ -267,7 +268,7 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
     def test_add_file_sequence(self):
-        """Test file sequence addition via seqparse.add_file."""
+        """Seqparse: Test file sequence addition via seqparse.add_file."""
         input_file = ".".join((self._test_file_name, "0005", self._test_ext))
         input_file = os.path.join(self._test_root, input_file)
 
