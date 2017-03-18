@@ -111,3 +111,23 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_setlike_methods(self):
         """FrameSequence: Test set-like methods."""
+        frames = [1, 2, 3, 4, 11, 12, 13, 14]
+        pad_frames = ["%04d" % x for x in frames]
+
+        seq = FrameSequence(frames, pad=4)
+        self.assertEqual(set(pad_frames), set(seq))
+
+        seq = FrameSequence(frames, pad=4)
+        seq.discard(pad_frames[-1])
+        self.assertEqual(set(pad_frames[:-1]), set(seq))
+
+        seq = FrameSequence(frames, pad=4)
+        pad_frames2 = ["%04d" % x for x in [21, 22, 23, 24]]
+        seq.update(pad_frames2)
+        self.assertEqual(set(pad_frames + pad_frames2), set(seq))
+
+        # Not really a set-like method, but I need to test it ...
+        seq = FrameSequence(frames, pad=1)
+        self.assertFalse(seq.is_padded)
+        seq = FrameSequence(frames, pad=4)
+        self.assertTrue(seq.is_padded)

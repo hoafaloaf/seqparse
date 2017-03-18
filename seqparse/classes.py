@@ -233,6 +233,16 @@ class FrameSequence(MutableSet):
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
+        if isinstance(item, basestring):
+            if item.startswith("0"):
+                if len(item) != self.pad:
+                    blurb = ("Specified value (%r) is incorrectly padded "
+                             "(%d < %d))")
+                    raise SeqparsePadException(blurb %
+                                               (item, item.pad, self.pad))
+
+            item = int(item)
+
         self.__data.discard(item)
         self._dirty = True
 
@@ -295,7 +305,7 @@ class FrameSequence(MutableSet):
 
 
 ###############################################################################
-# Class: FileExtensionn
+# Class: FileExtension
 
 
 class FileExtension(MutableMapping):
