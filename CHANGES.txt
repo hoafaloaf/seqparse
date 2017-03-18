@@ -1,3 +1,21 @@
+v0.3.0 (2017/03/17)
+-------------------
+
+Changes (from v0.2.0)
+
+* Bugfix: FrameSequence.discard now handles poorly padded
+  frames correctly.
+* Bugfix: Messages thrown when an incorrect frame padding has
+  been specified should now be more correct.
+* FrameChunk and FrameSequence instances may now be reversed via
+  the reversed() command.
+* FrameChunk and FrameSequence may now be inverted (ie, report back
+  the missing frames as a FrameSequence instance) via their new
+  "invert" method.
+* .coveragerc has been updated to exclude seqparse.test*.
+* Coverage tests for FrameChunk, FrameSequence, and Seqparse are
+  now at 100%!
+
 v0.2.0 (2017/03/17)
 -------------------
 
