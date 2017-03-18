@@ -1,4 +1,4 @@
-"""Test the individual classes."""
+"""Test the FrameChunk class."""
 
 # Standard Libraries
 import unittest
@@ -7,7 +7,7 @@ from seqparse.classes import FrameChunk
 
 
 ###############################################################################
-# class: TestFrameSequences
+# class: TestFrameChunks
 
 
 class TestFrameChunks(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestFrameChunks(unittest.TestCase):
         pass
 
     def test_chunk_length(self):
-        """Test chunk length (number of included frames)."""
+        """FrameChunk: Test chunk length (number of included frames)."""
         print "\n  GOOD CHUNKS\n  --------------"
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
@@ -37,11 +37,14 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
+                assert False
+
             except ValueError as error:
-                print "  o ERROR: %s --> %s" % (bit, error)
+                print "  o EXPECTED ERROR: %s --> %s" % (bit, error)
+                assert True
 
     def test_frame_containment(self):
-        """Test if a frame is contained by a chunk."""
+        """FrameChunk: Test if a frame is contained by a chunk."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         for frame in xrange(1, 6):
             self.assertIn(frame, chunk)
@@ -74,3 +77,15 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn(frame, chunk)
             self.assertNotIn(str(frame), chunk)
             self.assertNotIn("%02d" % frame, chunk)
+
+    def test_iteration(self):
+        """FrameChunk: Test iteration over a FrameChunk instance."""
+        chunk = FrameChunk(first=1, last=5, step=1, pad=4)
+        frames = ["%04d" % x for x in xrange(1, 6)]
+
+        self.assertEqual(set(frames), set(chunk))
+
+        chunk = FrameChunk(first=1, last=20, step=2, pad=1)
+        frames = [str(x) for x in xrange(1, 21, 2)]
+
+        self.assertEqual(set(frames), set(chunk))
