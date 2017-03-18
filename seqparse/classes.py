@@ -94,6 +94,10 @@ class FrameChunk(object):
         """Integer step size for the frame chunk."""
         return max(self.__data["step"] or 1, 1)
 
+    def invert(self):
+        """Return an iterator for the frames missing from the chunk."""
+        raise NotImplementedError
+
     def set_frames(self, first, last=None, step=1):
         """Set and validate the first and last frames of the chunk."""
         if last is None:
@@ -305,6 +309,10 @@ class FrameSequence(MutableSet):
         # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._chunks)
         self._dirty = False
+
+    def invert(self):
+        """Return an iterator for the frames missing from the sequence."""
+        raise NotImplementedError
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):
