@@ -1,6 +1,25 @@
-v0.2.0 (2017/03/16)
+v0.3.0 (2017/03/17)
+-------------------
 
 Changes (from v0.2.0)
+
+* Bugfix: FrameSequence.discard now handles poorly padded
+  frames correctly.
+* Bugfix: Messages thrown when an incorrect frame padding has
+  been specified should now be more correct.
+* FrameChunk and FrameSequence instances may now be reversed via
+  the reversed() command.
+* FrameChunk and FrameSequence may now be inverted (ie, report back
+  the missing frames as a FrameSequence instance) via their new
+  "invert" method.
+* .coveragerc has been updated to exclude seqparse.test*.
+* Coverage tests for FrameChunk, FrameSequence, and Seqparse are
+  now at 100%!
+
+v0.2.0 (2017/03/17)
+-------------------
+
+Changes (from v0.1.3)
 
 * FrameChunk and FrameSequence instances now have similar behavior when used as
   iterators.
@@ -9,6 +28,15 @@ Changes (from v0.2.0)
 * Yes, we do need some stinkin' badges. README.md now indicates build status
   (travis-ci), coverage percentage (coveralls.io), and code health
   (landscape.io).
+
+v0.1.3 (2017/03/16)
+-------------------
+
+Changes (from v0.1.1)
+
+* Added coveralls support! Now you can look at code coverage for the
+  project on coverage.io. And I get to add a pretty badge to the
+  README.md.
 
 v0.1.2 (2017/03/16)
 -------------------

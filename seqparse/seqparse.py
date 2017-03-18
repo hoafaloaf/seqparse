@@ -124,10 +124,6 @@ class Seqparse(object):
             if not bit:
                 continue
 
-            # TODO: Address this once the new FileSequence class has been
-            # implemented, a la
-            # >>> FileSequence("dog", "exr", first=1, last=10, pad=4)
-            # dog.0001-0010.exr
             first, last, step = self._bits_expr.match(bit).groups()
             for frame in FrameChunk(first, last, step, len(first)):
                 yield ".".join((base_name, frame, ext))

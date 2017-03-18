@@ -8,7 +8,9 @@ import unittest
 import mock
 
 from . import generate_files, mock_walk_deep
-from .. import get_parser, validate_frame_sequence
+from .. import (get_chunk, get_parser, get_sequence, invert,
+                validate_frame_sequence)
+from ..classes import FrameChunk, FrameSequence
 
 
 ###############################################################################
@@ -302,3 +304,48 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], output_file_seq)
+
+        input_frame_seq = "0000-0002,,0003-0005"
+        input_file_seq = ".".join(
+            (self._test_file_name, input_frame_seq, self._test_ext))
+        input_file_seq = os.path.join(self._test_root, input_file_seq)
+
+        print "\n  INPUT FILES\n  -----------"
+        print "  o", input_file_seq
+        print "  o", input_file
+
+        parser = get_parser()
+        parser.add_file(input_file_seq)
+        parser.add_file(input_file)
+
+        output = list(parser.output())
+
+        print "\n  OUTPUT FILES\n  ------------"
+        for line in output:
+            print "  o", line
+
+        print "\n  EXPECTED OUTPUT\n  ---------------"
+        print "  o", output_file_seq
+        print
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], output_file_seq)
+
+    def test_api_calls(self):
+        """Seqparse: Test API calls at root of module."""
+        chunk = get_chunk(first=1, last=7, step=2, pad=4)
+        self.assertTrue(isinstance(chunk, FrameChunk))
+        self.assertEqual(str(chunk), "0001-0007x2")
+
+        seq = get_sequence(range(1, 8, 2), pad=4)
+        self.assertTrue(isinstance(seq, FrameSequence))
+        self.assertEqual(str(seq), "0001-0007x2")
+
+        expected = FrameChunk(first=2, last=6, step=2, pad=4)
+        inverted = invert(chunk)
+        self.assertEqual(str(inverted), str(expected))
+        inverted = invert(seq)
+        self.assertEqual(str(inverted), str(expected))
+
+        with self.assertRaises(TypeError):
+            invert(get_parser())
