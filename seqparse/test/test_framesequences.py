@@ -126,6 +126,10 @@ class TestFrameSequences(unittest.TestCase):
         seq.update(pad_frames2)
         self.assertEqual(set(pad_frames + pad_frames2), set(seq))
 
+        seq = FrameSequence(frames, pad=4)
+        with self.assertRaises(SeqparsePadException):
+            seq.discard("014")
+
         # Not really a set-like method, but I need to test it ...
         seq = FrameSequence(frames, pad=1)
         self.assertFalse(seq.is_padded)

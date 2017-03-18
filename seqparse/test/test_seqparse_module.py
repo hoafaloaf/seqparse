@@ -302,3 +302,29 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], output_file_seq)
+
+        input_frame_seq = "0000-0002,,0003-0005"
+        input_file_seq = ".".join(
+            (self._test_file_name, input_frame_seq, self._test_ext))
+        input_file_seq = os.path.join(self._test_root, input_file_seq)
+
+        print "\n  INPUT FILES\n  -----------"
+        print "  o", input_file_seq
+        print "  o", input_file
+
+        parser = get_parser()
+        parser.add_file(input_file_seq)
+        parser.add_file(input_file)
+
+        output = list(parser.output())
+
+        print "\n  OUTPUT FILES\n  ------------"
+        for line in output:
+            print "  o", line
+
+        print "\n  EXPECTED OUTPUT\n  ---------------"
+        print "  o", output_file_seq
+        print
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], output_file_seq)

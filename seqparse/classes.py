@@ -235,11 +235,12 @@ class FrameSequence(MutableSet):
         """Defining item discard logic (per standard set)."""
         if isinstance(item, basestring):
             if item.startswith("0"):
-                if len(item) != self.pad:
+                item_pad = len(item)
+                if item_pad != self.pad:
                     blurb = ("Specified value (%r) is incorrectly padded "
                              "(%d < %d))")
                     raise SeqparsePadException(blurb %
-                                               (item, item.pad, self.pad))
+                                               (item, item_pad, self.pad))
 
             item = int(item)
 
