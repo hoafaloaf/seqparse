@@ -135,3 +135,26 @@ class TestFrameSequences(unittest.TestCase):
         self.assertFalse(seq.is_padded)
         seq = FrameSequence(frames, pad=4)
         self.assertTrue(seq.is_padded)
+
+    def test_iteration(self):
+        """FrameSequence: Test iteration over an instance."""
+        frames = [x for x in xrange(1, 6)]
+        seq = FrameSequence(frames, pad=4)
+
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join([x for x in seq])
+        print "  o backward:", ", ".join(list(reversed(seq)))
+
+        frames = [x for x in xrange(1, 21, 2)]
+        frames += [x for x in xrange(100, 105)]
+        seq = FrameSequence(frames, pad=1)
+
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join([x for x in seq])
+        print "  o backward:", ", ".join(list(reversed(seq)))

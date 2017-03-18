@@ -66,6 +66,10 @@ class FrameChunk(object):
                  "length={length}, pad={pad})")
         return blurb.format(name=type(self).__name__, **self.__data)
 
+    def __reversed__(self):
+        """Allow reversed iteration via reversed()."""
+        return reversed(list(self))
+
     def __str__(self):
         """String representation of the frame chunk."""
         return self._output
@@ -173,6 +177,10 @@ class FrameSequence(MutableSet):
         """Pretty representation of the instance."""
         blurb = "%s(pad=%d, frames=set(%s))"
         return blurb % (type(self).__name__, self.pad, sorted(self.__data))
+
+    def __reversed__(self):
+        """Allow reversed iteration via reversed()."""
+        return reversed(list(self))
 
     def __str__(self):
         """String reprentation of the frame sequence."""
