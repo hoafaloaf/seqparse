@@ -1,0 +1,51 @@
+v0.2.0 (2017/03/16)
+
+Changes (from v0.2.0)
+
+* FrameChunk and FrameSequence instances now have similar behavior when used as
+  iterators.
+* Testing on Linux-based machines now accepts executable test files (as I'm
+  spending half my time programming on a Windows box).
+* Yes, we do need some stinkin' badges. README.md now indicates build status
+  (travis-ci), coverage percentage (coveralls.io), and code health
+  (landscape.io).
+
+v0.1.2 (2017/03/16)
+-------------------
+
+Changes (from v0.1.1)
+
+* Frame sequences may now be directly added to any Seqparse instance via
+  the add_file method.
+* FrameChunk instances are now iterable and have proper containment
+  tests for both (padded) string and integer frames.
+* FileSequence and Singletons classes have been refactored to
+  FileSequenceContainer and SingletonContainer, respectively, to more
+  accurately reflect their functionality.
+
+
+v0.1.1 (2017/03/15)
+-------------------
+
+Test/Bugfix Release
+
+Changes (from v.0.1)
+
+* seqls: It's accessed the same old way (ie, "seqls" from the command
+  line), but it's no longer a dedicated script; it's been moved to
+  seqparse.cli.seqls to ease installation.
+* The test suite has been expanded to cover pretty much everything as it
+  currently stands.
+o Fixed a bug where the padding on single frames wasn't resolving
+  properly.
+o README.md updated with a laundry list of stuff I'd like to do before
+  I'm moderately satisfied with my coding endeavours.
+
+v0.1 (2017/03/14)
+-----------------
+
+Initial release with basic functionality.
+
+* Primary usage is via the included "seqls" script.
+* May be installed via setuptools-supplied setup.py.
+* No real documentation (yet).
