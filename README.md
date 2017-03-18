@@ -1,6 +1,6 @@
 # seqparse.py
 
-[![Build Status](https://travis-ci.org/hoafaloaf/seqparse.svg?branch=master)](https://travis-ci.org/hoafaloaf/seqparse) [![Coverage Status](https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg?branch=feature%2Fmaster)](https://coveralls.io/github/hoafaloaf/seqparse?branch=feature%2Fmaster) [![Code Health](https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat)](https://landscape.io/github/hoafaloaf/seqparse/develop)
+[![Build Status](https://travis-ci.org/hoafaloaf/seqparse.svg?branch=master)](https://travis-ci.org/hoafaloaf/seqparse) [![Coverage Status](https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg)](https://coveralls.io/github/hoafaloaf/seqparse) [![Code Health](https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat)](https://landscape.io/github/hoafaloaf/seqparse)
 
 
 A nifty way to list your file sequences.
@@ -11,7 +11,12 @@ Coming soon.
 
 ## Stuff to do
 
-1. Add ability to *invert* frame sequences (ie, find missing frames).
+1. **IN PROGRESS** Add ability to *invert* frame sequences (ie, find missing
+   frames).
+1. Implement `FileSequence` class, use built in functionality to replace the
+   `Seqparse._iterate_over_sequence` method.
+1. Make sure we can measure equality between FrameChunk, FrameSequence
+   instances.
 1. Make `Seqparse.sequences` iterable (and possible add a containment test).
 1. Make `Seqparse.singletons` iterable (and possible add a containment test).
 1. Add ability to calculate/output total size of file sequences.

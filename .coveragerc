@@ -12,6 +12,7 @@ omit =
     *pyparsing*
     *scandir*
     *six.py
+    *seqparse.test*
     *uuid.py
 
 [report]

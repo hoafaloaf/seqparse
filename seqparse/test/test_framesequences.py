@@ -126,8 +126,72 @@ class TestFrameSequences(unittest.TestCase):
         seq.update(pad_frames2)
         self.assertEqual(set(pad_frames + pad_frames2), set(seq))
 
+        seq = FrameSequence(frames, pad=4)
+        with self.assertRaises(SeqparsePadException):
+            seq.discard("014")
+
         # Not really a set-like method, but I need to test it ...
         seq = FrameSequence(frames, pad=1)
         self.assertFalse(seq.is_padded)
         seq = FrameSequence(frames, pad=4)
         self.assertTrue(seq.is_padded)
+
+    def test_iteration(self):
+        """FrameSequence: Test iteration over an instance."""
+        frames = ["%04d" % x for x in xrange(1, 6)]
+        seq = FrameSequence(frames, pad=4)
+
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join([x for x in seq])
+        print "  o backward:", ", ".join(list(reversed(seq)))
+
+        frames = [str(x) for x in xrange(1, 21, 2)]
+        frames += [str(x) for x in xrange(100, 105)]
+        seq = FrameSequence(frames, pad=1)
+
+        self.assertEqual(set(frames), set(seq))
+
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join([x for x in seq])
+        print "  o backward:", ", ".join(list(reversed(seq)))
+
+        self.assertEqual(set(frames), set(seq))
+
+    def test_inversion(self):
+        """FrameSequence: Test frame inversion (ie, report missing frames)."""
+        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
+        seq = FrameSequence(chunk)
+        expected = FrameChunk(first=2, last=10, step=2, pad=4)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input frames:   ", seq
+        print "  expected frames:", expected
+        inverted = seq.invert()
+        print "  returned frames:", inverted
+
+        self.assertEqual(str(inverted), str(expected))
+
+        chunk1 = FrameChunk(first=1, last=9, step=2, pad=4)
+        chunk2 = FrameChunk(first=10, last=20, step=5, pad=4)
+        seq = FrameSequence(chunk1)
+        seq.add(chunk2)
+        seq.add("0021")
+
+        expected = FrameSequence(pad=4)
+        expected.add(chunk1.invert())
+        expected.add(chunk2.invert())
+
+        print "\n  COMPLEX FRAME\n  ------------"
+        print "  input frames:   ", seq
+        print "  expected frames:", expected
+        inverted = seq.invert()
+        print "  returned frames:", inverted
+        print
+
+        self.assertEqual(str(inverted), str(expected))

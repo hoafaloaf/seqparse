@@ -66,6 +66,10 @@ class FrameChunk(object):
                  "length={length}, pad={pad})")
         return blurb.format(name=type(self).__name__, **self.__data)
 
+    def __reversed__(self):
+        """Allow reversed iteration via reversed()."""
+        return reversed(list(self))
+
     def __str__(self):
         """String representation of the frame chunk."""
         return self._output
@@ -89,6 +93,11 @@ class FrameChunk(object):
     def step(self):
         """Integer step size for the frame chunk."""
         return max(self.__data["step"] or 1, 1)
+
+    def invert(self):
+        """Return an iterator for the frames missing from the chunk."""
+        full_range = set(xrange(self.first, self.last + 1))
+        return FrameSequence(full_range - set(map(int, self)), pad=self.pad)
 
     def set_frames(self, first, last=None, step=1):
         """Set and validate the first and last frames of the chunk."""
@@ -174,6 +183,10 @@ class FrameSequence(MutableSet):
         blurb = "%s(pad=%d, frames=set(%s))"
         return blurb % (type(self).__name__, self.pad, sorted(self.__data))
 
+    def __reversed__(self):
+        """Allow reversed iteration via reversed()."""
+        return reversed(list(self))
+
     def __str__(self):
         """String reprentation of the frame sequence."""
         if self.is_dirty:
@@ -212,7 +225,7 @@ class FrameSequence(MutableSet):
 
             item_pad = len(item)
             if item.startswith("0") and item_pad != self.pad:
-                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                blurb = "Specified value (%r) is incorrectly padded (%d != %d)"
                 raise SeqparsePadException(blurb % (item, item_pad, self.pad))
 
             self.__data.add(int(item))
@@ -222,7 +235,7 @@ class FrameSequence(MutableSet):
 
         elif isinstance(item, (FrameChunk, FrameSequence)):
             if item.pad != self.pad:
-                blurb = "Specified value (%r) is incorrectly padded (%d < %d)"
+                blurb = "Specified value (%r) is incorrectly padded (%d != %d)"
                 raise SeqparsePadException(blurb % (item, item.pad, self.pad))
             map(self.add, item)
 
@@ -235,11 +248,12 @@ class FrameSequence(MutableSet):
         """Defining item discard logic (per standard set)."""
         if isinstance(item, basestring):
             if item.startswith("0"):
-                if len(item) != self.pad:
+                item_pad = len(item)
+                if item_pad != self.pad:
                     blurb = ("Specified value (%r) is incorrectly padded "
-                             "(%d < %d))")
+                             "(%d != %d))")
                     raise SeqparsePadException(blurb %
-                                               (item, item.pad, self.pad))
+                                               (item, item_pad, self.pad))
 
             item = int(item)
 
@@ -296,6 +310,17 @@ class FrameSequence(MutableSet):
         # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._chunks)
         self._dirty = False
+
+    def invert(self):
+        """Return an iterator for the frames missing from the sequence."""
+        if self.is_dirty:
+            self.calculate()
+
+        inverted = FrameSequence(pad=self.pad)
+        for chunk in self._chunks:
+            inverted.add(chunk.invert())
+
+        return inverted
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):

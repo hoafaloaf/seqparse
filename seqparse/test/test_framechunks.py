@@ -79,13 +79,52 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn("%02d" % frame, chunk)
 
     def test_iteration(self):
-        """FrameChunk: Test iteration over a FrameChunk instance."""
+        """FrameChunk: Test iteration over an instance."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         frames = ["%04d" % x for x in xrange(1, 6)]
 
         self.assertEqual(set(frames), set(chunk))
 
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join(x for x in chunk)
+        print "  o backward:", ", ".join(x for x in reversed(chunk))
+
         chunk = FrameChunk(first=1, last=20, step=2, pad=1)
         frames = [str(x) for x in xrange(1, 21, 2)]
 
         self.assertEqual(set(frames), set(chunk))
+
+        print "\n\n  INPUT FRAMES\n  ------------"
+        print " ", frames
+
+        print "\n\n  ITERATION\n  ---------"
+        print "  o forward: ", ", ".join(x for x in chunk)
+        print "  o backward:", ", ".join(x for x in reversed(chunk))
+
+    def test_inversion(self):
+        """FrameChunk: Test frame inversion (ie, report missing frames)."""
+        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
+        expected = FrameChunk(first=2, last=10, step=2, pad=4)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input frames:   ", chunk
+        print "  expected frames:", expected
+        inverted = chunk.invert()
+        print "  returned frames:", inverted
+
+        self.assertEqual(str(inverted), str(expected))
+
+        chunk = FrameChunk(first=10, pad=4)
+        expected = ""
+
+        print "\n  SINGLE FRAME\n  -----------"
+        print "  input frames:   ", chunk
+        print "  expected frames:", expected
+        inverted = chunk.invert()
+        print "  returned frames:", inverted
+        print
+
+        self.assertEqual(str(inverted), str(expected))
