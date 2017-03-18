@@ -325,3 +325,94 @@ class FrameSequence(MutableSet):
         """Internal shortcut for creating FrameChunk from a list of frames."""
         frames = sorted(frames)
         return FrameChunk(frames[0], frames[-1], step, pad)
+
+
+###############################################################################
+# Class: FileSequence
+
+
+class FileSequence(MutableSet):
+    """Representative for sequences of files."""
+
+    def __init__(self, base_name=None, ext=None, frames=None, pad=1):
+        """Initialise the instance."""
+        self.__data = dict(
+            ext=None, frames=FrameSequence(), name=None, path=None)
+
+        self._dirty = True
+        self._output = None
+
+    def __contains__(self, item):
+        """Defining containment logic (per standard set)."""
+        pass
+        '''
+        if int(item) in self.__data:
+            if isinstance(item, basestring) and item.startswith("0"):
+                return len(item) == self.pad
+            return True
+
+        return False
+        '''
+
+    def __iter__(self):
+        """Defining item iteration logic (per standard set)."""
+        file_path = os.path.join(self.path or "", "")
+
+        for frame in self.__data["frames"]:
+            file_name = "{fr}.{ext}"
+            if self.name:
+                file_name = "{name}.{fr}.{ext}"
+            yield file_name.format(fr=frame, **self.__data)
+
+    def __len__(self):
+        """Defining item length logic (per standard set)."""
+        return len(self.__data["frames"])
+
+    @property
+    def ext(self):
+        """The file extension for the sequence."""
+        return self.__data["ext"]
+
+    @ext.setter
+    def ext(self, val):
+        self.__data["ext"] = str(val or None)
+
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self.__data["name"]
+
+    @name.setter
+    def name(self, val):
+        self.__data["name"] = None
+        if val:
+            val = str(val)
+
+            # If it's a file path (complete with directory prefix), set the
+            # path property as well.
+            if os.sep in val:
+                path_name, val = os.path.split(os.path.normpath(val))
+                self.path = path_name
+
+            self.__data["name"] = val
+
+    @property
+    def path(self):
+        """Directory in which the contained files are located."""
+        return self.__data["path"]
+
+    @path.setter
+    def path(self, val):
+        self.__data["path"] = str(val or None)
+
+    def add(self, item):
+        """Defining item addition logic (per standard set)."""
+        self.__data["frames"].add(item)
+
+    def discard(self, item):
+        """Defining item discard logic (per standard set)."""
+        self.__data["frames"].discard(item)
+
+    def update(self, iterable):
+        """Defining item update logic (per standard set)."""
+        self.__data["frames"].update(iterable)

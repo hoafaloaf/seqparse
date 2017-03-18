@@ -5,6 +5,7 @@ import unittest
 
 from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
+
 ###############################################################################
 # class: TestFrameSequences
 

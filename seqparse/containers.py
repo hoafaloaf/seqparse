@@ -58,7 +58,7 @@ class FileExtension(MutableMapping):
 
     @property
     def name(self):
-        """The (base) name of the file sequence."""
+        """The name of the file extension."""
         return self._name
 
     @name.setter
