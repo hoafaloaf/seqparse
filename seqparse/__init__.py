@@ -1,18 +1,12 @@
 """Seqparse: A nifty way to list your file sequences."""
 
 from .seqparse import Seqparse
-from .classes import FrameChunk, FrameSequence
+from .sequences import FrameChunk, FrameSequence
 
-__all__ = ("get_chunk", "get_parser", "get_sequence", "invert",
-           "validate_frame_sequence")
+__all__ = ("get_parser", "get_sequence", "invert", "validate_frame_sequence")
 
 ###############################################################################
 # EXPORTED METHODS
-
-
-def get_chunk(first=None, last=None, step=1, pad=1):
-    """Return a new FrameChunk instance."""
-    return FrameChunk(first, last=last, step=step, pad=pad)
 
 
 def get_parser():

@@ -3,8 +3,7 @@
 # Standard Libraries
 import unittest
 
-from seqparse.classes import FrameChunk, FrameSequence, SeqparsePadException
-
+from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
 ###############################################################################
 # class: TestFrameSequences

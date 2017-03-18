@@ -8,10 +8,8 @@ import unittest
 import mock
 
 from . import generate_files, mock_walk_deep
-from .. import (get_chunk, get_parser, get_sequence, invert,
-                validate_frame_sequence)
-from ..classes import FrameChunk, FrameSequence
-
+from .. import get_parser, get_sequence, invert, validate_frame_sequence
+from ..sequences import FrameChunk, FrameSequence
 
 ###############################################################################
 # class: TestSeqparseModule
@@ -333,10 +331,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""
-        chunk = get_chunk(first=1, last=7, step=2, pad=4)
-        self.assertTrue(isinstance(chunk, FrameChunk))
-        self.assertEqual(str(chunk), "0001-0007x2")
-
+        chunk = FrameChunk(first=1, last=7, step=2, pad=4)
         seq = get_sequence(range(1, 8, 2), pad=4)
         self.assertTrue(isinstance(seq, FrameSequence))
         self.assertEqual(str(seq), "0001-0007x2")

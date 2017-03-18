@@ -8,7 +8,8 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequenceContainer, FrameChunk, SingletonContainer
+from .containers import FileSequenceContainer, SingletonContainer
+from .sequences import FrameChunk
 
 __all__ = ("Seqparse", )
 
