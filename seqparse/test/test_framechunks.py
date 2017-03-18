@@ -95,11 +95,11 @@ class TestFrameChunks(unittest.TestCase):
         chunk = FrameChunk(first=1, last=20, step=2, pad=1)
         frames = [str(x) for x in xrange(1, 21, 2)]
 
+        self.assertEqual(set(frames), set(chunk))
+
         print "\n\n  INPUT FRAMES\n  ------------"
         print " ", frames
 
         print "\n\n  ITERATION\n  ---------"
         print "  o forward: ", ", ".join(x for x in chunk)
         print "  o backward:", ", ".join(x for x in reversed(chunk))
-
-        self.assertEqual(set(frames), set(chunk))

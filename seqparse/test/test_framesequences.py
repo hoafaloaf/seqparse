@@ -138,7 +138,7 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_iteration(self):
         """FrameSequence: Test iteration over an instance."""
-        frames = [x for x in xrange(1, 6)]
+        frames = ["%04d" % x for x in xrange(1, 6)]
         seq = FrameSequence(frames, pad=4)
 
         print "\n\n  INPUT FRAMES\n  ------------"
@@ -148,9 +148,11 @@ class TestFrameSequences(unittest.TestCase):
         print "  o forward: ", ", ".join([x for x in seq])
         print "  o backward:", ", ".join(list(reversed(seq)))
 
-        frames = [x for x in xrange(1, 21, 2)]
-        frames += [x for x in xrange(100, 105)]
+        frames = [str(x) for x in xrange(1, 21, 2)]
+        frames += [str(x) for x in xrange(100, 105)]
         seq = FrameSequence(frames, pad=1)
+
+        self.assertEqual(set(frames), set(seq))
 
         print "\n\n  INPUT FRAMES\n  ------------"
         print " ", frames
@@ -158,3 +160,5 @@ class TestFrameSequences(unittest.TestCase):
         print "\n\n  ITERATION\n  ---------"
         print "  o forward: ", ", ".join([x for x in seq])
         print "  o backward:", ", ".join(list(reversed(seq)))
+
+        self.assertEqual(set(frames), set(seq))
