@@ -157,8 +157,13 @@ class FrameSequence(MutableSet):
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
         if int(item) in self._data:
-            if isinstance(item, basestring) and item.startswith("0"):
-                return len(item) == self.pad
+            if isinstance(item, basestring):
+                item_pad = len(item)
+                if item.startswith("0"):
+                    return item_pad == self.pad
+                else:
+                    return item_pad >= self.pad
+
             return True
 
         return False
