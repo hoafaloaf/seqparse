@@ -19,28 +19,28 @@ class FileExtension(MutableMapping):
 
     def __init__(self, name=None):
         """Initialise the instance."""
-        self.__data = dict()
+        self._data = dict()
         self._name = None
 
         self.name = name
 
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
-        del self.__data[key]
+        del self._data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__data:
-            self.__data[key] = self._CHILD_CLASS(pad=key)
-        return self.__data[key]
+        if key not in self._data:
+            self._data[key] = self._CHILD_CLASS(pad=key)
+        return self._data[key]
 
     def __iter__(self):
         """Define key iteration logic (per standard dictionary)."""
-        return iter(self.__data)
+        return iter(self._data)
 
     def __len__(self):
         """Define item length logic (per standard dictionary)."""
-        return len(self.__data)
+        return len(self._data)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
@@ -54,7 +54,7 @@ class FileExtension(MutableMapping):
         if not isinstance(value, self._CHILD_CLASS) or value is None:
             raise ValueError
 
-        self.__data[key] = value
+        self._data[key] = value
 
     @property
     def name(self):
@@ -96,7 +96,7 @@ class FileSequenceContainer(MutableMapping):
 
     def __init__(self, name=None, file_path=None):
         """Initialise the instance."""
-        self.__data = dict()
+        self._data = dict()
 
         self._name = None
         self._path = None
@@ -106,22 +106,22 @@ class FileSequenceContainer(MutableMapping):
 
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
-        del self.__data[key]
+        del self._data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__data:
-            self.__data[key] = self._CHILD_CLASS(name=key)
+        if key not in self._data:
+            self._data[key] = self._CHILD_CLASS(name=key)
 
-        return self.__data[key]
+        return self._data[key]
 
     def __iter__(self):
         """Define key iteration logic (per standard dictionary)."""
-        return iter(self.__data)
+        return iter(self._data)
 
     def __len__(self):
         """Define item length logic (per standard dictionary)."""
-        return len(self.__data)
+        return len(self._data)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
@@ -137,7 +137,7 @@ class FileSequenceContainer(MutableMapping):
         if not isinstance(value, self._CHILD_CLASS) or value is None:
             raise ValueError
 
-        self.__data[key] = value
+        self._data[key] = value
 
     @property
     def name(self):
@@ -179,7 +179,7 @@ class SingletonContainer(MutableSet):
 
     def __init__(self, iterable=None, file_path=None):
         """Initialise the instance."""
-        self.__data = set()
+        self._data = set()
 
         self._path = None
 
@@ -190,20 +190,20 @@ class SingletonContainer(MutableSet):
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        return str(item) in self.__data
+        return str(item) in self._data
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        return iter(self.__data)
+        return iter(self._data)
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
-        return len(self.__data)
+        return len(self._data)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "%s(path='%s', files=set(%s))"
-        return blurb % (type(self).__name__, self.path, sorted(self.__data))
+        return blurb % (type(self).__name__, self.path, sorted(self._data))
 
     def __str__(self):
         """String reprentation of the singleton files."""
@@ -220,11 +220,11 @@ class SingletonContainer(MutableSet):
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""
-        self.__data.add(str(item))
+        self._data.add(str(item))
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
-        self.__data.discard(item)
+        self._data.discard(item)
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
