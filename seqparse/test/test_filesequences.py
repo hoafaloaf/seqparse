@@ -53,7 +53,7 @@ class TestFileSequences(unittest.TestCase):
         self.assertEqual(fseq.name, self._test_name)
         self.assertEqual(fseq.path, self._test_path)
 
-    def test_containment(self):
+    def test_frame_containment(self):
         """FileSequence: Test if frames are contained by a sequence."""
         file_path = os.path.join(self._test_path, self._test_name)
 
@@ -107,6 +107,44 @@ class TestFileSequences(unittest.TestCase):
             self.assertIn(frame, fseq)
             self.assertIn(int(frame), fseq)
             self.assertNotIn(str(int(frame)), fseq)
+
+    def test_file_containment(self):
+        """FileSequence: Test if files are contained by a sequence."""
+        file_path = os.path.join(self._test_path, self._test_name)
+        frames = range(1, 12)
+
+        # TODO: See why this doesn't work: seq1 = FileSequence(frames, pad=1)
+        seq1 = FrameSequence(frames, pad=1)
+        fseq1 = FileSequence(name=file_path, ext=self._test_ext, frames=seq1)
+        file_names1 = [
+            "%s.%s.%s" % (file_path, x, self._test_ext) for x in frames
+        ]
+
+        for file_name in file_names1:
+            self.assertIn(file_name, fseq1)
+
+        bad_file_names1 = [
+            "%s.%s.%s" % (file_path, x, self._test_ext) for x in (0, 12)
+        ]
+
+        for file_name in bad_file_names1:
+            self.assertNotIn(file_name, fseq1)
+
+        seq2 = FrameSequence(frames, pad=4)
+        fseq2 = FileSequence(name=file_path, ext=self._test_ext, frames=seq2)
+        file_names2 = [
+            "%s.%04d.%s" % (file_path, x, self._test_ext) for x in frames
+        ]
+
+        for file_name in file_names2:
+            self.assertIn(file_name, fseq2)
+
+        bad_file_names2 = [
+            "%s.%0d.%s" % (file_path, x, self._test_ext) for x in (0, 12)
+        ]
+
+        for file_name in bad_file_names2:
+            self.assertNotIn(file_name, fseq2)
 
     def test_iteration(self):
         """FrameSequence: Test iteration over an instance."""

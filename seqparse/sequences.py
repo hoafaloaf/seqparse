@@ -350,6 +350,12 @@ class FileSequence(FrameSequence):
         self.ext = ext
         self.name = name
 
+    def __contains__(self, item):
+        """Defining containment logic (per standard set)."""
+        if str(item).isdigit():
+            return super(FileSequence, self).__contains__(item)
+        return item in set(self)
+
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
         file_path = os.path.join(self.path or "", "")
