@@ -37,7 +37,6 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
-                assert False
 
             except ValueError as error:
                 print "  o EXPECTED ERROR: %s --> %s" % (bit, error)
