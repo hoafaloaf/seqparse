@@ -8,14 +8,11 @@ from collections import defaultdict
 # Third Party Libraries
 import scandir
 
-from .classes import FileSequenceContainer, FrameChunk, SingletonContainer
+from .containers import FileSequenceContainer, SingletonContainer
+from .regex import BITS_EXPR, FILE_NAME_EXPR, FRAME_EXPR, FRAME_SEQ_EXPR
+from .sequences import FrameChunk
 
 __all__ = ("Seqparse", )
-
-BITS_EXPR = r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<incr>\d+)?)?)?$"
-FILE_EXPR = r"(?P<base>.*)\.(?P<frame>\d+)\.(?P<ext>[^\.]+)$"
-FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
-FSEQ_EXPR = r"(?P<base>.*)\.(?P<frame>%s)\.(?P<ext>[^\.]+)$" % FRAME_EXPR
 
 ###############################################################################
 # Class: Seqparse
@@ -25,9 +22,9 @@ class Seqparse(object):
     """Storage and parsing engine for file sequences."""
 
     _bits_expr = re.compile(BITS_EXPR)
-    _file_expr = re.compile(FILE_EXPR)
+    _file_expr = re.compile(FILE_NAME_EXPR)
     _frame_expr = re.compile(r",*%s,*$" % FRAME_EXPR)
-    _fseq_expr = re.compile(FSEQ_EXPR)
+    _fseq_expr = re.compile(FRAME_SEQ_EXPR)
 
     def __init__(self):
         """Initialise the instance."""

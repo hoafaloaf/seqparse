@@ -1,11 +1,10 @@
-"""Classes utilized by the Seqparse class."""
+"""Sequence-related data structures utilized by the Seqparse module."""
 
 # Standard Libraries
 import os
-from collections import MutableMapping, MutableSet
+from collections import MutableSet
 
-__all__ = ("FileExtension", "FileSequenceContainer", "FrameSequence",
-           "SeqparsePadException", "SingletonContainer")
+__all__ = ("FrameSequence", "SeqparsePadException")
 
 ###############################################################################
 # Class: SeqparsePadException
@@ -28,7 +27,7 @@ class FrameChunk(object):
 
     def __init__(self, first, last=None, step=1, pad=1):
         """Initialise the instance."""
-        self.__data = dict(
+        self._data = dict(
             first=None, last=None, length=None, pad=int(pad), step=None)
         self._output = None
 
@@ -58,13 +57,13 @@ class FrameChunk(object):
 
     def __len__(self):
         """Return the length of the frame chunk."""
-        return self.__data["length"] or 0
+        return self._data["length"] or 0
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = ("{name}(first={first}, last={last}, step={step}, "
                  "length={length}, pad={pad})")
-        return blurb.format(name=type(self).__name__, **self.__data)
+        return blurb.format(name=type(self).__name__, **self._data)
 
     def __reversed__(self):
         """Allow reversed iteration via reversed()."""
@@ -77,22 +76,22 @@ class FrameChunk(object):
     @property
     def first(self):
         """The first frame of the chunk."""
-        return self.__data["first"]
+        return self._data["first"]
 
     @property
     def last(self):
         """The last frame of the chunk."""
-        return self.__data["last"]
+        return self._data["last"]
 
     @property
     def pad(self):
         """Integer zero-padding for the frames contained by the object."""
-        return self.__data["pad"]
+        return self._data["pad"]
 
     @property
     def step(self):
         """Integer step size for the frame chunk."""
-        return max(self.__data["step"] or 1, 1)
+        return max(self._data["step"] or 1, 1)
 
     def invert(self):
         """Return an iterator for the frames missing from the chunk."""
@@ -127,8 +126,7 @@ class FrameChunk(object):
         if step > 1 and bits > 1:
             self._output += "x%d" % step
 
-        self.__data.update(
-            first=first, last=last, length=(1 + bits), step=step)
+        self._data.update(first=first, last=last, length=(1 + bits), step=step)
         return self._output
 
 
@@ -141,7 +139,7 @@ class FrameSequence(MutableSet):
 
     def __init__(self, iterable=None, pad=1):
         """Initialise the instance."""
-        self.__data = set()
+        self._data = set()
 
         self._chunks = list()
         self._dirty = True
@@ -158,9 +156,14 @@ class FrameSequence(MutableSet):
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        if int(item) in self.__data:
-            if isinstance(item, basestring) and item.startswith("0"):
-                return len(item) == self.pad
+        if int(item) in self._data:
+            if isinstance(item, basestring):
+                item_pad = len(item)
+                if item.startswith("0"):
+                    return item_pad == self.pad
+                else:
+                    return item_pad >= self.pad
+
             return True
 
         return False
@@ -176,12 +179,12 @@ class FrameSequence(MutableSet):
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
-        return len(self.__data)
+        return len(self._data)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "%s(pad=%d, frames=set(%s))"
-        return blurb % (type(self).__name__, self.pad, sorted(self.__data))
+        return blurb % (type(self).__name__, self.pad, sorted(self._data))
 
     def __reversed__(self):
         """Allow reversed iteration via reversed()."""
@@ -228,7 +231,7 @@ class FrameSequence(MutableSet):
                 blurb = "Specified value (%r) is incorrectly padded (%d != %d)"
                 raise SeqparsePadException(blurb % (item, item_pad, self.pad))
 
-            self.__data.add(int(item))
+            self._data.add(int(item))
 
         elif isinstance(item, (list, set, tuple)):
             map(self.add, item)
@@ -240,7 +243,7 @@ class FrameSequence(MutableSet):
             map(self.add, item)
 
         else:
-            self.__data.add(int(item))
+            self._data.add(int(item))
 
         self._dirty = True
 
@@ -257,7 +260,7 @@ class FrameSequence(MutableSet):
 
             item = int(item)
 
-        self.__data.discard(item)
+        self._data.discard(item)
         self._dirty = True
 
     def update(self, iterable):
@@ -271,11 +274,11 @@ class FrameSequence(MutableSet):
         self._output = ""
         del self._chunks[:]
 
-        num_frames = len(self.__data)
+        num_frames = len(self._data)
         if not num_frames:
             return
 
-        all_frames = sorted(self.__data)
+        all_frames = sorted(self._data)
         if num_frames == 1:
             self._chunks.append(FrameChunk(all_frames[0], pad=self.pad))
 
@@ -312,7 +315,7 @@ class FrameSequence(MutableSet):
         self._dirty = False
 
     def invert(self):
-        """Return an iterator for the frames missing from the sequence."""
+        """Return a FrameSequence of frames missing from the sequence."""
         if self.is_dirty:
             self.calculate()
 
@@ -330,229 +333,103 @@ class FrameSequence(MutableSet):
 
 
 ###############################################################################
-# Class: FileExtension
+# Class: FileSequence
 
 
-class FileExtension(MutableMapping):
-    """Container for frame sequences, indexed by zero-padding."""
+class FileSequence(FrameSequence):
+    """Representative for sequences of files."""
 
-    _CHILD_CLASS = FrameSequence
-
-    def __init__(self, name=None):
+    def __init__(self, name=None, ext=None, frames=None, pad=1):
         """Initialise the instance."""
-        self.__data = dict()
-        self._name = None
+        if frames is None:
+            frames = list()
 
+        super(FileSequence, self).__init__(frames, pad=pad)
+        self._info = dict(ext=None, name=None, path=None)
+
+        self.ext = ext
         self.name = name
-
-    def __delitem__(self, key):
-        """Define key deletion logic (per standard dictionary)."""
-        del self.__data[key]
-
-    def __getitem__(self, key):
-        """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__data:
-            self.__data[key] = self._CHILD_CLASS(pad=key)
-        return self.__data[key]
-
-    def __iter__(self):
-        """Define key iteration logic (per standard dictionary)."""
-        return iter(self.__data)
-
-    def __len__(self):
-        """Define item length logic (per standard dictionary)."""
-        return len(self.__data)
-
-    def __repr__(self):  # pragma: no cover
-        """Pretty representation of the instance."""
-        blurb = "{name}(pads={pads})"
-        return blurb.format(name=type(self).__name__, pads=sorted(self))
-
-    def __setitem__(self, key, value):
-        """Define item setting logic (per standard dictionary)."""
-        if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
-
-        self.__data[key] = value
-
-    @property
-    def name(self):
-        """The (base) name of the file sequence."""
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = None
-        if val:
-            self._name = str(val)
-
-    def output(self):
-        """Return a formatted list of all contained file extentions."""
-        # First, check to see if we need to consolidate our frame sequences.
-        data = sorted(self.items(), reverse=True)
-        while len(data) > 1:
-            pad, frames = data.pop(0)
-
-            # NOTE: the is_padded() method will force recalculation if the
-            # object is dirty.
-            if not frames.is_padded:
-                prev_frames = data[0][1]
-                prev_frames.update(frames)
-                del self[pad]
-
-        for pad, frames in sorted(self.items()):
-            yield str(frames)
-
-
-###############################################################################
-# Class: FileSequenceContainer
-
-
-class FileSequenceContainer(MutableMapping):
-    """Representative for file sequences, indexed by file extension."""
-
-    _CHILD_CLASS = FileExtension
-
-    def __init__(self, name=None, file_path=None):
-        """Initialise the instance."""
-        self.__data = dict()
-
-        self._name = None
-        self._path = None
-
-        self.name = name
-        self.path = file_path
-
-    def __delitem__(self, key):
-        """Define key deletion logic (per standard dictionary)."""
-        del self.__data[key]
-
-    def __getitem__(self, key):
-        """Define key getter logic (per collections.defaultdict)."""
-        if key not in self.__data:
-            self.__data[key] = self._CHILD_CLASS(name=key)
-
-        return self.__data[key]
-
-    def __iter__(self):
-        """Define key iteration logic (per standard dictionary)."""
-        return iter(self.__data)
-
-    def __len__(self):
-        """Define item length logic (per standard dictionary)."""
-        return len(self.__data)
-
-    def __repr__(self):  # pragma: no cover
-        """Pretty representation of the instance."""
-        blurb = ("{name}(path='{path}', exts={exts})")
-        return blurb.format(
-            name=type(self).__name__, exts=sorted(self), path=self.path)
-
-    def __setitem__(self, key, value):
-        """Define item setting logic (per standard dictionary)."""
-        if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
-
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
-
-        self.__data[key] = value
-
-    @property
-    def name(self):
-        """The (base) name of the file sequence."""
-        return self._name
-
-    @name.setter
-    def name(self, val):
-        self._name = None
-        if val:
-            self._name = str(val)
-
-    @property
-    def path(self):
-        """Directory in which the contained files are located."""
-        return self._path
-
-    @path.setter
-    def path(self, val):
-        self._path = str(val or "")
-
-    def output(self):
-        """Return a formatted list of all contained file sequences."""
-        for ext, data in sorted(self.items()):
-            for output in data.output():
-                if self.name:
-                    bits = (self.name, output, ext)
-                else:
-                    bits = (output, ext)
-                yield os.path.join(self.path, ".".join(bits))
-
-
-###############################################################################
-# class: SingletonContainer
-
-
-class SingletonContainer(MutableSet):
-    """Representative for singleton files."""
-
-    def __init__(self, iterable=None, file_path=None):
-        """Initialise the instance."""
-        self.__data = set()
-
-        self._path = None
-
-        for item in iterable or []:
-            self.add(item)
-
-        self.path = file_path
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
-        return str(item) in self.__data
+        if str(item).isdigit():
+            return super(FileSequence, self).__contains__(item)
+        return item in set(self)
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        return iter(self.__data)
-
-    def __len__(self):
-        """Defining item length logic (per standard set)."""
-        return len(self.__data)
+        for frame in super(FileSequence, self).__iter__():
+            yield self._get_sequence_output(frame)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "%s(path='%s', files=set(%s))"
-        return blurb % (type(self).__name__, self.path, sorted(self.__data))
+        blurb = ("{cls}(name={name!r}, ext={ext!r}, pad={pad}, "
+                 "frames=set({fr!r}))")
+        return blurb.format(
+            cls=type(self).__name__,
+            fr=sorted(self._data),
+            pad=self.pad,
+            **self._info)
 
     def __str__(self):
-        """String reprentation of the singleton files."""
-        return "\n".join(list(self.output()))
+        """String reprentation of the frame sequence."""
+        frames = super(FileSequence, self).__str__()
+        return self._get_sequence_output(frames)
+
+    @property
+    def ext(self):
+        """The file extension for the sequence."""
+        return self._info["ext"]
+
+    @ext.setter
+    def ext(self, val):
+        self._info["ext"] = None
+        if val:
+            self._info["ext"] = str(val)
+
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self._info["name"]
+
+    @name.setter
+    def name(self, val):
+        self._info["name"] = None
+        if val:
+            val = str(val)
+
+            # If it's a file path (complete with directory prefix), set the
+            # path property as well.
+            if os.sep in val:
+                path_name, val = os.path.split(os.path.normpath(val))
+                self.path = path_name
+
+            self._info["name"] = val
 
     @property
     def path(self):
         """Directory in which the contained files are located."""
-        return self._path
+        return self._info["path"]
 
     @path.setter
     def path(self, val):
-        self._path = str(val or "")
+        self._info["path"] = None
+        if val:
+            self._info["path"] = str(os.path.normpath(val))
 
-    def add(self, item):
-        """Defining item addition logic (per standard set)."""
-        self.__data.add(str(item))
+    def invert(self):
+        """Return a FileSequence of files missing from the sequence."""
+        frames = super(FileSequence, self).invert()
+        return self._get_sequence_output(frames)
 
-    def discard(self, item):
-        """Defining item discard logic (per standard set)."""
-        self.__data.discard(item)
+    def _get_sequence_output(self, frames):
+        """Return a valid file sequence string from the given iterator."""
+        if not frames:
+            return ""
 
-    def update(self, iterable):
-        """Defining item update logic (per standard set)."""
-        for item in iterable:
-            self.add(item)
+        file_name = "{fr}.{ext}"
+        if self.name:
+            file_name = "{name}.{fr}.{ext}"
 
-    def output(self):
-        """Return a formatted list of all contained file sequences."""
-        for file_name in sorted(self):
-            yield os.path.join(self.path, file_name)
+        file_name = file_name.format(fr=frames, **self._info)
+        return os.path.join(self.path or "", file_name)

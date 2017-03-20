@@ -3,7 +3,7 @@
 # Standard Libraries
 import unittest
 
-from seqparse.classes import FrameChunk, FrameSequence, SeqparsePadException
+from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
 
 ###############################################################################
@@ -17,7 +17,7 @@ class TestFrameSequences(unittest.TestCase):
         """Set up the test instance."""
         pass
 
-    def test_simple_containment(self):
+    def test_containment(self):
         """FrameSequence: Test if frames are contained by a sequence."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in xrange(1, 12)]
@@ -148,11 +148,11 @@ class TestFrameSequences(unittest.TestCase):
         print "  o forward: ", ", ".join([x for x in seq])
         print "  o backward:", ", ".join(list(reversed(seq)))
 
+        self.assertEqual(set(frames), set(seq))
+
         frames = [str(x) for x in xrange(1, 21, 2)]
         frames += [str(x) for x in xrange(100, 105)]
         seq = FrameSequence(frames, pad=1)
-
-        self.assertEqual(set(frames), set(seq))
 
         print "\n\n  INPUT FRAMES\n  ------------"
         print " ", frames
@@ -168,11 +168,11 @@ class TestFrameSequences(unittest.TestCase):
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         seq = FrameSequence(chunk)
         expected = FrameChunk(first=2, last=10, step=2, pad=4)
+        inverted = seq.invert()
 
         print "\n\n  SEQUENCE\n  --------"
         print "  input frames:   ", seq
         print "  expected frames:", expected
-        inverted = seq.invert()
         print "  returned frames:", inverted
 
         self.assertEqual(str(inverted), str(expected))
@@ -186,11 +186,11 @@ class TestFrameSequences(unittest.TestCase):
         expected = FrameSequence(pad=4)
         expected.add(chunk1.invert())
         expected.add(chunk2.invert())
+        inverted = seq.invert()
 
         print "\n  COMPLEX FRAME\n  ------------"
         print "  input frames:   ", seq
         print "  expected frames:", expected
-        inverted = seq.invert()
         print "  returned frames:", inverted
         print
 
