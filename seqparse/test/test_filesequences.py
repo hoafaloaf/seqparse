@@ -53,6 +53,17 @@ class TestFileSequences(unittest.TestCase):
         self.assertEqual(fseq.name, self._test_name)
         self.assertEqual(fseq.path, self._test_path)
 
+    def test_output(self):
+        """FileSequence: Test string output."""
+        file_path = os.path.join(self._test_path, self._test_name)
+
+        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = FileSequence(name=file_path, ext=self._test_ext, frames=chunk)
+
+        file_name = "%s.%s.%s" % (file_path, chunk, self._test_ext)
+
+        self.assertEqual(file_name, str(fseq))
+
     def test_frame_containment(self):
         """FileSequence: Test if frames are contained by a sequence."""
         file_path = os.path.join(self._test_path, self._test_name)
@@ -147,7 +158,7 @@ class TestFileSequences(unittest.TestCase):
             self.assertNotIn(file_name, fseq2)
 
     def test_iteration(self):
-        """FrameSequence: Test iteration over an instance."""
+        """FileSequence: Test iteration over an instance."""
         file_path = os.path.join(self._test_path, self._test_name)
 
         data = [(range(1, 6), 4), (range(1, 21, 2) + range(100, 105), 1)]
@@ -170,3 +181,58 @@ class TestFileSequences(unittest.TestCase):
             print "\n".join("    - %s" % x for x in fseq)
             print "  o backward:"
             print "\n".join(list("    - %s" % x for x in reversed(fseq)))
+
+    def test_inversion(self):
+        """FileSequence: Test frame inversion (ie, report missing frames)."""
+        file_path = os.path.join(self._test_path, self._test_name)
+
+        chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in)
+        chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_out)
+        inverted = fseq.invert()
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input files:   ", fseq
+        print "  expected files:", expected
+        print "  returned files:", inverted
+
+        self.assertEqual(str(inverted), str(expected))
+
+        chunk1 = FrameChunk(first=1, last=9, step=2, pad=4)
+        chunk2 = FrameChunk(first=10, last=20, step=5, pad=4)
+        seq_in = FrameSequence(chunk1)
+        seq_in.add(chunk2)
+        seq_in.add("0021")
+        fseq = FileSequence(name=file_path, ext=self._test_ext, frames=seq_in)
+
+        seq_out = FrameSequence(pad=4)
+        seq_out.add(chunk1.invert())
+        seq_out.add(chunk2.invert())
+        seq_out.invert()
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=seq_in.invert())
+        inverted = fseq.invert()
+
+        print "\n  COMPLEX FRAME\n  ------------"
+        print "  input frames:   ", fseq
+        print "  expected frames:", expected
+        print "  returned frames:", inverted
+        print
+
+        self.assertEqual(str(inverted), str(expected))
+
+        chunk_in = FrameChunk(first=1, last=10, pad=2)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in)
+        expected = ""
+        inverted = fseq.invert()
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input files:   ", fseq
+        print "  expected files:", expected
+        print "  returned files:", inverted
+
+        self.assertEqual(str(inverted), str(expected))

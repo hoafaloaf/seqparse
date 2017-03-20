@@ -315,7 +315,7 @@ class FrameSequence(MutableSet):
         self._dirty = False
 
     def invert(self):
-        """Return an iterator for the frames missing from the sequence."""
+        """Return a FrameSequence of frames missing from the sequence."""
         if self.is_dirty:
             self.calculate()
 
@@ -358,14 +358,8 @@ class FileSequence(FrameSequence):
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        file_path = os.path.join(self.path or "", "")
-
         for frame in super(FileSequence, self).__iter__():
-            file_name = "{fr}.{ext}"
-            if self.name:
-                file_name = "{name}.{fr}.{ext}"
-            file_name = file_name.format(fr=frame, **self._info)
-            yield os.path.join(file_path, file_name)
+            yield self._get_sequence_output(frame)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
@@ -376,6 +370,11 @@ class FileSequence(FrameSequence):
             fr=sorted(self._data),
             pad=self.pad,
             **self._info)
+
+    def __str__(self):
+        """String reprentation of the frame sequence."""
+        frames = super(FileSequence, self).__str__()
+        return self._get_sequence_output(frames)
 
     @property
     def ext(self):
@@ -417,3 +416,20 @@ class FileSequence(FrameSequence):
         self._info["path"] = None
         if val:
             self._info["path"] = str(os.path.normpath(val))
+
+    def invert(self):
+        """Return a FileSequence of files missing from the sequence."""
+        frames = super(FileSequence, self).invert()
+        return self._get_sequence_output(frames)
+
+    def _get_sequence_output(self, frames):
+        """Return a valid file sequence string from the given iterator."""
+        if not frames:
+            return ""
+
+        file_name = "{fr}.{ext}"
+        if self.name:
+            file_name = "{name}.{fr}.{ext}"
+
+        file_name = file_name.format(fr=frames, **self._info)
+        return os.path.join(self.path or "", file_name)
