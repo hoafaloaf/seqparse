@@ -5,7 +5,6 @@ import unittest
 
 from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -21,15 +20,19 @@ class TestFrameSequences(unittest.TestCase):
         """FrameSequence: Test if frames are contained by a sequence."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in xrange(1, 12)]
+        # str_frames1 = "1-11"
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
         frames2 = ["%04d" % x for x in xrange(1, 12)]
-        chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
+        # str_frames2 = "0001-0011"
+        chunk3 = FrameChunk(first=91, last=101, step=2, pad=4)
         frames3 = ["%04d" % x for x in xrange(91, 103, 2)]
+        # str_frames3 = "0091-0101x2"
 
         seq = FrameSequence(frames1, pad=1)
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        # self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -37,6 +40,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        # self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -45,6 +49,13 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        # self.assertEqual(str_frames1, str(seq))
+
+        # seq = FrameSequence(str_frames1)
+        # self.assertEqual(str(chunk1), str(seq))
+        # self.assertEqual(set(chunk1), set(seq))
+        # self.assertEqual(set(frames1), set(seq))
+        # self.assertEqual(str_frames1, str(seq))
 
         for frame in xrange(1, 12):
             self.assertIn(frame, seq)
@@ -59,11 +70,25 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk2), str(seq))
         self.assertEqual(set(chunk2), set(seq))
         self.assertEqual(set(frames2), set(seq))
+        # self.assertEqual(str_frames2, str(seq))
+
+        # seq = FrameSequence(str_frames2)
+        # self.assertEqual(str(chunk2), str(seq))
+        # self.assertEqual(set(chunk2), set(seq))
+        # self.assertEqual(set(frames2), set(seq))
+        # self.assertEqual(str_frames2, str(seq))
 
         seq = FrameSequence(frames3, pad=4)
         self.assertEqual(str(chunk3), str(seq))
         self.assertEqual(set(chunk3), set(seq))
         self.assertEqual(set(frames3), set(seq))
+        # self.assertEqual(str_frames3, str(seq))
+
+        # seq = FrameSequence(str_frames3)
+        # self.assertEqual(str(chunk3), str(seq))
+        # self.assertEqual(set(chunk3), set(seq))
+        # self.assertEqual(set(frames3), set(seq))
+        # self.assertEqual(str_frames3, str(seq))
 
         seq1 = FrameSequence(chunk1)
         self.assertEqual(str(chunk1), str(seq1))
