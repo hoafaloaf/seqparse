@@ -127,3 +127,17 @@ class TestFrameChunks(unittest.TestCase):
         print
 
         self.assertEqual(str(inverted), str(expected))
+
+    def test_equality(self):
+        """FrameChunk: Test the equality of instances."""
+        chunk1 = FrameChunk(first=1, last=10, pad=4)
+        chunk2 = FrameChunk(first="1", last="10", pad=4)
+        chunk3 = FrameChunk(first=1, last=10, pad=4)
+        chunk4 = FrameChunk(first=1, last=10, pad=3)
+        chunk5 = FrameChunk(first="1", last="10", pad=3)
+        chunk6 = FrameChunk(first=1, last=10, pad=3)
+        self.assertEqual(chunk1, chunk2)
+        self.assertEqual(chunk1, chunk3)
+        self.assertNotEqual(chunk1, chunk4)
+        self.assertNotEqual(chunk1, chunk5)
+        self.assertNotEqual(chunk2, chunk4)

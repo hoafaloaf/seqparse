@@ -24,17 +24,16 @@ Coming soon.
     1. Add ability to calculate/output total size of file sequences
     (`FileSequence/Seqparse`).
     1. Add ability to calculate/output total size of singletons (`Seqparse`).
-    1. Implement tree-style output for `Seqparse.output`.
 1. v0.6.0
     1. Make `Seqparse.sequences` iterable (and possible add a containment
     test).
     1. Make `Seqparse.singletons` iterable (and possible add a containment
     test).
 1. v0.7.0
+    1. Implement tree-style output for `Seqparse.output`.
     1. Add support for negative frame numbers.
     1. Add support negative frame increments (read only).
 1. v0.8.0
-    1. Document **everything** in the module.
-    1. Seriously, document **everything**.
+    1. ***DOCUMENT ALL THE THINGS!***
 1. v1.0.0
     1. Release.
