@@ -2,14 +2,13 @@
 
 # Standard Libraries
 import os
-import re
 from collections import defaultdict
 
 # Third Party Libraries
 import scandir
 
 from .containers import FileSequenceContainer, SingletonContainer
-from .regex import BITS_EXPR, FILE_NAME_EXPR, FRAME_EXPR, FRAME_SEQ_EXPR
+from .regex import SeqparseRegexMixin
 from .sequences import FrameChunk
 
 __all__ = ("Seqparse", )
@@ -18,16 +17,13 @@ __all__ = ("Seqparse", )
 # Class: Seqparse
 
 
-class Seqparse(object):
+class Seqparse(SeqparseRegexMixin):
     """Storage and parsing engine for file sequences."""
-
-    _bits_expr = re.compile(BITS_EXPR)
-    _file_expr = re.compile(FILE_NAME_EXPR)
-    _frame_expr = re.compile(r",*%s,*$" % FRAME_EXPR)
-    _fseq_expr = re.compile(FRAME_SEQ_EXPR)
 
     def __init__(self):
         """Initialise the instance."""
+        super(Seqparse, self).__init__()
+
         self._locs = defaultdict(
             lambda: dict(
                 seqs=defaultdict(FileSequenceContainer),
@@ -50,11 +46,11 @@ class Seqparse(object):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
-        fmatch = self._fseq_expr.match(str(file_name))
-        smatch = self._file_expr.match(str(file_name))
+        file_seq_bits = self.frame_seq_match(str(file_name))
+        file_name_bits = self.file_name_match(str(file_name))
 
-        if smatch:
-            base_name, frame, file_ext = smatch.groups()
+        if file_name_bits:
+            base_name, frame, file_ext = file_name_bits
             dir_name, base_name = os.path.split(base_name)
 
             loc = self.locations[dir_name]
@@ -69,8 +65,8 @@ class Seqparse(object):
             pad = len(frame)
             ext[pad].add(frame)
 
-        elif fmatch:
-            for file_name in self._iterate_over_sequence(*fmatch.groups()):
+        elif file_seq_bits:
+            for file_name in self._iterate_over_sequence(*file_seq_bits):
                 self.add_file(file_name)
 
         else:
@@ -121,7 +117,7 @@ class Seqparse(object):
             if not bit:
                 continue
 
-            first, last, step = self._bits_expr.match(bit).groups()
+            first, last, step = self.bits_match(bit)
             for frame in FrameChunk(first, last, step, len(first)):
                 yield ".".join((base_name, frame, ext))
 
@@ -136,16 +132,15 @@ class Seqparse(object):
 
         return output
 
-    @classmethod
-    def validate_frame_sequence(cls, frame_seq):
+    def validate_frame_sequence(self, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
-        if cls._frame_expr.match(frame_seq):
+        if self.is_frame_sequence(frame_seq):
             bits = list()
             for bit in frame_seq.split(","):
                 if not bit:
                     continue
 
-                first, last, step = cls._bits_expr.match(bit).groups()
+                first, last, step = self.bits_match(bit)
 
                 try:
                     chunk = FrameChunk(first, last, step, len(first))

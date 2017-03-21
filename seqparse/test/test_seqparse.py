@@ -11,7 +11,6 @@ from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestSeqparseModule
 

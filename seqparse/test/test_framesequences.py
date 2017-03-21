@@ -17,19 +17,44 @@ class TestFrameSequences(unittest.TestCase):
         """Set up the test instance."""
         pass
 
-    def test_containment(self):
-        """FrameSequence: Test if frames are contained by a sequence."""
+    def test_initialization(self):
+        """FrameSequence: Test initialization of an instance."""
+        # Tuples indicate "frames" and "pad"; complex data types don't need a
+        # specified pad.
+        data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1),
+                (FrameChunk(first=2, pad=4), "0002", None),
+                (FrameSequence(range(30, 41, 2), pad=2), "30-40x2", None)]
+
+        print "\n\n  INPUT ARGUMENTS\n  ---------------"
+
+        for datum in data:
+            iterable, expected, pad = datum
+
+            print "  o iterable: %r" % iterable,
+            if pad is not None:
+                print "pad: %d" % pad
+            else:
+                print
+
+            try:
+                seq = FrameSequence(iterable=iterable, pad=pad)
+            except ValueError as error:
+                print "    - EXPECTED ERROR: %s --> %s" % (iterable, error)
+            else:
+                print "    - GOOD: %s" % seq
+                self.assertEqual(str(seq), expected)
+
+    def test_basic_containment(self):
+        """FrameSequence: Test basic containment of sequences."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in xrange(1, 12)]
-        chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
-        frames2 = ["%04d" % x for x in xrange(1, 12)]
-        chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
-        frames3 = ["%04d" % x for x in xrange(91, 103, 2)]
+        str_frames1 = "1-11"
 
         seq = FrameSequence(frames1, pad=1)
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -37,6 +62,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -45,6 +71,13 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
+        self.assertEqual(str_frames1, str(seq))
+
+        seq = FrameSequence(str_frames1)
+        self.assertEqual(str(chunk1), str(seq))
+        self.assertEqual(set(chunk1), set(seq))
+        self.assertEqual(set(frames1), set(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         for frame in xrange(1, 12):
             self.assertIn(frame, seq)
@@ -55,16 +88,6 @@ class TestFrameSequences(unittest.TestCase):
         self.assertNotIn("13", seq)
         self.assertNotIn("0013", seq)
 
-        seq = FrameSequence(frames2, pad=4)
-        self.assertEqual(str(chunk2), str(seq))
-        self.assertEqual(set(chunk2), set(seq))
-        self.assertEqual(set(frames2), set(seq))
-
-        seq = FrameSequence(frames3, pad=4)
-        self.assertEqual(str(chunk3), str(seq))
-        self.assertEqual(set(chunk3), set(seq))
-        self.assertEqual(set(frames3), set(seq))
-
         seq1 = FrameSequence(chunk1)
         self.assertEqual(str(chunk1), str(seq1))
 
@@ -73,6 +96,39 @@ class TestFrameSequences(unittest.TestCase):
 
         # Empty FrameSequence ...
         self.assertEqual(str(FrameSequence()), "")
+
+    def test_complex_containment(self):
+        """FrameSequence: Test containment of complex sequences."""
+        chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
+        frames2 = ["%04d" % x for x in xrange(1, 12)]
+        str_frames2 = "0001-0011"
+        chunk3 = FrameChunk(first=91, last=101, step=2, pad=4)
+        frames3 = ["%04d" % x for x in xrange(91, 103, 2)]
+        str_frames3 = "0091-0101x2"
+
+        seq = FrameSequence(frames2, pad=4)
+        self.assertEqual(str(chunk2), str(seq))
+        self.assertEqual(set(chunk2), set(seq))
+        self.assertEqual(set(frames2), set(seq))
+        self.assertEqual(str_frames2, str(seq))
+
+        seq = FrameSequence(str_frames2)
+        self.assertEqual(str(chunk2), str(seq))
+        self.assertEqual(set(chunk2), set(seq))
+        self.assertEqual(set(frames2), set(seq))
+        self.assertEqual(str_frames2, str(seq))
+
+        seq = FrameSequence(frames3, pad=4)
+        self.assertEqual(str(chunk3), str(seq))
+        self.assertEqual(set(chunk3), set(seq))
+        self.assertEqual(set(frames3), set(seq))
+        self.assertEqual(str_frames3, str(seq))
+
+        seq = FrameSequence(str_frames3)
+        self.assertEqual(str(chunk3), str(seq))
+        self.assertEqual(set(chunk3), set(seq))
+        self.assertEqual(set(frames3), set(seq))
+        self.assertEqual(str_frames3, str(seq))
 
     def test_frame_add(self):
         """FrameSequence: Test the addition of frames of various types."""
@@ -86,7 +142,8 @@ class TestFrameSequences(unittest.TestCase):
 
         # Add additional data types.
         data = [
-            "wow", "05", "4", 3, FrameChunk(first=2, pad=4),
+            "wow", "05", "4", 3, "010-020x2", "010,,020", "0010,,0020",
+            FrameChunk(first=2, pad=4),
             FrameChunk(first=10, last=20, step=2, pad=2),
             FrameChunk(first=10, last=20, step=2, pad=4),
             FrameSequence([1], pad=4),

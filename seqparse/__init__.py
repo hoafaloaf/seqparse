@@ -30,4 +30,4 @@ def invert(iterable):
 
 def validate_frame_sequence(frame_seq):
     """Whether the supplied frame (not file) sequence is valid."""
-    return Seqparse.validate_frame_sequence(frame_seq)
+    return Seqparse().validate_frame_sequence(frame_seq)

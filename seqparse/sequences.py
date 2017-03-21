@@ -4,6 +4,8 @@
 import os
 from collections import MutableSet
 
+from .regex import SeqparseRegexMixin
+
 __all__ = ("FrameSequence", "SeqparsePadException")
 
 ###############################################################################
@@ -134,21 +136,31 @@ class FrameChunk(object):
 # Class: FrameSequence
 
 
-class FrameSequence(MutableSet):
+class FrameSequence(MutableSet, SeqparseRegexMixin):
     """Representative for zero-padded frame sequences."""
 
     def __init__(self, iterable=None, pad=1):
         """Initialise the instance."""
-        self._data = set()
+        super(FrameSequence, self).__init__()
 
         self._chunks = list()
+        self._data = set()
         self._dirty = True
         self._output = None
-        self._pad = 1
+        self._pad = None
         self._is_padded = False
 
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
+        elif isinstance(iterable, basestring):
+            if not self.is_frame_sequence(iterable):
+                blurb = "Invalid iterable specified (%s, %r)"
+                raise ValueError(blurb % (type(iterable), iterable))
+            self._add_frame_sequence(iterable)
+            return
+        elif iterable and not isinstance(iterable, (list, tuple, set)):
+            iterable = [iterable]
+
         self.pad = pad
 
         for item in iterable or []:
@@ -221,9 +233,11 @@ class FrameSequence(MutableSet):
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         if isinstance(item, basestring):
-            try:
-                int(item)
-            except ValueError:
+            if self.is_frame_sequence(item):
+                if not item.isdigit():
+                    self._add_frame_sequence(item)
+                    return
+            else:
                 raise ValueError("Invalid value specified (%r)" % item)
 
             item_pad = len(item)
@@ -246,6 +260,19 @@ class FrameSequence(MutableSet):
             self._data.add(int(item))
 
         self._dirty = True
+
+    def _add_frame_sequence(self, frame_seq):
+        """Add a string frame sequence to the instance."""
+        for bit in frame_seq.split(","):
+            if not bit:
+                continue
+
+            first, last, step = self.bits_match(bit)
+            pad = len(first)
+            if self.pad is None:
+                self.pad = pad
+
+            self.add(FrameChunk(first, last, step, pad))
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
@@ -336,16 +363,23 @@ class FrameSequence(MutableSet):
 # Class: FileSequence
 
 
-class FileSequence(FrameSequence):
+class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     """Representative for sequences of files."""
 
-    def __init__(self, name=None, ext=None, frames=None, pad=1):
+    def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
+        self._info = dict(ext=None, name=None, path=None)
+
+        if name:
+            name_bits = self.frame_seq_match(name)
+            if name_bits:
+                name, frames, ext = name_bits
+                pad = None
+
         if frames is None:
             frames = list()
 
         super(FileSequence, self).__init__(frames, pad=pad)
-        self._info = dict(ext=None, name=None, path=None)
 
         self.ext = ext
         self.name = name
@@ -426,6 +460,9 @@ class FileSequence(FrameSequence):
         """Return a valid file sequence string from the given iterator."""
         if not frames:
             return ""
+        elif not self.ext:
+            raise AttributeError(
+                "File sequence extension has not been defined.")
 
         file_name = "{fr}.{ext}"
         if self.name:
