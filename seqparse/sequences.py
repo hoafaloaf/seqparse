@@ -150,6 +150,10 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._pad = None
         self._is_padded = False
 
+        # NOTE: This could probably be made more efficient by copying a
+        # FrameSequence's _data attribute and/or checking to see if _chunks
+        # had anything in it. We shouldn't have to count on recalculating if
+        # the job's already been done for us.
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
         elif isinstance(iterable, basestring):

@@ -6,7 +6,6 @@ import unittest
 
 from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -95,10 +94,6 @@ class TestFileSequences(unittest.TestCase):
         for frames in (frames1, chunk1, seq1):
             fseq = FileSequence(
                 name=file_path, ext=self._test_ext, frames=frames, pad=1)
-
-            file_names1 = [
-                "%s.%s.%s" % (file_path, x, self._test_ext) for x in frames
-            ]
 
             for frame in frames:
                 file_name = "%s.%s.%s" % (file_path, frame, self._test_ext)
