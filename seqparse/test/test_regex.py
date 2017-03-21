@@ -50,3 +50,39 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertFalse(self.regex.bits_match(chunk))
 
         print
+
+    def test_file_name_match(self):
+        """Test the file_name_match method."""
+        good_names = [
+            ("0001.exr", dict(name=None, frame="0001", ext="exr")),
+            ("kitty.1.jpg", dict(name="kitty", frame="1", ext="jpg")), (
+                "/i/like/cats/kitty.0001.tif",
+                dict(name="/i/like/cats/kitty", frame="0001", ext="tif"))
+        ]
+        bad_names = ["kitty.0001", "1", ".111", "111.", ".22.tif"]
+        bad_names.extend(self._singletons)
+
+        print "\n\n  GOOD NAMES\n  ----------"
+        for file_name, result in good_names:
+            bits_dict = self.regex.file_name_match(file_name, as_dict=True)
+            print '  o "%s" --> %s' % (file_name, bits_dict)
+            self.assertEqual(bits_dict, result)
+
+            result_tuple = tuple(bits_dict[x]
+                                 for x in ("name", "frame", "ext"))
+            self.assertEqual(
+                self.regex.file_name_match(file_name), result_tuple)
+
+        print "\n  BAD SEQUENCES\n  -------------"
+        for file_name in bad_names:
+            print '  o "%s"' % file_name
+            '''
+            bits_dict = self.regex.bits_match(file_name, as_dict=True)
+            if bits_dict:
+                print bits_dict
+            else:
+                print
+            '''
+            self.assertFalse(self.regex.file_name_match(file_name))
+
+        print
