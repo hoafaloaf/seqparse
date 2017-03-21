@@ -263,9 +263,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def _add_frame_sequence(self, frame_seq):
         """Add a string frame sequence to the instance."""
-        print "ENTRY:", frame_seq
         for bit in frame_seq.split(","):
-            print "--> bit:", repr(bit)
             if not bit:
                 continue
 
@@ -368,13 +366,20 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     """Representative for sequences of files."""
 
-    def __init__(self, name=None, ext=None, frames=None, pad=1):
+    def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
+        self._info = dict(ext=None, name=None, path=None)
+
+        if name:
+            name_bits = self.frame_seq_match(name)
+            if name_bits:
+                name, frames, ext = name_bits
+                pad = None
+
         if frames is None:
             frames = list()
 
         super(FileSequence, self).__init__(frames, pad=pad)
-        self._info = dict(ext=None, name=None, path=None)
 
         self.ext = ext
         self.name = name
@@ -455,6 +460,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         """Return a valid file sequence string from the given iterator."""
         if not frames:
             return ""
+        elif not self.ext:
+            raise AttributeError(
+                "File sequence extension has not been defined.")
 
         file_name = "{fr}.{ext}"
         if self.name:

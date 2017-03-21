@@ -17,25 +17,18 @@ class TestFrameSequences(unittest.TestCase):
         """Set up the test instance."""
         pass
 
-    def test_initialisation(self):
+    def test_initialization(self):
         """FrameSequence: Test initialization of an instance."""
         # Tuples indicate "frames" and "pad"; complex data types don't need a
         # specified pad.
-        data = [
-            ("wow", 1),
-            ("4", 1),
-            (3, 1),
-            FrameChunk(first=2, pad=4),
-            FrameSequence(range(30, 41, 2), pad=2),
-        ]
+        data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1),
+                (FrameChunk(first=2, pad=4), "0002", None),
+                (FrameSequence(range(30, 41, 2), pad=2), "30-40x2", None)]
 
         print "\n\n  INPUT ARGUMENTS\n  ---------------"
 
         for datum in data:
-            if isinstance(datum, tuple):
-                iterable, pad = datum
-            else:
-                iterable, pad = datum, None
+            iterable, expected, pad = datum
 
             print "  o iterable: %r" % iterable,
             if pad is not None:
@@ -49,7 +42,7 @@ class TestFrameSequences(unittest.TestCase):
                 print "    - EXPECTED ERROR: %s --> %s" % (iterable, error)
             else:
                 print "    - GOOD: %s" % seq
-            assert True
+                self.assertEqual(str(seq), expected)
 
     def test_basic_containment(self):
         """FrameSequence: Test basic containment of sequences."""
