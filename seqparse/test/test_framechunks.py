@@ -3,7 +3,7 @@
 # Standard Libraries
 import unittest
 
-from seqparse.classes import FrameChunk
+from seqparse.sequences import FrameChunk
 
 
 ###############################################################################
@@ -37,13 +37,12 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
-                assert False
 
             except ValueError as error:
                 print "  o EXPECTED ERROR: %s --> %s" % (bit, error)
                 assert True
 
-    def test_frame_containment(self):
+    def test_containment(self):
         """FrameChunk: Test if a frame is contained by a chunk."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         for frame in xrange(1, 6):
