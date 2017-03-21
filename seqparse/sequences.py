@@ -375,7 +375,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         self._info = dict(ext=None, name=None, path=None)
 
         if name:
-            name_bits = self.frame_seq_match(name)
+            name_bits = self.file_seq_match(name)
             if name_bits:
                 name, frames, ext = name_bits
                 pad = None

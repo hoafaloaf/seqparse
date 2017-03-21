@@ -46,7 +46,7 @@ class Seqparse(SeqparseRegexMixin):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
-        file_seq_bits = self.frame_seq_match(str(file_name))
+        file_seq_bits = self.file_seq_match(str(file_name))
 
         if file_seq_bits:
             base_name, frames, file_ext = file_seq_bits
