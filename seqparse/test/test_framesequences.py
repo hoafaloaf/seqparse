@@ -5,7 +5,6 @@ import unittest
 
 from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -252,3 +251,24 @@ class TestFrameSequences(unittest.TestCase):
         print
 
         self.assertEqual(str(inverted), str(expected))
+
+    def test_equality(self):
+        """FrameSequence: Test the equality of instances."""
+        seq1 = FrameSequence(range(1, 11), pad=4)
+        seq2 = FrameSequence(range(1, 11), pad=4)
+        seq3 = FrameSequence(range(1, 11), pad=3)
+        seq4 = FrameSequence(range(1, 10), pad=4)
+        seq5 = FrameSequence("0001-0010")
+        seq6 = FrameSequence("0001-0010")
+        seq7 = FrameSequence("001-010")
+        seq8 = FrameSequence("0001-0009")
+
+        self.assertEqual(seq1, seq2)
+        self.assertNotEqual(seq1, seq3)
+        self.assertNotEqual(seq1, seq4)
+        self.assertEqual(seq1, seq5)
+        self.assertEqual(seq3, seq7)
+        self.assertEqual(seq4, seq8)
+        self.assertEqual(seq5, seq6)
+        self.assertNotEqual(seq5, seq7)
+        self.assertNotEqual(seq5, seq8)
