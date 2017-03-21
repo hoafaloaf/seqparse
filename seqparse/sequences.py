@@ -4,6 +4,8 @@
 import os
 from collections import MutableSet
 
+from .regex import SeqparseRegexMixin
+
 __all__ = ("FrameSequence", "SeqparsePadException")
 
 ###############################################################################
@@ -134,14 +136,15 @@ class FrameChunk(object):
 # Class: FrameSequence
 
 
-class FrameSequence(MutableSet):
+class FrameSequence(MutableSet, SeqparseRegexMixin):
     """Representative for zero-padded frame sequences."""
 
     def __init__(self, iterable=None, pad=1):
         """Initialise the instance."""
-        self._data = set()
+        super(FrameSequence, self).__init__()
 
         self._chunks = list()
+        self._data = set()
         self._dirty = True
         self._output = None
         self._pad = 1
@@ -221,10 +224,13 @@ class FrameSequence(MutableSet):
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         if isinstance(item, basestring):
-            try:
-                int(item)
-            except ValueError:
+            if not self.is_frame_sequence(item):
                 raise ValueError("Invalid value specified (%r)" % item)
+
+            # If it isn't a padded frame then it's a file sequence.
+            if not item.isdigit():
+                self._add_frame_sequence(item)
+                return
 
             item_pad = len(item)
             if item.startswith("0") and item_pad != self.pad:

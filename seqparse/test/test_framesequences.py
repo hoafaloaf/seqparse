@@ -20,7 +20,7 @@ class TestFrameSequences(unittest.TestCase):
         """FrameSequence: Test if frames are contained by a sequence."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in xrange(1, 12)]
-        # str_frames1 = "1-11"
+        str_frames1 = "1-11"
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
         frames2 = ["%04d" % x for x in xrange(1, 12)]
         # str_frames2 = "0001-0011"
@@ -32,7 +32,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
-        # self.assertEqual(str_frames1, str(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -40,7 +40,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
-        # self.assertEqual(str_frames1, str(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         seq = FrameSequence()
         seq.pad = 1
@@ -49,13 +49,13 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
-        # self.assertEqual(str_frames1, str(seq))
+        self.assertEqual(str_frames1, str(seq))
 
-        # seq = FrameSequence(str_frames1)
-        # self.assertEqual(str(chunk1), str(seq))
-        # self.assertEqual(set(chunk1), set(seq))
-        # self.assertEqual(set(frames1), set(seq))
-        # self.assertEqual(str_frames1, str(seq))
+        seq = FrameSequence(str_frames1)
+        self.assertEqual(str(chunk1), str(seq))
+        self.assertEqual(set(chunk1), set(seq))
+        self.assertEqual(set(frames1), set(seq))
+        self.assertEqual(str_frames1, str(seq))
 
         for frame in xrange(1, 12):
             self.assertIn(frame, seq)

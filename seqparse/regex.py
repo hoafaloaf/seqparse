@@ -46,7 +46,7 @@ class SeqparseRegexMixin(object):
         fmatch = self._file_expr.match(val)
         return self._return_value(fmatch, as_dict)
 
-    def frame_match(self, val):
+    def is_frame_sequence(self, val):
         """Return whether a string frame sequence is valid."""
         return bool(self._frame_expr.match(val))
 

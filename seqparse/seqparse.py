@@ -136,7 +136,7 @@ class Seqparse(SeqparseRegexMixin):
 
     def validate_frame_sequence(self, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
-        if self.frame_match(frame_seq):
+        if self.is_frame_sequence(frame_seq):
             bits = list()
             for bit in frame_seq.split(","):
                 if not bit:
