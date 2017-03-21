@@ -12,10 +12,10 @@ Coming soon.
 ## Roadmap
 
 1. v0.4.0
-    1. Implement `FileSequence` class, use built in functionality to replace
-       the `Seqparse._iterate_over_sequence` method.
     1. Create `regex.RegexMixin` class, add to `FrameChunk`, `FrameSequence`,
        `FileSequence`.
+    1. Implement `FileSequence` class, use built in functionality to replace
+       the `Seqparse._iterate_over_sequence` method.
     1. Make sure we can measure equality between FrameChunk, FrameSequence
     instances.
     1. Add ability for `seqls` to only output singletons/file sequences.

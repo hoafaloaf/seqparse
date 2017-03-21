@@ -49,8 +49,6 @@ class Seqparse(SeqparseRegexMixin):
         file_seq_bits = self.frame_seq_match(str(file_name))
         file_name_bits = self.file_name_match(str(file_name))
 
-        print file_name, file_name_bits
-
         if file_name_bits:
             base_name, frame, file_ext = file_name_bits
             dir_name, base_name = os.path.split(base_name)

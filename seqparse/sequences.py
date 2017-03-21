@@ -147,11 +147,20 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._data = set()
         self._dirty = True
         self._output = None
-        self._pad = 1
+        self._pad = None
         self._is_padded = False
 
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
+        elif isinstance(iterable, basestring):
+            if not self.is_frame_sequence(iterable):
+                blurb = "Invalid iterable specified (%s, %r)"
+                raise ValueError(blurb % (type(iterable), iterable))
+            self._add_frame_sequence(iterable)
+            return
+        elif iterable and not isinstance(iterable, (list, tuple, set)):
+            iterable = [iterable]
+
         self.pad = pad
 
         for item in iterable or []:
@@ -224,13 +233,12 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         if isinstance(item, basestring):
-            if not self.is_frame_sequence(item):
+            if self.is_frame_sequence(item):
+                if not item.isdigit():
+                    self._add_frame_sequence(item)
+                    return
+            else:
                 raise ValueError("Invalid value specified (%r)" % item)
-
-            # If it isn't a padded frame then it's a file sequence.
-            if not item.isdigit():
-                self._add_frame_sequence(item)
-                return
 
             item_pad = len(item)
             if item.startswith("0") and item_pad != self.pad:
@@ -252,6 +260,21 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             self._data.add(int(item))
 
         self._dirty = True
+
+    def _add_frame_sequence(self, frame_seq):
+        """Add a string frame sequence to the instance."""
+        print "ENTRY:", frame_seq
+        for bit in frame_seq.split(","):
+            print "--> bit:", repr(bit)
+            if not bit:
+                continue
+
+            first, last, step = self.bits_match(bit)
+            pad = len(first)
+            if self.pad is None:
+                self.pad = pad
+
+            self.add(FrameChunk(first, last, step, pad))
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
@@ -342,7 +365,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 # Class: FileSequence
 
 
-class FileSequence(FrameSequence):
+class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     """Representative for sequences of files."""
 
     def __init__(self, name=None, ext=None, frames=None, pad=1):
