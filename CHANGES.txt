@@ -1,29 +1,35 @@
-v0.4.0a2 (2017/03/21)
+v0.4.0 (2017/03/22)
 ---------------------
 
 Changes (from v0.3.0)
 
+* Added a couple new options to the seqls command line tool:
+    * -S/--seqs_only: Allows the user to filter output to only contain
+    discovered file sequences.
+    * -m/--missing: Allows the user to display the missing files in a sequence
+      in the typical file sequence-style output.
+* Made output types consistent for all classes -- every "output()" method
+  returns class instances, all of which can be safely turned into a displayable
+  string via the str() method.
 * Added FrameChunk, FrameSequence, and FileSequence equality/inequality
-  methods. (v0.4.0a2)
+  methods.
 * Consolidated a lot of the sequence parsing activities in the Seqparse class.
-  (v0.4.0a1)
 * Added the FileSequence class to represent individual padded file sequences.
-  Containment behaviour handles both frame numbers and file names. (v0.4.0a1)
+  Containment behaviour handles both frame numbers and file names.
 * Added the regex submodule, home to the new SeqparseRegexMixin class. This
   class adds a number of file name/sequence parsing methods that I'm using to
-  great effect in a number of classes. (v0.4.0a1)
+  great effect in a number of classes.
 * FrameSequence instances can now be instantiated with string frame sequences,
   and their containment behaviour will handle both padded and non-padded string
-  frame values as well as integers. (v0.4.0a1)
+  frame values as well as integers.
 * FrameSequence.add will now handle string frame sequences as input as well.
-  (v0.4.0a1)
 * Refactored all sequence-related classes (FrameChunk, FrameSequence,
-  FileSequence) to their own module. (v0.4.0a1)
+  FileSequence) to their own module.
 * Removed the seqparse.get_chunk method as FrameChunks are really just for
-  internal use only. (v0.4.0a1)
+  internal use only.
 * Private class attributes were turning out to be a drag, so now they're all
-  just protected. (v0.4.0a1)
-* Overall module coverage is now hovering at around 98%. Yay. (v0.4.0a1)
+  just protected.
+* Overall module coverage is now hovering at around 98%. Yay.
 
 
 v0.3.0 (2017/03/17)
