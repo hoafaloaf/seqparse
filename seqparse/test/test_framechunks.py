@@ -135,7 +135,6 @@ class TestFrameChunks(unittest.TestCase):
         chunk3 = FrameChunk(first=1, last=10, pad=4)
         chunk4 = FrameChunk(first=1, last=10, pad=3)
         chunk5 = FrameChunk(first="1", last="10", pad=3)
-        chunk6 = FrameChunk(first=1, last=10, pad=3)
         self.assertEqual(chunk1, chunk2)
         self.assertEqual(chunk1, chunk3)
         self.assertNotEqual(chunk1, chunk4)
