@@ -52,6 +52,12 @@ class FrameChunk(object):
 
             return False
 
+    def __eq__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return self._data == other._data
+        return False
+
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
         for frame in xrange(self.first, self.last + 1, self.step):
@@ -60,6 +66,10 @@ class FrameChunk(object):
     def __len__(self):
         """Return the length of the frame chunk."""
         return self._data["length"] or 0
+
+    def __ne__(self, other):
+        """Define inequality between instance."""
+        return not self.__eq__(other)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
@@ -394,10 +404,20 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             return super(FileSequence, self).__contains__(item)
         return item in set(self)
 
+    def __eq__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return super(FileSequence, self).__eq__(other)
+        return False
+
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
         for frame in super(FileSequence, self).__iter__():
             yield self._get_sequence_output(frame)
+
+    def __ne__(self, other):
+        """Define inequality between instance."""
+        return not self.__eq__(other)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
