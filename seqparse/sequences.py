@@ -55,7 +55,7 @@ class FrameChunk(object):
     def __eq__(self, other):
         """Define equality between instances."""
         if type(other) is type(self):
-            return self._data == other._data
+            return self._data == other._data  # pylint: disable=W0212
         return False
 
     def __iter__(self):
