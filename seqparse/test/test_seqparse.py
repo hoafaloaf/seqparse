@@ -9,7 +9,7 @@ import mock
 
 from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
-from ..sequences import FrameChunk, FrameSequence
+from ..sequences import FileSequence, FrameChunk, FrameSequence
 
 
 ###############################################################################
@@ -332,6 +332,36 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(len(output), 1)
         self.assertEqual(str(output[0]), output_file_seq)
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_inversion(self, mock_api_call):
+        """Seqparse: Test usage of the "missing" option in Seqparse.output."""
+        file_path = os.path.join(self._test_root, self._test_file_name)
+
+        chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in)
+
+        input_files = list(fseq)
+
+        mock_api_call.return_value = [("", [], input_files)]
+
+        chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_out)
+
+        parser = get_parser()
+        parser.scan_path(self._test_root)
+        inverted = list(parser.output(missing=True))
+
+        self.assertEqual(len(inverted), 1)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input files:   ", fseq
+        print "  expected files:", expected
+        print "  inverted files:", inverted[0]
+
+        self.assertEqual(str(inverted[0]), str(expected))
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""

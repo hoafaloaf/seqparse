@@ -23,11 +23,14 @@ def main(args, _debug=False):
         seqs = get_parser()
         seqs.scan_path(search_path, level=args.level)
 
+    output = seqs.output(missing=args.missing, seqs_only=args.seqs_only)
     if _debug:
-        return list(seqs.output(seqs_only=args.seqs_only))
+        return map(str, output)
 
-    for output in seqs.output():  # pragma: no cover
-        print output
+    else:  # pragma: no cover
+        print
+        for line in output:
+            print line
 
 
 def parse_args(args):
@@ -50,10 +53,17 @@ def parse_args(args):
         required=False)
 
     parser.add_argument(
+        "-m",
+        "--missing",
+        action="store_true",
+        help=("Whether to invert output file sequences to only report the"
+              "missing frames."))
+
+    parser.add_argument(
         "-S",
         "--seqs_only",
         action="store_true",
-        help=("Whether to filter out all non-sequence files."))
+        help="Whether to filter out all non-sequence files.")
 
     # Parse the arguments.
     return parser.parse_args(args)

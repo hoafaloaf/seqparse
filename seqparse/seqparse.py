@@ -90,13 +90,16 @@ class Seqparse(SeqparseRegexMixin):
         for file_name in file_names:
             self.add_file(os.path.join(root, file_name))
 
-    def output(self, seqs_only=False):
+    def output(self, missing=False, seqs_only=False):
         """Yield a list of contained singletons and file sequences."""
         for root_dir in sorted(self.locations):
             data = self.locations[root_dir]
             for container in sorted(data["seqs"].values()):
                 for file_seq in container.output():
-                    yield file_seq
+                    if missing:
+                        yield file_seq.invert()
+                    else:
+                        yield file_seq
 
             if seqs_only:
                 continue

@@ -10,7 +10,7 @@ import mock
 
 from . import mock_walk_deep
 from ..cli import seqls
-
+from ..sequences import FileSequence, FrameChunk
 
 ###############################################################################
 # class: TestFrameSequences
@@ -30,17 +30,21 @@ class TestSeqls(unittest.TestCase):
 
     def test_parse_args(self):
         """Seqls: Test seqls argument parsing."""
-        defaults = dict(level=["0"], search_path=["."], seqs_only=False)
+        defaults = dict(
+            level=["0"], missing=False, search_path=["."], seqs_only=False)
         args = vars(seqls.parse_args([]))
         self.assertEqual(args, defaults)
 
         data = [
             (["-l", "1"], dict(level=["1"])),
-            (["test_dir"], dict(search_path=["test_dir"])),
-            (["-l", "1", "test_dir"], dict(
-                level=["1"], search_path=["test_dir"])),
-            (["-l", "1", "test_dir", "-S"], dict(
-                level=["1"], search_path=["test_dir"], seqs_only=True)),
+            (["test_dir"], dict(search_path=["test_dir"])), (
+                ["-l", "1", "test_dir"], dict(
+                    level=["1"], search_path=["test_dir"])), (
+                        ["-l", "1", "test_dir", "-S"], dict(
+                            level=["1"],
+                            search_path=["test_dir"],
+                            seqs_only=True)),
+            (["-m", "test_dir"], dict(missing=True, search_path=["test_dir"]))
         ]
 
         for input_args, updated_options in data:
@@ -97,3 +101,32 @@ class TestSeqls(unittest.TestCase):
         args = seqls.parse_args(["test_dir", "-S"])
         file_names = list(seqls.main(args, _debug=True))
         self.assertEqual(file_names, [])
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_missing(self, mock_api_call):
+        """Seqls: Test missing option."""
+        file_path = os.path.join(self._test_root, self._test_file_name)
+
+        chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in)
+
+        input_files = list(fseq)
+
+        mock_api_call.return_value = [("", [], input_files)]
+
+        chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_out)
+
+        args = seqls.parse_args(["test_dir"])
+        inverted = seqls.main(args, _debug=True)
+
+        self.assertEqual(len(inverted), 1)
+        self.assertEqual(inverted[0], str(fseq))
+
+        args = seqls.parse_args(["test_dir", "-m"])
+        inverted = seqls.main(args, _debug=True)
+
+        self.assertEqual(len(inverted), 1)
+        self.assertEqual(inverted[0], str(expected))

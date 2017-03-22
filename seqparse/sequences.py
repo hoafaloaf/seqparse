@@ -382,7 +382,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
-        self._info = dict(ext=None, name=None, path=None)
+        self._info = dict(ext=None, full=None, name=None, path=None)
 
         if name:
             name_bits = self.file_seq_match(name)
@@ -421,7 +421,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{cls}(name={name!r}, ext={ext!r}, pad={pad}, "
+        blurb = ("{cls}(full_name={full!r}, ext={ext!r}, pad={pad}, "
                  "frames=set({fr!r}))")
         return blurb.format(
             cls=type(self).__name__,
@@ -446,6 +446,11 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             self._info["ext"] = str(val)
 
     @property
+    def full_name(self):
+        """The full (base) name of the file sequence."""
+        return self._info["full"]
+
+    @property
     def name(self):
         """The (base) name of the file sequence."""
         return self._info["name"]
@@ -461,8 +466,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             if os.sep in val:
                 path_name, val = os.path.split(os.path.normpath(val))
                 self.path = path_name
-
             self._info["name"] = val
+
+        self._info["full"] = os.path.join(self._info["path"] or "", val or "")
 
     @property
     def path(self):
@@ -475,10 +481,14 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         if val:
             self._info["path"] = str(os.path.normpath(val))
 
+        self._info["full"] = os.path.join(val or "", self._info["name"] or "")
+
     def invert(self):
         """Return a FileSequence of files missing from the sequence."""
         frames = super(FileSequence, self).invert()
-        return self._get_sequence_output(frames)
+        inverted = FileSequence(
+            name=self.full_name, frames=frames, ext=self.ext)
+        return inverted
 
     def _get_sequence_output(self, frames):
         """Return a valid file sequence string from the given iterator."""
