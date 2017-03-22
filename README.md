@@ -17,8 +17,8 @@ Coming soon.
     1. **COMPLETED v0.4.0a1:** Implement `FileSequence` class.
     1. **COMPLETED v0.4.0a2:** Use the `FileSequence` class' built in
     functionality to replace the `Seqparse._iterate_over_sequence` method.
-    1. Make sure we can measure equality between `FrameChunk`, `FrameSequence`,
-    and `FileSequence` instances.
+    1. **COMPLETED V0.4.0a2:** Make sure we can measure equality between
+    `FrameChunk`, `FrameSequence`, and `FileSequence` instances.
     1. Add ability for `seqls` to only output singletons/file sequences.
 1. v0.5.0
     1. Add ability to calculate/output total size of file sequences
