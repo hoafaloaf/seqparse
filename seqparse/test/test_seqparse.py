@@ -51,6 +51,9 @@ class TestSeqparseModule(unittest.TestCase):
         # Check parser output ...
         self.assertEqual(sorted(parser.output()), output)
 
+        # Test seqs_only option ...
+        self.assertEqual(sorted(parser.output(seqs_only=True)), [])
+
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_single_padded_file(self, mock_api_call):
         """Seqparse: Test single padded file sequence discovery."""
@@ -226,9 +229,9 @@ class TestSeqparseModule(unittest.TestCase):
             parser = get_parser()
             parser.scan_path(self._test_root, level=level)
 
-            expected_seqs = level
+            expected_seqs = level + 1
             if level == 0:
-                expected_seqs = 4
+                expected_seqs = 5
 
             seqs = list(parser.output())
             blurb = "  o level == %d: %d (%d expected) entries"

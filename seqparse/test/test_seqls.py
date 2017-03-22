@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import copy
+import os
 import unittest
 
 # Third Party Libraries
@@ -17,6 +18,11 @@ from ..cli import seqls
 
 class TestSeqls(unittest.TestCase):
     """Test basic functionality on the seqls script."""
+
+    _test_ext = "exr"
+    _test_file_name = "TEST_DIR"
+    _test_root = "test_dir"
+    _singletons = ["singleton0.jpg", "singleton1.jpg"]
 
     def setUp(self):
         """Set up the test instance."""
@@ -56,9 +62,9 @@ class TestSeqls(unittest.TestCase):
 
         print "\n  LEVELS\n  ------"
         for level in xrange(0, 5):
-            expected_seqs = level
+            expected_seqs = level + 1
             if level == 0:
-                expected_seqs = 4
+                expected_seqs = 5
 
             # Mimicking argparse output (everything's a string)
             level = str(level)
@@ -74,3 +80,20 @@ class TestSeqls(unittest.TestCase):
             self.assertEqual(len(seqs), expected_seqs)
 
         print
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_singletons(self, mock_api_call):
+        """Seqls: Test file singleton discovery from disk location."""
+        mock_api_call.return_value = [(self._test_root, [], self._singletons)]
+
+        # Expected outputs ...
+        output = [os.path.join(self._test_root, x) for x in self._singletons]
+
+        args = seqls.parse_args(["test_dir"])
+        file_names = list(seqls.main(args, _debug=True))
+        self.assertEqual(sorted(file_names), output)
+
+        # Test seqs_only option ...
+        args = seqls.parse_args(["test_dir", "-S"])
+        file_names = list(seqls.main(args, _debug=True))
+        self.assertEqual(file_names, [])

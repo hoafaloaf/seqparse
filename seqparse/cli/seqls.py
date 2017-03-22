@@ -24,7 +24,7 @@ def main(args, _debug=False):
         seqs.scan_path(search_path, level=args.level)
 
     if _debug:
-        return list(seqs.output())
+        return list(seqs.output(seqs_only=args.seqs_only))
 
     for output in seqs.output():  # pragma: no cover
         print output
