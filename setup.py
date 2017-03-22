@@ -1,8 +1,13 @@
 #!python
 """Set up the seqparse module."""
+# Standard Libraries
+import sys
 
 # Third Party Libraries
 from setuptools import find_packages, setup
+
+if sys.version_info < (2, 7):
+    sys.exit('Sorry, Python < 2.7 is not supported')
 
 
 def readme():
@@ -16,6 +21,7 @@ setup(
     author='Geoff Harvey',
     author_email='hoafaloaf@gmail.com',
     classifiers=[
+        'Development Status :: 4 - Beta',
         'Programming Language :: Python :: 2.7',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Text Processing'
@@ -24,7 +30,10 @@ setup(
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
-    install_requires=['scandir'],
+    install_requires=[
+        'scandir;python_version<"3.5"',
+        'pywin32 >= 1.0;platform_system=="Windows"'
+    ],
     keywords='command-line file sequence',
     license='MIT',
     packages=find_packages(exclude=['*test']),
