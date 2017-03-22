@@ -21,6 +21,7 @@ Coming soon.
     `FrameChunk`, `FrameSequence`, and `FileSequence` instances.
     1. **COMPLETED v0.4.0a3:** Add ability for `seqls` to only output file
     sequences.
+    1. **COMPLETED v0.4.0a3:** Add ability for `seqls` to output inverted file sequences.
     1. Add ability for `seqls` to output inverted file sequences.
 1. v0.5.0
     1. Add ability to calculate/output total size of file sequences
