@@ -141,3 +141,5 @@ class TestFrameChunks(unittest.TestCase):
         self.assertNotEqual(chunk1, chunk4)
         self.assertNotEqual(chunk1, chunk5)
         self.assertNotEqual(chunk2, chunk4)
+
+        self.assertNotEqual(chunk1, "0001-0010")

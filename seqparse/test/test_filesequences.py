@@ -6,6 +6,7 @@ import unittest
 
 from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -233,3 +234,25 @@ class TestFileSequences(unittest.TestCase):
         print "  returned files:", inverted
 
         self.assertEqual(str(inverted), str(expected))
+
+    def test_equality(self):
+        """FileSequence: Test the equality of instances."""
+        file_path = os.path.join(self._test_path, self._test_name)
+        fseq0 = FileSequence(
+            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+        fseq1 = FileSequence(
+            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+        fseq2 = FileSequence(
+            name=file_path, ext=self._test_ext, frames="0001-0010")
+        fseq3 = FileSequence(
+            name=file_path, ext=self._test_ext, frames="001-010")
+        fseq4 = FileSequence(
+            name=self._test_name, ext=self._test_ext, frames="0001-0010")
+
+        seq0 = FrameSequence(range(1, 11), pad=4)
+
+        self.assertEqual(fseq0, fseq1)
+        self.assertEqual(fseq0, fseq2)
+        self.assertNotEqual(fseq0, fseq3)
+        self.assertNotEqual(fseq0, fseq4)
+        self.assertNotEqual(fseq0, seq0)

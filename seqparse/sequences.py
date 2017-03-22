@@ -404,10 +404,20 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             return super(FileSequence, self).__contains__(item)
         return item in set(self)
 
+    def __eq__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return super(FileSequence, self).__eq__(other)
+        return False
+
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
         for frame in super(FileSequence, self).__iter__():
             yield self._get_sequence_output(frame)
+
+    def __ne__(self, other):
+        """Define inequality between instance."""
+        return not self.__eq__(other)
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
