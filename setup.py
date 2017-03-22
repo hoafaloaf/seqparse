@@ -1,5 +1,6 @@
 #!python
 """Set up the seqparse module."""
+
 # Standard Libraries
 import sys
 
@@ -30,10 +31,7 @@ setup(
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
-    install_requires=[
-        'scandir;python_version<"3.5"',
-        'pywin32 >= 1.0;platform_system=="Windows"'
-    ],
+    install_requires=['scandir;python_version<"3.5"'],
     keywords='command-line file sequence',
     license='MIT',
     packages=find_packages(exclude=['*test']),

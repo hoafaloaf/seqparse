@@ -4,12 +4,16 @@
 import os
 from collections import defaultdict
 
-# Third Party Libraries
-import scandir
-
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
 from .sequences import FrameChunk
+
+# Use the built-in version of scandir/walk if possible, otherwise use the
+# scandir module version.
+try:
+    from os import scandir, walk
+except ImportError:
+    from scandir import scandir, walk
 
 __all__ = ("Seqparse", )
 
@@ -112,7 +116,7 @@ class Seqparse(SeqparseRegexMixin):
         search_path = search_path.rstrip(os.path.sep)
         search_seps = search_path.count(os.path.sep)
 
-        for root, dir_names, file_names in scandir.walk(search_path):
+        for root, dir_names, file_names in walk(search_path):
             # Cheap and easy way to limit our search depth: count path
             # separators!
             cur_level = root.count(os.path.sep) - search_seps

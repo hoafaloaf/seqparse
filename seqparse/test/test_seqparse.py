@@ -11,7 +11,6 @@ from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -28,7 +27,7 @@ class TestSeqparseModule(unittest.TestCase):
         """Set up the test case."""
         pass
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_singletons(self, mock_api_call):
         """Seqparse: Test file singleton discovery from disk location."""
         mock_api_call.return_value = [(self._test_root, [], self._singletons)]
@@ -55,7 +54,7 @@ class TestSeqparseModule(unittest.TestCase):
         # Test seqs_only option ...
         self.assertEqual(sorted(parser.output(seqs_only=True)), [])
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_single_padded_file(self, mock_api_call):
         """Seqparse: Test single padded file sequence discovery."""
         frames = {4: [1]}
@@ -105,7 +104,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_simple_sequence(self, mock_api_call):
         """Seqparse: Test simple file sequence discoveryn."""
         frames = {4: [0, 1, 2, 3, 4]}
@@ -155,7 +154,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_complex_sequence(self, mock_api_call):
         """Seqparse: Test complex file sequence discovery."""
         frames = {
@@ -214,7 +213,7 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._test_ext][pad]))
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_nested_sequences(self, mock_api_call):
         """Seqparse: Test file sequence discovery in nested directories."""
         mock_api_call.side_effect = mock_walk_deep
@@ -333,7 +332,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(output), 1)
         self.assertEqual(str(output[0]), output_file_seq)
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_inversion(self, mock_api_call):
         """Seqparse: Test usage of the "missing" option in Seqparse.output."""
         file_path = os.path.join(self._test_root, self._test_file_name)

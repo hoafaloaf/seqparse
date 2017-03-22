@@ -12,6 +12,7 @@ from . import mock_walk_deep
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -53,7 +54,7 @@ class TestSeqls(unittest.TestCase):
             self.assertEqual(expected_options,
                              vars(seqls.parse_args(input_args)))
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_seqls_with_arguments(self, mock_api_call):
         """Seqls: Test seqls with supplied arguments."""
         mock_api_call.side_effect = mock_walk_deep
@@ -85,7 +86,7 @@ class TestSeqls(unittest.TestCase):
 
         print
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_singletons(self, mock_api_call):
         """Seqls: Test file singleton discovery from disk location."""
         mock_api_call.return_value = [(self._test_root, [], self._singletons)]
@@ -102,7 +103,7 @@ class TestSeqls(unittest.TestCase):
         file_names = list(seqls.main(args, _debug=True))
         self.assertEqual(file_names, [])
 
-    @mock.patch("seqparse.seqparse.scandir.walk")
+    @mock.patch("seqparse.seqparse.walk")
     def test_missing(self, mock_api_call):
         """Seqls: Test missing option."""
         file_path = os.path.join(self._test_root, self._test_file_name)
