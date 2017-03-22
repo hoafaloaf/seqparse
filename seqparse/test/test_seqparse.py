@@ -9,7 +9,8 @@ import mock
 
 from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
-from ..sequences import FrameChunk, FrameSequence
+from ..sequences import FileSequence, FrameChunk, FrameSequence
+
 
 ###############################################################################
 # class: TestSeqparseModule
@@ -51,6 +52,9 @@ class TestSeqparseModule(unittest.TestCase):
         # Check parser output ...
         self.assertEqual(sorted(parser.output()), output)
 
+        # Test seqs_only option ...
+        self.assertEqual(sorted(parser.output(seqs_only=True)), [])
+
     @mock.patch("seqparse.seqparse.scandir.walk")
     def test_single_padded_file(self, mock_api_call):
         """Seqparse: Test single padded file sequence discovery."""
@@ -74,7 +78,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(parser.output())
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         # Check the structure of the sequences property.
         self.assertIn(self._test_root, data)
@@ -88,7 +92,7 @@ class TestSeqparseModule(unittest.TestCase):
         test_output = list(file_seq.output())
 
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -124,7 +128,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(parser.output())
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         # Check the structure of the sequences property.
         self.assertIn(self._test_root, data)
@@ -138,7 +142,7 @@ class TestSeqparseModule(unittest.TestCase):
         test_output = list(file_seq.output())
 
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -199,7 +203,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(file_seq.output())
         self.assertEqual(len(test_output), 3)
-        self.assertEqual(test_output, final_output)
+        self.assertEqual(map(str, test_output), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -226,9 +230,9 @@ class TestSeqparseModule(unittest.TestCase):
             parser = get_parser()
             parser.scan_path(self._test_root, level=level)
 
-            expected_seqs = level
+            expected_seqs = level + 1
             if level == 0:
-                expected_seqs = 4
+                expected_seqs = 5
 
             seqs = list(parser.output())
             blurb = "  o level == %d: %d (%d expected) entries"
@@ -301,7 +305,7 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
         self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], output_file_seq)
+        self.assertEqual(str(output[0]), output_file_seq)
 
         input_frame_seq = "0000-0002,,0003-0005"
         input_file_seq = ".".join(
@@ -327,7 +331,37 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
         self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], output_file_seq)
+        self.assertEqual(str(output[0]), output_file_seq)
+
+    @mock.patch("seqparse.seqparse.scandir.walk")
+    def test_inversion(self, mock_api_call):
+        """Seqparse: Test usage of the "missing" option in Seqparse.output."""
+        file_path = os.path.join(self._test_root, self._test_file_name)
+
+        chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in)
+
+        input_files = list(fseq)
+
+        mock_api_call.return_value = [("", [], input_files)]
+
+        chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_out)
+
+        parser = get_parser()
+        parser.scan_path(self._test_root)
+        inverted = list(parser.output(missing=True))
+
+        self.assertEqual(len(inverted), 1)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input files:   ", fseq
+        print "  expected files:", expected
+        print "  inverted files:", inverted[0]
+
+        self.assertEqual(str(inverted[0]), str(expected))
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""

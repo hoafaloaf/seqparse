@@ -11,34 +11,26 @@ from .. import get_parser
 
 def _entry_point():  # pragma: no cover
     """Main entry point into the script."""
-    args = vars(parse_args(sys.argv[1:]))
-    main(**args)
+    main(parse_args(sys.argv[1:]))
 
 
-def main(search_path=None, level=0, _debug=False):
+def main(args, _debug=False):
     """Wrap and initialise the Seqparse class."""
-    if not search_path:
-        search_paths = ["."]
-    elif isinstance(search_path, (list, set, tuple)):
-        search_paths = search_path
-    else:
-        search_paths = [search_path]
+    args.level = max(int(args.level[0]), 0)
 
-    if isinstance(level, (list, set, tuple)):
-        level = level[0]
-
-    level = max(int(level), 0)
-
-    for search_path in sorted(search_paths):
+    for search_path in sorted(args.search_path):
         search_path = os.path.abspath(search_path)
         seqs = get_parser()
-        seqs.scan_path(search_path, level=level)
+        seqs.scan_path(search_path, level=args.level)
 
+    output = seqs.output(missing=args.missing, seqs_only=args.seqs_only)
     if _debug:
-        return list(seqs.output())
+        return map(str, output)
 
-    for output in seqs.output():  # pragma: no cover
-        print output
+    else:  # pragma: no cover
+        print
+        for line in output:
+            print line
 
 
 def parse_args(args):
@@ -59,6 +51,19 @@ def parse_args(args):
               "less than zero are equivalent to infinite depth."),
         nargs=1,
         required=False)
+
+    parser.add_argument(
+        "-m",
+        "--missing",
+        action="store_true",
+        help=("Whether to invert output file sequences to only report the"
+              "missing frames."))
+
+    parser.add_argument(
+        "-S",
+        "--seqs_only",
+        action="store_true",
+        help="Whether to filter out all non-sequence files.")
 
     # Parse the arguments.
     return parser.parse_args(args)

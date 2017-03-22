@@ -6,7 +6,6 @@ import unittest
 
 from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -228,7 +227,7 @@ class TestFileSequences(unittest.TestCase):
         expected = ""
         inverted = fseq.invert()
 
-        print "\n\n  SEQUENCE\n  --------"
+        print "\n  SEQUENCE\n  --------"
         print "  input files:   ", fseq
         print "  expected files:", expected
         print "  returned files:", inverted

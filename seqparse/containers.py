@@ -3,8 +3,9 @@
 # Standard Libraries
 import os
 from collections import MutableMapping, MutableSet
+from functools import total_ordering
 
-from .sequences import FrameSequence
+from .sequences import FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -81,14 +82,15 @@ class FileExtension(MutableMapping):
                 prev_frames.update(frames)
                 del self[pad]
 
-        for pad, frames in sorted(self.items()):
-            yield str(frames)
+        for pad in sorted(self):
+            yield self[pad]
 
 
 ###############################################################################
 # Class: FileSequenceContainer
 
 
+@total_ordering
 class FileSequenceContainer(MutableMapping):
     """Representative for file sequences, indexed by file extension."""
 
@@ -98,6 +100,7 @@ class FileSequenceContainer(MutableMapping):
         """Initialise the instance."""
         self._data = dict()
 
+        self._full = None
         self._name = None
         self._path = None
 
@@ -107,6 +110,12 @@ class FileSequenceContainer(MutableMapping):
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
         del self._data[key]
+
+    def __eq__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return self.full_name == other.full_name
+        return False
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
@@ -123,11 +132,19 @@ class FileSequenceContainer(MutableMapping):
         """Define item length logic (per standard dictionary)."""
         return len(self._data)
 
+    def __lt__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return self.full_name < other.full_name
+        return True
+
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{name}(path='{path}', exts={exts})")
+        blurb = "{cls}(full_name={full_name!r}, exts={exts})"
         return blurb.format(
-            name=type(self).__name__, exts=sorted(self), path=self.path)
+            cls=type(self).__name__,
+            exts=sorted(self),
+            full_name=self.full_name)
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
@@ -140,6 +157,11 @@ class FileSequenceContainer(MutableMapping):
         self._data[key] = value
 
     @property
+    def full_name(self):
+        """The full (base) name of the file sequence."""
+        return self._full
+
+    @property
     def name(self):
         """The (base) name of the file sequence."""
         return self._name
@@ -149,6 +171,7 @@ class FileSequenceContainer(MutableMapping):
         self._name = None
         if val:
             self._name = str(val)
+        self._full = os.path.join(self._path or "", self._name or "")
 
     @property
     def path(self):
@@ -157,17 +180,18 @@ class FileSequenceContainer(MutableMapping):
 
     @path.setter
     def path(self, val):
-        self._path = str(val or "")
+        self._path = None
+        if val:
+            self._path = str(val)
+        self._full = os.path.join(self._path or "", self._name or "")
 
     def output(self):
-        """Return a formatted list of all contained file sequences."""
+        """Return a sorted list of all contained file sequences."""
         for ext, data in sorted(self.items()):
-            for output in data.output():
-                if self.name:
-                    bits = (self.name, output, ext)
-                else:
-                    bits = (output, ext)
-                yield os.path.join(self.path, ".".join(bits))
+            for frame_seq in data.output():
+                file_seq = FileSequence(
+                    self.full_name, frames=frame_seq, ext=ext)
+                yield file_seq
 
 
 ###############################################################################

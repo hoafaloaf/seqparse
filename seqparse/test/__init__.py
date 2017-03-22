@@ -31,7 +31,9 @@ def mock_walk_deep(search_path="."):
     level2_path = os.path.join(level1_path, "level2")
     level3_path = os.path.join(level2_path, "level3")
 
-    level0_files = generate_files(ext="exr", frames=frames, name="level0")
+    level0_files = generate_files(ext="exr", frames=frames, name="level0_1")
+    level0_files.extend(
+        generate_files(ext="exr", frames=frames, name="level0_2"))
     level1_files = generate_files(ext="exr", frames=frames, name="level1")
     level2_files = generate_files(ext="exr", frames=frames, name="level2")
     level3_files = generate_files(ext="exr", frames=frames, name="level3")
