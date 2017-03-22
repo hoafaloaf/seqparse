@@ -94,9 +94,9 @@ class Seqparse(SeqparseRegexMixin):
         """Yield a list of contained singletons and file sequences."""
         for root_dir in sorted(self.locations):
             data = self.locations[root_dir]
-            for file_seq in sorted(data["seqs"].values()):
-                for seq_name in file_seq.output():
-                    yield seq_name
+            for container in sorted(data["seqs"].values()):
+                for file_seq in container.output():
+                    yield file_seq
 
             if seqs_only:
                 continue

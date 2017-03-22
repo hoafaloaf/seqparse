@@ -11,6 +11,7 @@ from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -77,7 +78,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(parser.output())
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         # Check the structure of the sequences property.
         self.assertIn(self._test_root, data)
@@ -91,7 +92,7 @@ class TestSeqparseModule(unittest.TestCase):
         test_output = list(file_seq.output())
 
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -127,7 +128,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(parser.output())
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         # Check the structure of the sequences property.
         self.assertIn(self._test_root, data)
@@ -141,7 +142,7 @@ class TestSeqparseModule(unittest.TestCase):
         test_output = list(file_seq.output())
 
         self.assertEqual(len(test_output), 1)
-        self.assertEqual(test_output[0], final_output)
+        self.assertEqual(str(test_output[0]), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -202,7 +203,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(file_seq.output())
         self.assertEqual(len(test_output), 3)
-        self.assertEqual(test_output, final_output)
+        self.assertEqual(map(str, test_output), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -304,7 +305,7 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
         self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], output_file_seq)
+        self.assertEqual(str(output[0]), output_file_seq)
 
         input_frame_seq = "0000-0002,,0003-0005"
         input_file_seq = ".".join(
@@ -330,7 +331,7 @@ class TestSeqparseModule(unittest.TestCase):
         print
 
         self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], output_file_seq)
+        self.assertEqual(str(output[0]), output_file_seq)
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""

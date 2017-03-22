@@ -5,7 +5,7 @@ import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering
 
-from .sequences import FrameSequence
+from .sequences import FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -82,8 +82,8 @@ class FileExtension(MutableMapping):
                 prev_frames.update(frames)
                 del self[pad]
 
-        for pad, frames in sorted(self.items()):
-            yield str(frames)
+        for pad in sorted(self):
+            yield self[pad]
 
 
 ###############################################################################
@@ -186,14 +186,12 @@ class FileSequenceContainer(MutableMapping):
         self._full = os.path.join(self._path or "", self._name or "")
 
     def output(self):
-        """Return a formatted list of all contained file sequences."""
+        """Return a sorted list of all contained file sequences."""
         for ext, data in sorted(self.items()):
-            for output in data.output():
-                if self.name:
-                    bits = (self.name, output, ext)
-                else:
-                    bits = (output, ext)
-                yield os.path.join(self.path, ".".join(bits))
+            for frame_seq in data.output():
+                file_seq = FileSequence(
+                    self.full_name, frames=frame_seq, ext=ext)
+                yield file_seq
 
 
 ###############################################################################
