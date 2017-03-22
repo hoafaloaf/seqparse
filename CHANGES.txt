@@ -1,24 +1,29 @@
-v0.4.0a1 (2017/03/21)
+v0.4.0a2 (2017/03/21)
 ---------------------
 
 Changes (from v0.3.0)
 
+* Added FrameChunk, FrameSequence, and FileSequence equality/inequality
+  methods. (v0.4.0a2)
+* Consolidated a lot of the sequence parsing activities in the Seqparse class.
+  (v0.4.0a1)
 * Added the FileSequence class to represent individual padded file sequences.
-  Containment behaviour handles both frame numbers and file names.
+  Containment behaviour handles both frame numbers and file names. (v0.4.0a1)
 * Added the regex submodule, home to the new SeqparseRegexMixin class. This
   class adds a number of file name/sequence parsing methods that I'm using to
-  great effect in a number of classes.
+  great effect in a number of classes. (v0.4.0a1)
 * FrameSequence instances can now be instantiated with string frame sequences,
   and their containment behaviour will handle both padded and non-padded string
-  frame values as well as integers.
+  frame values as well as integers. (v0.4.0a1)
 * FrameSequence.add will now handle string frame sequences as input as well.
+  (v0.4.0a1)
 * Refactored all sequence-related classes (FrameChunk, FrameSequence,
-  FileSequence) to their own module.
+  FileSequence) to their own module. (v0.4.0a1)
 * Removed the seqparse.get_chunk method as FrameChunks are really just for
-  internal use only.
-* Private class attributes were turning out to be a drag, so now they're all-modules
-  just protected.
-* Overall module coverage is now hovering at around 98%. Yay.
+  internal use only. (v0.4.0a1)
+* Private class attributes were turning out to be a drag, so now they're all
+  just protected. (v0.4.0a1)
+* Overall module coverage is now hovering at around 98%. Yay. (v0.4.0a1)
 
 
 v0.3.0 (2017/03/17)

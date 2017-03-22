@@ -46,11 +46,10 @@ class Seqparse(SeqparseRegexMixin):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
-        file_seq_bits = self.frame_seq_match(str(file_name))
-        file_name_bits = self.file_name_match(str(file_name))
+        file_seq_bits = self.file_seq_match(str(file_name))
 
-        if file_name_bits:
-            base_name, frame, file_ext = file_name_bits
+        if file_seq_bits:
+            base_name, frames, file_ext = file_seq_bits
             dir_name, base_name = os.path.split(base_name)
 
             loc = self.locations[dir_name]
@@ -61,13 +60,16 @@ class Seqparse(SeqparseRegexMixin):
                 sequence.name = base_name
                 sequence.path = dir_name
 
-            ext = sequence[file_ext]
-            pad = len(frame)
-            ext[pad].add(frame)
+            # We'll assume that a frame sequence is properly formed -- and use
+            # the length of the first frame as the padding. The FrameSequence
+            # to which we're adding the frames will do the actual validation.
+            for chunk in frames.split(","):
+                bits = self.bits_match(chunk, as_dict=True)
+                pad = len(bits["first"])
+                break
 
-        elif file_seq_bits:
-            for file_name in self._iterate_over_sequence(*file_seq_bits):
-                self.add_file(file_name)
+            ext = sequence[file_ext]
+            ext[pad].add(frames)
 
         else:
             dir_name, base_name = os.path.split(file_name)
@@ -110,18 +112,6 @@ class Seqparse(SeqparseRegexMixin):
             if level > 0 and cur_level + 1 == level:
                 del dir_names[:]
             self.add_from_scan(root, file_names)
-
-    def _iterate_over_sequence(self, base_name, frame_seq, ext):
-        """Iterate with given base name, frame sequence, and file extension."""
-        for bit in frame_seq.split(","):
-            if not bit:
-                continue
-
-            first, last, step = self.bits_match(bit)
-            for frame in FrameChunk(first, last, step, len(first)):
-                yield ".".join((base_name, frame, ext))
-
-            continue
 
     def _get_data(self, typ):
         """Return dictionary of the specified data type from the instance."""

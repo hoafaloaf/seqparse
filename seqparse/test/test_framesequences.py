@@ -1,9 +1,11 @@
 """Test the FrameSequence class."""
 
 # Standard Libraries
+import os
 import unittest
 
-from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
+from seqparse.sequences import (FileSequence, FrameChunk, FrameSequence,
+                                SeqparsePadException)
 
 
 ###############################################################################
@@ -12,6 +14,10 @@ from seqparse.sequences import FrameChunk, FrameSequence, SeqparsePadException
 
 class TestFrameSequences(unittest.TestCase):
     """Test basic functionality on the FrameSequence class."""
+
+    _test_ext = "exr"
+    _test_name = "cat"
+    _test_path = "/pretty/kitty"
 
     def setUp(self):
         """Set up the test instance."""
@@ -252,3 +258,30 @@ class TestFrameSequences(unittest.TestCase):
         print
 
         self.assertEqual(str(inverted), str(expected))
+
+    def test_equality(self):
+        """FrameSequence: Test the equality of instances."""
+        seq1 = FrameSequence(range(1, 11), pad=4)
+        seq2 = FrameSequence(range(1, 11), pad=4)
+        seq3 = FrameSequence(range(1, 11), pad=3)
+        seq4 = FrameSequence(range(1, 10), pad=4)
+        seq5 = FrameSequence("0001-0010")
+        seq6 = FrameSequence("0001-0010")
+        seq7 = FrameSequence("001-010")
+        seq8 = FrameSequence("0001-0009")
+
+        self.assertEqual(seq1, seq2)
+        self.assertNotEqual(seq1, seq3)
+        self.assertNotEqual(seq1, seq4)
+        self.assertEqual(seq1, seq5)
+        self.assertEqual(seq3, seq7)
+        self.assertEqual(seq4, seq8)
+        self.assertEqual(seq5, seq6)
+        self.assertNotEqual(seq5, seq7)
+        self.assertNotEqual(seq5, seq8)
+
+        file_path = os.path.join(self._test_path, self._test_name)
+        fseq1 = FileSequence(
+            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+
+        self.assertNotEqual(seq1, fseq1)
