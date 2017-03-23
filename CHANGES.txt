@@ -4,7 +4,7 @@ v0.4.0 (2017/03/22)
 Changes (from v0.3.0)
 
 * Added a couple new options to the seqls command line tool:
-    * -S/--seqs_only: Allows the user to filter output to only contain
+    * -S/--seqsonly: Allows the user to filter output to only contain
     discovered file sequences.
     * -m/--missing: Allows the user to display the missing files in a sequence
       in the typical file sequence-style output.

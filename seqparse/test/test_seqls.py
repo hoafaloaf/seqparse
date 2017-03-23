@@ -12,7 +12,6 @@ from . import mock_walk_deep
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -32,19 +31,21 @@ class TestSeqls(unittest.TestCase):
     def test_parse_args(self):
         """Seqls: Test seqls argument parsing."""
         defaults = dict(
-            level=["0"], missing=False, search_path=["."], seqs_only=False)
+            max_levels=[-1],
+            min_levels=[-1],
+            missing=False,
+            search_path=["."],
+            seqs_only=False)
         args = vars(seqls.parse_args([]))
         self.assertEqual(args, defaults)
 
         data = [
-            (["-l", "1"], dict(level=["1"])),
+            (["--maxdepth", "0"], dict(max_levels=[0])),
             (["test_dir"], dict(search_path=["test_dir"])), (
-                ["-l", "1", "test_dir"], dict(
-                    level=["1"], search_path=["test_dir"])), (
-                        ["-l", "1", "test_dir", "-S"], dict(
-                            level=["1"],
-                            search_path=["test_dir"],
-                            seqs_only=True)),
+                ["--maxdepth", "0", "--mindepth", "2"], dict(
+                    max_levels=[0],
+                    min_levels=[2])), (["--maxdepth", "1", "-S"], dict(
+                        max_levels=[1], seqs_only=True)),
             (["-m", "test_dir"], dict(missing=True, search_path=["test_dir"]))
         ]
 
@@ -66,18 +67,18 @@ class TestSeqls(unittest.TestCase):
             print " ", seq
 
         print "\n  LEVELS\n  ------"
-        for level in xrange(0, 5):
-            expected_seqs = level + 1
-            if level == 0:
+        for max_levels in xrange(-1, 4):
+            expected_seqs = max_levels + 2
+            if max_levels == -1:
                 expected_seqs = 5
 
             # Mimicking argparse output (everything's a string)
-            level = str(level)
+            max_levels = str(max_levels)
 
-            args = seqls.parse_args(["test_dir", "-l", level])
+            args = seqls.parse_args(["test_dir", "--maxdepth", max_levels])
             seqs = list(seqls.main(args, _debug=True))
-            blurb = "  o level == %s: %d entries (%d expected)"
-            print blurb % (level, len(seqs), expected_seqs)
+            blurb = "  o max_levels == %s: %d entries (%d expected)"
+            print blurb % (max_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
