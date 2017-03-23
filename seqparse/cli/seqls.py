@@ -16,12 +16,18 @@ def _entry_point():  # pragma: no cover
 
 def main(args, _debug=False):
     """Wrap and initialise the Seqparse class."""
-    args.level = max(int(args.level[0]), 0)
+    if args.max_levels[0] != -1:
+        args.max_levels[0] = max(int(args.max_levels[0]), 0)
+    if args.min_levels[0] != -1:
+        args.min_levels[0] = max(int(args.min_levels[0]), 0)
 
     for search_path in sorted(args.search_path):
         search_path = os.path.abspath(search_path)
         seqs = get_parser()
-        seqs.scan_path(search_path, level=args.level)
+        seqs.scan_path(
+            search_path,
+            max_levels=args.max_levels[0],
+            min_levels=args.min_levels[0])
 
     output = seqs.output(missing=args.missing, seqs_only=args.seqs_only)
     if _debug:
@@ -44,13 +50,26 @@ def parse_args(args):
         nargs="*")
 
     parser.add_argument(
-        "-l",
-        "--level",
-        default=["0"],
-        help=("Maximum number of levels that you'd like to search. Values "
-              "less than zero are equivalent to infinite depth."),
+        "--maxdepth",
+        default=[-1],
+        dest="max_levels",
+        help=("Descend at most levels (a non-negative integer) MAX_LEVELS of "
+              "directories below the starting-points. '--maxdepth 0' means "
+              "apply scan the starting-points themselves."),
         nargs=1,
-        required=False)
+        required=False,
+        type=int)
+
+    parser.add_argument(
+        "--mindepth",
+        default=[-1],
+        dest="min_levels",
+        help=("Do not scan at levels less than MIN_LEVELS (a non-negative "
+              "integer). '--mindepth 1' means scan all levels except the "
+              " starting-points."),
+        nargs=1,
+        required=False,
+        type=int)
 
     parser.add_argument(
         "-m",
@@ -61,8 +80,9 @@ def parse_args(args):
 
     parser.add_argument(
         "-S",
-        "--seqs_only",
+        "--seqsonly",
         action="store_true",
+        dest="seqs_only",
         help="Whether to filter out all non-sequence files.")
 
     # Parse the arguments.
