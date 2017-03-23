@@ -12,6 +12,7 @@ from . import mock_walk_deep
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -66,7 +67,7 @@ class TestSeqls(unittest.TestCase):
         for seq in seqs:
             print " ", seq
 
-        print "\n  LEVELS\n  ------"
+        print "\n  MAX LEVELS\n  ----------"
         for max_levels in xrange(-1, 4):
             expected_seqs = max_levels + 2
             if max_levels == -1:
@@ -83,6 +84,24 @@ class TestSeqls(unittest.TestCase):
             for seq in seqs:
                 print "    -", seq
 
+            self.assertEqual(len(seqs), expected_seqs)
+
+        print "\n  MIN LEVELS\n  ----------"
+        for min_levels in xrange(-1, 4):
+            expected_seqs = 3 - min_levels
+            if min_levels == -1:
+                expected_seqs = 5
+
+            # Mimicking argparse output (everything's a string)
+            min_levels = str(min_levels)
+
+            args = seqls.parse_args(["test_dir", "--mindepth", min_levels])
+            seqs = list(seqls.main(args, _debug=True))
+            blurb = "  o min_levels == %s: %d entries (%d expected)"
+            print blurb % (min_levels, len(seqs), expected_seqs)
+
+            for seq in seqs:
+                print "    -", seq
             self.assertEqual(len(seqs), expected_seqs)
 
         print

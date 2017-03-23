@@ -11,9 +11,9 @@ from .sequences import FrameChunk
 # Use the built-in version of scandir/walk if possible, otherwise use the
 # scandir module version.
 try:
-    from os import scandir, walk
+    from os import scandir, walk  # pylint: disable=W0611,C0412
 except ImportError:
-    from scandir import scandir, walk
+    from scandir import scandir, walk  # pylint: disable=W0611,C0412
 
 __all__ = ("Seqparse", )
 
@@ -120,8 +120,15 @@ class Seqparse(SeqparseRegexMixin):
             # Cheap and easy way to limit our search depth: count path
             # separators!
             cur_level = root.count(os.path.sep) - search_seps
-            if max_levels > -1 and cur_level == max_levels:
+
+            max_out = max_levels > -1 and cur_level == max_levels
+            if max_out:
                 del dir_names[:]
+
+            min_out = min_levels > -1 and cur_level <= min_levels
+            if min_out:
+                del file_names[:]
+
             self.add_from_scan(root, file_names)
 
     def _get_data(self, typ):

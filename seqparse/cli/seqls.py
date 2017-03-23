@@ -19,7 +19,7 @@ def main(args, _debug=False):
     if args.max_levels[0] != -1:
         args.max_levels[0] = max(int(args.max_levels[0]), 0)
     if args.min_levels[0] != -1:
-        args.min_levels[0] = max(int(args.min_levels[0]), 1)
+        args.min_levels[0] = max(int(args.min_levels[0]), 0)
 
     for search_path in sorted(args.search_path):
         search_path = os.path.abspath(search_path)

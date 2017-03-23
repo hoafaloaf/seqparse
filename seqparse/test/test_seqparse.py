@@ -11,6 +11,7 @@ from . import generate_files, mock_walk_deep
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -224,7 +225,7 @@ class TestSeqparseModule(unittest.TestCase):
         for seq in parser.output():
             print " ", seq
 
-        print "\n  LEVELS\n  ------"
+        print "\n  MAX LEVELS\n  ----------"
         for max_levels in xrange(-1, 4):
             parser = get_parser()
             parser.scan_path(self._test_root, max_levels=max_levels)
@@ -236,6 +237,23 @@ class TestSeqparseModule(unittest.TestCase):
             seqs = list(parser.output())
             blurb = "  o max_levels == %d: %d (%d expected) entries"
             print blurb % (max_levels, len(seqs), expected_seqs)
+
+            for seq in seqs:
+                print "    -", seq
+            self.assertEqual(len(seqs), expected_seqs)
+
+        print "\n  MIN LEVELS\n  ----------"
+        for min_levels in xrange(-1, 4):
+            parser = get_parser()
+            parser.scan_path(self._test_root, min_levels=min_levels)
+
+            expected_seqs = 3 - min_levels
+            if min_levels == -1:
+                expected_seqs = 5
+
+            seqs = list(parser.output())
+            blurb = "  o min_levels == %d: %d (%d expected) entries"
+            print blurb % (min_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
