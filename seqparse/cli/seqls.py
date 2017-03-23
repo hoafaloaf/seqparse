@@ -35,8 +35,8 @@ def main(args, _debug=False):
 
     else:  # pragma: no cover
         print
-        for line in output:
-            print line
+        for file_name in output:
+            print file_name
 
 
 def parse_args(args):
@@ -48,6 +48,28 @@ def parse_args(args):
         default=["."],
         help=("Paths that you'd like to search for file sequences."),
         nargs="*")
+    '''
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Do not ignore entries starting with '.'.")
+
+    parser.add_argument(
+        "-h",
+        "--human-readable",
+        action="store_true",
+        dest="human_readable",
+        help=("with -l, print sizes in human readable format (e.g., 1K 234M "
+              "2G)."))
+
+    parser.add_argument(
+        "-l",
+        "--long",
+        action="store_true",
+        dest="long_format",
+        help="Use a long listing format.")
+    '''
 
     parser.add_argument(
         "--maxdepth",
@@ -80,7 +102,7 @@ def parse_args(args):
 
     parser.add_argument(
         "-S",
-        "--seqsonly",
+        "--seqs-only",
         action="store_true",
         dest="seqs_only",
         help="Whether to filter out all non-sequence files.")
