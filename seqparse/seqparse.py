@@ -160,10 +160,10 @@ class Seqparse(SeqparseRegexMixin):
             cur_level = root.count(os.path.sep) - search_seps
 
             max_out = max_levels > -1 and cur_level == max_levels
+            min_out = min_levels > -1 and cur_level <= min_levels
+
             if max_out:
                 del dir_entries[:]
-
-            min_out = min_levels > -1 and cur_level <= min_levels
             if min_out:
                 del file_entries[:]
 
