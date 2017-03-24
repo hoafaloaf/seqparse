@@ -17,19 +17,21 @@ def _entry_point():  # pragma: no cover
 def main(args, _debug=False):
     """Wrap and initialise the Seqparse class."""
     if args.max_levels[0] != -1:
-        args.max_levels[0] = max(int(args.max_levels[0]), 0)
+        args.max_levels[0] = max(args.max_levels[0], 0)
     if args.min_levels[0] != -1:
-        args.min_levels[0] = max(int(args.min_levels[0]), 0)
+        args.min_levels[0] = max(args.min_levels[0], 0)
+
+    scan_opts = dict(
+        max_levels=args.max_levels[0], min_levels=args.min_levels[0])
+
+    parser = get_parser()
+    parser.scan_with_stats = args.long_format
 
     for search_path in sorted(args.search_path):
         search_path = os.path.abspath(search_path)
-        seqs = get_parser()
-        seqs.scan_path(
-            search_path,
-            max_levels=args.max_levels[0],
-            min_levels=args.min_levels[0])
+        parser.scan_path(search_path, **scan_opts)
 
-    output = seqs.output(missing=args.missing, seqs_only=args.seqs_only)
+    output = parser.output(missing=args.missing, seqs_only=args.seqs_only)
     if _debug:
         return map(str, output)
 

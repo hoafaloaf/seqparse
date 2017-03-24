@@ -156,9 +156,10 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._chunks = list()
         self._data = set()
         self._dirty = True
+        self._is_padded = False
         self._output = None
         self._pad = None
-        self._is_padded = False
+        self._stat = dict()
 
         # NOTE: This could probably be made more efficient by copying a
         # FrameSequence's _data attribute and/or checking to see if _chunks
@@ -243,6 +244,11 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     @pad.setter
     def pad(self, val):
         self._pad = max(1, int(val or 1))
+
+    @property
+    def stat(self):
+        """Indiviual frame file system status, indexed by integer frame."""
+        return self._stat
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""

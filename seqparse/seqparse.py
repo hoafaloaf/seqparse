@@ -17,6 +17,9 @@ except ImportError:
 
 __all__ = ("Seqparse", )
 
+STAT_ATTRS = ("mode", "ino", "dev", "nlink", "uid", "gid", "size", "atime",
+              "mtime", "ctime")
+
 ###############################################################################
 # Class: Seqparse
 
@@ -32,6 +35,9 @@ class Seqparse(SeqparseRegexMixin):
             lambda: dict(
                 seqs=defaultdict(FileSequenceContainer),
                 files=SingletonContainer()))
+
+        # Should this be protected as a property?
+        self.scan_with_stats = False
 
     @property
     def locations(self):
@@ -50,7 +56,9 @@ class Seqparse(SeqparseRegexMixin):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
+        entry = None
         if type(file_name).__name__ == "DirEntry":
+            entry = file_name
             file_name = file_name.path
 
         file_seq_bits = self.file_seq_match(str(file_name))
@@ -77,6 +85,11 @@ class Seqparse(SeqparseRegexMixin):
 
             ext = sequence[file_ext]
             ext[pad].add(frames)
+
+            # "entry" *should* only ever be defined if it was passed in via the
+            # scan_path method.
+            if entry and self.scan_with_stats:
+                ext[pad].stat[int(frames)] = zip(STAT_ATTRS, entry.stat())
 
         else:
             dir_name, base_name = os.path.split(file_name)

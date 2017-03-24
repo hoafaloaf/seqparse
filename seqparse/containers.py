@@ -80,6 +80,9 @@ class FileExtension(MutableMapping):
             if not frames.is_padded:
                 prev_frames = data[0][1]
                 prev_frames.update(frames)
+                # Copying in the current pad's file stats (if any).
+                prev_frames.stat.update(self[pad].stat)
+
                 del self[pad]
 
         for pad in sorted(self):
