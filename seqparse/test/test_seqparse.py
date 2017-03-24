@@ -250,8 +250,8 @@ class TestSeqparseModule(unittest.TestCase):
                 expected_seqs = 5
 
             seqs = list(parser.output())
-            blurb = "  o max_levels == %d: %d (%d expected) entries"
-            print blurb % (max_levels, len(seqs), expected_seqs)
+            blurb = "  o max_levels == {:d}: {:d} ({:d} expected) entries"
+            print blurb.format(max_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
@@ -268,8 +268,8 @@ class TestSeqparseModule(unittest.TestCase):
                 expected_seqs = 5
 
             seqs = list(parser.output())
-            blurb = "  o min_levels == %d: %d (%d expected) entries"
-            print blurb % (min_levels, len(seqs), expected_seqs)
+            blurb = "  o min_levels == {:d}: {:d} ({:d} expected) entries"
+            print blurb.format(min_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
@@ -294,12 +294,12 @@ class TestSeqparseModule(unittest.TestCase):
         print "\n\n  GOOD SEQUENCES\n  --------------"
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
-            print '  o "%s" --> %s' % (frame_seq, output)
+            print '  o "{}" --> {}'.format(frame_seq, output)
             self.assertTrue(output)
 
         print "\n  BAD SEQUENCES\n  -------------"
         for frame_seq in bad_frame_seqs:
-            print '  o "%s"' % frame_seq
+            print '  o "{}"'.format(frame_seq)
             self.assertFalse(validate_frame_sequence(frame_seq))
 
         print
