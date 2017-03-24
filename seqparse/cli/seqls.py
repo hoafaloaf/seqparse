@@ -48,7 +48,6 @@ def parse_args(args):
         default=["."],
         help=("Paths that you'd like to search for file sequences."),
         nargs="*")
-    '''
     parser.add_argument(
         "-a",
         "--all",
@@ -56,7 +55,7 @@ def parse_args(args):
         help="Do not ignore entries starting with '.'.")
 
     parser.add_argument(
-        "-h",
+        "-H",
         "--human-readable",
         action="store_true",
         dest="human_readable",
@@ -69,7 +68,6 @@ def parse_args(args):
         action="store_true",
         dest="long_format",
         help="Use a long listing format.")
-    '''
 
     parser.add_argument(
         "--maxdepth",

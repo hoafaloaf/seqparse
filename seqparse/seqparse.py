@@ -122,28 +122,6 @@ class Seqparse(SeqparseRegexMixin):
             for data in self.scandir_walk(entry.path):
                 yield data
 
-    '''
-    def scan_path(self, search_path, max_levels=-1, min_levels=-1):
-        """Scan supplied path, add all discovered files to the instance."""
-        for entry in self._scan_tree(search_path, max_levels, min_levels, 0):
-            self.add_file(entry.path)
-
-    def _scan_tree(self, search_path, max_levels=-1, min_levels=-1, _level=0):
-        """Recursively yield DirEntry objects for given directory."""
-        max_out = max_levels > -1 and _level == max_levels
-        min_out = min_levels > -1 and _level <= min_levels
-
-        for entry in scandir(search_path):
-            if entry.is_dir(follow_symlinks=False) and not max_out:
-                for child in self._scan_tree(entry.path, max_levels,
-                                             min_levels, _level + 1):
-                    if not child.is_dir(follow_symlinks=False):
-                        yield child
-
-            elif not min_out:
-                yield entry
-    '''
-
     def add_from_scan(self, file_entries):
         """Shortcut for adding file sequences from os/scandir.walk."""
         for file_entry in file_entries:

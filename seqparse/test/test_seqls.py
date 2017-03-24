@@ -9,8 +9,7 @@ import unittest
 # Third Party Libraries
 import mock
 
-from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
-               mock_scandir_deep)
+from . import DirEntry, initialise_mock_scandir_data, mock_scandir_deep
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
@@ -34,6 +33,9 @@ class TestSeqls(unittest.TestCase):
     def test_parse_args(self):
         """Seqls: Test seqls argument parsing."""
         defaults = dict(
+            all=False,
+            human_readable=False,
+            long_format=False,
             max_levels=[-1],
             min_levels=[-1],
             missing=False,
@@ -44,6 +46,9 @@ class TestSeqls(unittest.TestCase):
 
         # yapf: disable
         data = [
+            (["-laH"], dict(all=True, human_readable=True, long_format=True)),
+            (shlex.split("test_dir -l"), dict(
+                search_path=["test_dir"], long_format=True)),
             (shlex.split("--maxdepth 0"), dict(max_levels=[0])),
             (["test_dir"], dict(search_path=["test_dir"])),
             (shlex.split("--maxdepth 0 --mindepth 2"), dict(
