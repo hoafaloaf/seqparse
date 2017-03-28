@@ -25,11 +25,11 @@ class DirEntry(object):
         blurb = "{}(path={!r}, is_file={!r})"
         return blurb.format(type(self).__name__, self.path, self.is_file())
 
-    def is_dir(self, *args, **kwargs):
+    def is_dir(self, follow_symlinks=False):  # pylint: disable=W0613
         """Whether this instance represents a directory."""
         return not self._is_file
 
-    def is_file(self, *args, **kwargs):
+    def is_file(self, follow_symlinks=False):  # pylint: disable=W0613
         """Whether this instance represents a file."""
         return self._is_file
 
@@ -62,7 +62,7 @@ def generate_entries(name="dog",
 
 def initialise_mock_scandir_data(search_path):
     """Initialise the global variable accessed by mock_scandir_deep."""
-    global MOCK_SCANDIR_DEEP_DATA
+    global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 
     level1_path = os.path.join(search_path, "level1")
     level2_path = os.path.join(level1_path, "level2")
@@ -87,9 +87,9 @@ def initialise_mock_scandir_data(search_path):
         (level0_entries, level1_entries, level2_entries, level3_entries))
 
 
-def mock_scandir_deep(search_path="."):
+def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
     """A mocked version of scandir.scandir for testing purposes."""
-    global MOCK_SCANDIR_DEEP_DATA
+    global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 
     if MOCK_SCANDIR_DEEP_DATA:
         return_value = MOCK_SCANDIR_DEEP_DATA.pop(0)
