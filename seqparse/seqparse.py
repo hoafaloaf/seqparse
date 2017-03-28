@@ -11,9 +11,9 @@ from .sequences import FrameChunk
 # Use the built-in version of scandir/walk if possible, otherwise use the
 # scandir module version.
 try:
-    from os import scandir, walk  # pylint: disable=W0611,C0412
+    from os import scandir  # pylint: disable=W0611,C0412
 except ImportError:
-    from scandir import scandir, walk  # pylint: disable=W0611,C0412
+    from scandir import scandir  # pylint: disable=W0611,C0412
 
 __all__ = ("Seqparse", )
 
