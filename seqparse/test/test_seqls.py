@@ -147,7 +147,7 @@ class TestSeqls(unittest.TestCase):
         fseq = FileSequence(
             name=file_path, ext=self._test_ext, frames=chunk_in)
 
-        input_entries = [DirEntry(x) for x in fseq]
+        input_entries = map(DirEntry, fseq)
 
         mock_api_call.return_value = iter(input_entries)
 

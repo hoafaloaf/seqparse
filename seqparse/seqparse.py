@@ -89,7 +89,8 @@ class Seqparse(SeqparseRegexMixin):
             # "entry" *should* only ever be defined if it was passed in via the
             # scan_path method.
             if entry and self.scan_with_stats:
-                ext[pad].stat[int(frames)] = zip(STAT_ATTRS, entry.stat())
+                ext[pad].stat[int(frames)] = dict(
+                    zip(STAT_ATTRS, entry.stat()))
 
         else:
             dir_name, base_name = os.path.split(file_name)

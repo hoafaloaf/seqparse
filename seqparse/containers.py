@@ -1,6 +1,7 @@
 """Classes utilized by the Seqparse class."""
 
 # Standard Libraries
+import copy
 import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering
@@ -81,7 +82,7 @@ class FileExtension(MutableMapping):
                 prev_frames = data[0][1]
                 prev_frames.update(frames)
                 # Copying in the current pad's file stats (if any).
-                prev_frames.stat.update(self[pad].stat)
+                prev_frames.stat.update(copy.deepcopy(self[pad].stat))
 
                 del self[pad]
 
@@ -207,7 +208,6 @@ class SingletonContainer(MutableSet):
     def __init__(self, iterable=None, file_path=None):
         """Initialise the instance."""
         self._data = set()
-
         self._path = None
 
         for item in iterable or []:

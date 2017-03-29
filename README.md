@@ -28,3 +28,15 @@ Coming soon.
     1. ***DOCUMENT ALL THE THINGS!***
 1. v1.0.0
     1. Release.
+
+## TODO
+
+1. *feature/output-file-size*: Fix (3) failing tests.
+1. *feature/output-file-size*: `total_size` needs to account for missing and
+   inverted `FrameSequence` instances.
+1. *feature/output-file-size*: Figure out an efficient way to track singleton
+   file size.
+1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class
+   to query disk `stat` data post-creation. Probably allow it to rescan for
+   changed frames and/or newly created, previously missing frames (see:
+   `mtime` and `ctime`).

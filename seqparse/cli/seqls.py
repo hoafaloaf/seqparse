@@ -4,7 +4,11 @@
 # Standard Libraries
 import os
 import sys
+import time
 from argparse import ArgumentParser
+
+# Third Party Libraries
+import humanize
 
 from .. import get_parser
 
@@ -31,14 +35,31 @@ def main(args, _debug=False):
         search_path = os.path.abspath(search_path)
         parser.scan_path(search_path, **scan_opts)
 
-    output = parser.output(missing=args.missing, seqs_only=args.seqs_only)
+    output = list()
+
+    items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
+    if args.long_format:
+        bits = list()
+        for item in items:
+            size = humanize.naturalsize(item.size, gnu=True)
+            mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
+            bits.append((size, mtime, str(item)))
+
+        # Find the maximum width of the sequence sizes; we'll use this to pad
+        # the output.
+        max_len = max(len(x[0]) for x in bits)
+        for bit in bits:
+            output.append("{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
+    else:
+        output.extend(map(str, output))
+
     if _debug:
-        return map(str, output)
+        return output
 
     else:  # pragma: no cover
         print
-        for file_name in output:
-            print file_name
+        for line in output:
+            print line
 
 
 def parse_args(args):

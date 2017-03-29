@@ -1,6 +1,7 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
 # Standard Libraries
+import copy
 import os
 from collections import MutableSet
 
@@ -165,6 +166,8 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         # the job's already been done for us.
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
+            if isinstance(iterable, FrameSequence):
+                self.stat.update(copy.deepcopy(iterable.stat))
         elif isinstance(iterable, basestring):
             if not self.is_frame_sequence(iterable):
                 blurb = "Invalid iterable specified ({}, {!r})"
@@ -235,6 +238,17 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         return self._attrs["is_padded"]
 
     @property
+    def mtime(self):
+        """
+        The epoch time of the most recent change to a sequence file.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        if not self.stat:
+            return None
+        return max(x["mtime"] for x in self.stat.itervalues())
+
+    @property
     def pad(self):
         """Integer zero-padding for the frames contained by the object."""
         return self._attrs["pad"]
@@ -242,6 +256,18 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     @pad.setter
     def pad(self, val):
         self._attrs["pad"] = max(1, int(val or 1))
+
+    @property
+    def size(self):
+        """
+        The total size of the file sequence in bytes.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        size = 0
+        for stat in self.stat.itervalues():
+            size += stat["size"]
+        return size or None
 
     @property
     def stat(self):
@@ -311,6 +337,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         self._data.discard(item)
         self._attrs["dirty"] = True
+        self._attrs["stat"].pop(item, None)
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
