@@ -158,6 +158,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             chunks=list(), dirty=True, is_padded=False, pad=None, stat=dict())
 
         self._data = set()
+        self._cache = dict(ctime=None, mtime=None, size=None)
         self._output = None
 
         # NOTE: This could probably be made more efficient by copying a
@@ -220,10 +221,18 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def __str__(self):
         """String reprentation of the frame sequence."""
-        if self.is_dirty:
-            self.calculate()
-            self._attrs["dirty"] = False
+        self.calculate()
         return self._output
+
+    @property
+    def ctime(self):
+        """
+        The most recent inode or file change time for a file in the sequence.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["mtime"]
 
     @property
     def is_dirty(self):
@@ -233,20 +242,18 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     @property
     def is_padded(self):
         """Return whether the FrameSequence contains any zero-padded frames."""
-        if self.is_dirty:
-            self.calculate()
+        self.calculate()
         return self._attrs["is_padded"]
 
     @property
     def mtime(self):
         """
-        The epoch time of the most recent change to a sequence file.
+        The most recent file modification time for a file in the sequence.
 
         Returns None if the files have not been stat'd on disk.
         """
-        if not self.stat:
-            return None
-        return max(x["mtime"] for x in self.stat.itervalues())
+        self.calculate()
+        return self._cache["mtime"]
 
     @property
     def pad(self):
@@ -264,10 +271,8 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         Returns None if the files have not been stat'd on disk.
         """
-        size = 0
-        for stat in self.stat.itervalues():
-            size += stat["size"]
-        return size or None
+        self.calculate()
+        return self._cache["size"]
 
     @property
     def stat(self):
@@ -309,19 +314,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         self._attrs["dirty"] = True
 
-    def _add_frame_sequence(self, frame_seq):
-        """Add a string frame sequence to the instance."""
-        for bit in frame_seq.split(","):
-            if not bit:
-                continue
-
-            first, last, step = self.bits_match(bit)
-            pad = len(first)
-            if self.pad is None:
-                self.pad = pad
-
-            self.add(FrameChunk(first, last, step, pad))
-
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
         if isinstance(item, basestring):
@@ -344,11 +336,14 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         for item in iterable:
             self.add(item)
 
-    def calculate(self):
+    def calculate(self, force=False):
         """Calculate the output file sequence."""
+        if not (self.is_dirty or force):
+            return
+
         self._attrs["is_padded"] = False
-        self._output = ""
         del self._attrs["chunks"][:]
+        self._output = ""
 
         num_frames = len(self._data)
         if not num_frames:
@@ -389,18 +384,48 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._attrs["chunks"])
+
+        # Cache disk stats for easy/quick access via property ...
+        self._cache_disk_stats()
+
         self._attrs["dirty"] = False
 
     def invert(self):
         """Return a FrameSequence of frames missing from the sequence."""
-        if self.is_dirty:
-            self.calculate()
-
+        self.calculate()
         inverted = FrameSequence(pad=self.pad)
         for chunk in self._attrs["chunks"]:
             inverted.add(chunk.invert())
 
         return inverted
+
+    def _add_frame_sequence(self, frame_seq):
+        """Add a string frame sequence to the instance."""
+        for bit in frame_seq.split(","):
+            if not bit:
+                continue
+
+            first, last, step = self.bits_match(bit)
+            pad = len(first)
+            if self.pad is None:
+                self.pad = pad
+
+            self.add(FrameChunk(first, last, step, pad))
+
+    def _cache_disk_stats(self):
+        """Cache disk stats for a variety of file sequence properties."""
+        self._cache = dict(ctime=None, mtime=None, size=None)
+        if not self.stat:
+            return self._cache
+
+        ctime = mtime = size = 0
+        for frame in self._data:
+            stat = self.stat.get(frame, dict())
+            ctime = max(ctime, stat.get("ctime", 0))
+            mtime = max(mtime, stat.get("mtime", 0))
+            size += stat.get("size", 0)
+
+        self._cache = dict(ctime=ctime, mtime=mtime, size=size)
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):

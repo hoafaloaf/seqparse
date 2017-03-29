@@ -41,7 +41,11 @@ def main(args, _debug=False):
     if args.long_format:
         bits = list()
         for item in items:
-            size = humanize.naturalsize(item.size, gnu=True)
+            size = item.size
+            if size:
+                size = humanize.naturalsize(item.size, gnu=True)
+            else:
+                size = "---"
             mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
             bits.append((size, mtime, str(item)))
 
@@ -51,7 +55,7 @@ def main(args, _debug=False):
         for bit in bits:
             output.append("{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
     else:
-        output.extend(map(str, output))
+        output.extend(str(x) for x in items)
 
     if _debug:
         return output
