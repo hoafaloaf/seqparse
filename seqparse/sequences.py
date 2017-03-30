@@ -232,7 +232,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         Returns None if the files have not been stat'd on disk.
         """
         self.calculate()
-        return self._cache["mtime"]
+        return self._cache["ctime"]
 
     @property
     def is_dirty(self):

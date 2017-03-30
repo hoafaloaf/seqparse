@@ -1,6 +1,8 @@
 """Test suite for seqparse."""
 
+# Standard Libraries
 import os
+from posix import stat_result
 
 __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
            "mock_scandir_deep")
@@ -8,66 +10,26 @@ __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
 MOCK_SCANDIR_DEEP_DATA = list()
 
 MOCK_SCANDIR_STAT_DATA = {
-    'test.0001.py': {
-        'm_size': 7975L,
-        'm_uid': 0L,
-        'm_dev': 14L,
-        'm_nlink': 1L,
-        'm_gid': 0L,
-        'm_mode': 33279L,
-        'm_mtime': 1490908305,
-        'm_atime': 1490908305,
-        'm_ino': 12666373952092765L,
-        'm_ctime': 1490908313
-    },
-    'test.0002.py': {
-        'm_size': 987L,
-        'm_uid': 0L,
-        'm_dev': 14L,
-        'm_nlink': 1L,
-        'm_gid': 0L,
-        'm_mode': 33279L,
-        'm_mtime': 1490908305,
-        'm_atime': 1490908305,
-        'm_ino': 2814749767415947L,
-        'm_ctime': 1490908318
-    },
-    'test.0003.py': {
-        'm_size': 2561L,
-        'm_uid': 0L,
-        'm_dev': 14L,
-        'm_nlink': 1L,
-        'm_gid': 0L,
-        'm_mode': 33279L,
-        'm_mtime': 1490908305,
-        'm_atime': 1490908305,
-        'm_ino': 2251799813994636L,
-        'm_ctime': 1490908325
-    },
-    'test.0004.py': {
-        'm_size': 6487L,
-        'm_uid': 0L,
-        'm_dev': 14L,
-        'm_nlink': 1L,
-        'm_gid': 0L,
-        'm_mode': 33279L,
-        'm_mtime': 1490908305,
-        'm_atime': 1490908305,
-        'm_ino': 2251799813994637L,
-        'm_ctime': 1490908333
-    },
-    'test.0006.py': {
-        'm_size': 18510L,
-        'm_uid': 0L,
-        'm_dev': 14L,
-        'm_nlink': 1L,
-        'm_gid': 0L,
-        'm_mode': 33279L,
-        'm_mtime': 1490908305,
-        'm_atime': 1490908305,
-        'm_ino': 2251799813994638L,
-        'm_ctime': 1490908340
-    }
+    'test.0001.py': [
+        33279L, 12666373952092765L, 14L, 1L, 0L, 0L, 7975L, 1490908305,
+        1490908305, 1490908313
+    ],
+    'test.0002.py': [
+        33279L, 2814749767415947L, 14L, 1L, 0L, 0L, 987L, 1490908305,
+        1490908305, 1490908318
+    ],
+    'test.0003.py': [
+        33279L, 2251799813994636L, 14L, 1L, 0L, 0L, 2561L, 1490908305,
+        1490908305, 1490908325
+    ],
+    'test.0004.py': [
+        33279L, 2251799813994637L, 14L, 1L, 0L, 0L, 6487L, 1490908305,
+        1490908305, 1490908333
+    ],
+    'test.0006.py': [
+        33279L, 2251799813994638L, 14L, 1L, 0L, 0L, 18510L, 1490908305,
+        1490908305, 1490908340
+    ]
 }
 
 ###############################################################################
@@ -100,12 +62,7 @@ class DirEntry(object):
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
             raise IOError("Mock'd file not found: {}".format(self.name))
-
-        mock_stat = object()
-        for attr, val in MOCK_SCANDIR_STAT_DATA.iteritems():
-            setattr(mock_stat, attr, val)
-
-        return mock_stat
+        return stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
 
 
 ###############################################################################

@@ -9,7 +9,8 @@ import unittest
 # Third Party Libraries
 import mock
 
-from . import DirEntry, initialise_mock_scandir_data, mock_scandir_deep
+from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
+               mock_scandir_deep)
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
@@ -166,3 +167,25 @@ class TestSeqls(unittest.TestCase):
         print "  inverted files:", inverted[0]
 
         self.assertEqual(inverted[0], str(expected))
+
+    @mock.patch("seqparse.seqparse.scandir")
+    def test_long_format(self, mock_api_call):
+        """Seqls: Test the long-format option."""
+        frames = {4: (1, 2, 3, 4, 6)}
+        root_dir = os.path.join(os.getcwd(), self._test_root)
+        input_entries = generate_entries(
+            name="test", ext="py", frames=frames, root=root_dir)
+
+        mock_api_call.return_value = iter(input_entries)
+
+        args = seqls.parse_args(["test_dir", "-l"])
+        output = seqls.main(args, _debug=True)
+        expected = "35.7K  2017/03/30 14:11  {}/test.0001-0004,0006.py"
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], expected.format(root_dir))
+
+        args = seqls.parse_args(["test_dir", "-l", "-m"])
+        output = seqls.main(args, _debug=True)
+
+        self.assertEqual(len(output), 0)

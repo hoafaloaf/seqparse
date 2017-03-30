@@ -90,7 +90,7 @@ class Seqparse(SeqparseRegexMixin):
             # scan_path method.
             if entry and self.scan_with_stats:
                 ext[pad].stat[int(frames)] = dict(
-                    zip(STAT_ATTRS, entry.stat()))
+                    zip(STAT_ATTRS, entry.stat(follow_symlinks=True)))
 
         else:
             dir_name, base_name = os.path.split(file_name)

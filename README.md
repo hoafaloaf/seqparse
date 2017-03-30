@@ -31,8 +31,6 @@ Coming soon.
 
 ## TODO
 
-1. *feature/output-file-size*: `total_size` needs to account for missing and
-   inverted `FrameSequence` instances.
 1. *feature/output-file-size*: Figure out an efficient way to track singleton
    file size.
 1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class

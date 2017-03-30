@@ -44,16 +44,18 @@ def main(args, _debug=False):
             size = item.size
             if size:
                 size = humanize.naturalsize(item.size, gnu=True)
-            else:
-                size = "---"
+            # else:
+            #     size = "---"
             mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
             bits.append((size, mtime, str(item)))
 
         # Find the maximum width of the sequence sizes; we'll use this to pad
         # the output.
-        max_len = max(len(x[0]) for x in bits)
-        for bit in bits:
-            output.append("{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
+        if bits:
+            max_len = max(len(x[0]) for x in bits)
+            for bit in bits:
+                output.append(
+                    "{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
     else:
         output.extend(str(x) for x in items)
 
