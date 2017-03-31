@@ -31,6 +31,9 @@ Coming soon.
 
 ## TODO
 
+1. *feature/output-file-size*: Fix timezone issue causing `seqls`'s
+   long-format option test to fail (epoch time resolves differently on the
+   travis-ci server than it does locally).
 1. *feature/output-file-size*: Figure out an efficient way to track singleton
    file size.
 1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class

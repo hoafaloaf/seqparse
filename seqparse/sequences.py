@@ -276,7 +276,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     @property
     def stat(self):
-        """Indiviual frame file system status, indexed by integer frame."""
+        """Individual frame file system status, indexed by integer frame."""
         return self._attrs["stat"]
 
     def add(self, item):

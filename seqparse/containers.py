@@ -209,6 +209,7 @@ class SingletonContainer(MutableSet):
         """Initialise the instance."""
         self._data = set()
         self._path = None
+        self._stat = dict()
 
         for item in iterable or []:
             self.add(item)
@@ -244,6 +245,11 @@ class SingletonContainer(MutableSet):
     @path.setter
     def path(self, val):
         self._path = str(val or "")
+
+    @property
+    def stat(self):
+        """Individual file system status, indexed by base name."""
+        return self._stat
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""

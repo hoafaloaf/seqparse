@@ -45,7 +45,7 @@ class Seqparse(SeqparseRegexMixin):
 
     @property
     def scan_options(self):
-        """Options used while scanning disk for files."""
+        """A dictionary of options used while scanning disk for files."""
         return self._options
 
     @property
@@ -107,6 +107,11 @@ class Seqparse(SeqparseRegexMixin):
                 singletons.path = dir_name
 
             singletons.add(base_name)
+            if entry and self.scan_options["stat"]:
+                singletons.stat[base_name] = dict(
+                    zip(STAT_ATTRS, entry.stat(follow_symlinks=True)))
+
+                print list(entry.stat())
 
     def output(self, missing=False, seqs_only=False):
         """Yield a list of contained singletons and file sequences."""
