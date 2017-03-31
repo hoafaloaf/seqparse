@@ -33,6 +33,7 @@ Coming soon.
 
 1. *feature/output-file-size*: Figure out an efficient way to track singleton
    file size.
+1. *feature/output-file-size*: Implement -a/--all option in `seqls`.
 1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class
    to query disk `stat` data post-creation. Probably allow it to rescan for
    changed frames and/or newly created, previously missing frames (see:

@@ -39,23 +39,7 @@ def main(args, _debug=False):
 
     items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
     if args.long_format:
-        bits = list()
-        for item in items:
-            size = item.size
-            if size:
-                size = humanize.naturalsize(item.size, gnu=True)
-            # else:
-            #     size = "---"
-            mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
-            bits.append((size, mtime, str(item)))
-
-        # Find the maximum width of the sequence sizes; we'll use this to pad
-        # the output.
-        if bits:
-            max_len = max(len(x[0]) for x in bits)
-            for bit in bits:
-                output.append(
-                    "{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
+        output.extend(long_format_output(items, args.human_readable))
     else:
         output.extend(str(x) for x in items)
 
@@ -66,6 +50,35 @@ def main(args, _debug=False):
         print
         for line in output:
             print line
+
+
+def long_format_output(items, human_readable=False):
+    """Generate long format output for the provided items."""
+    bits = list()
+    output = list()
+
+    for item in items:
+        if not str(item):
+            continue
+
+        size = item.size
+        if size:
+            size = item.size
+            if human_readable:
+                size = humanize.naturalsize(size, gnu=True)
+        # else:
+        #     size = "---"
+        mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
+        bits.append((size, mtime, str(item)))
+
+    # Find the maximum width of the sequence sizes; we'll use this to pad
+    # the output.
+    if bits:
+        max_len = max(len(str(x[0])) for x in bits)
+        for bit in bits:
+            output.append("{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
+
+    return output
 
 
 def parse_args(args):

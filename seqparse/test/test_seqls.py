@@ -176,9 +176,16 @@ class TestSeqls(unittest.TestCase):
         input_entries = generate_entries(
             name="test", ext="py", frames=frames, root=root_dir)
 
-        mock_api_call.return_value = iter(input_entries)
+        mock_api_call.return_value = input_entries
 
         args = seqls.parse_args(["test_dir", "-l"])
+        output = seqls.main(args, _debug=True)
+        expected = "36520  2017/03/30 14:11  {}/test.0001-0004,0006.py"
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], expected.format(root_dir))
+
+        args = seqls.parse_args(["test_dir", "-l", "-H"])
         output = seqls.main(args, _debug=True)
         expected = "35.7K  2017/03/30 14:11  {}/test.0001-0004,0006.py"
 
