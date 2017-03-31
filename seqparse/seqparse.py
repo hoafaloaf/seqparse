@@ -36,13 +36,17 @@ class Seqparse(SeqparseRegexMixin):
                 seqs=defaultdict(FileSequenceContainer),
                 files=SingletonContainer()))
 
-        # Should this be protected as a property?
-        self.scan_with_stats = False
+        self._options = dict(all=False, stat=False)
 
     @property
     def locations(self):
         """A dictionary of tracked singletons and file sequences."""
         return self._locs
+
+    @property
+    def scan_options(self):
+        """Options used while scanning disk for files."""
+        return self._options
 
     @property
     def sequences(self):
@@ -88,7 +92,7 @@ class Seqparse(SeqparseRegexMixin):
 
             # "entry" *should* only ever be defined if it was passed in via the
             # scan_path method.
-            if entry and self.scan_with_stats:
+            if entry and self.scan_options["stat"]:
                 ext[pad].stat[int(frames)] = dict(
                     zip(STAT_ATTRS, entry.stat(follow_symlinks=True)))
 
@@ -125,6 +129,8 @@ class Seqparse(SeqparseRegexMixin):
         """Recursively yield DirEntry objects for given directory."""
         root, dir_entries, file_entries = search_path, list(), list()
         for entry in scandir(search_path):
+            if entry.name.startswith(".") and not self.scan_options["all"]:
+                continue
             if entry.is_dir(follow_symlinks=follow_symlinks):
                 dir_entries.append(entry)
             elif entry.is_file(follow_symlinks=follow_symlinks):

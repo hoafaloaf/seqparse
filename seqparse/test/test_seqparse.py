@@ -12,7 +12,6 @@ from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestSeqparseModule
 
@@ -398,16 +397,20 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(str(inverted[0]), str(expected))
 
     @mock.patch("seqparse.seqparse.scandir")
-    def test_scan_with_stats(self, mock_api_call):
-        """Seqparse: Make sure scan_with_stats works as expected."""
+    def test_scan_options(self, mock_api_call):
+        """Seqparse: Make sure scan_options works as expected."""
         frames = {4: (1, 2, 3, 4, 6)}
         input_entries = generate_entries(
             name="test", ext="py", frames=frames, root=self._test_root)
 
-        mock_api_call.return_value = iter(input_entries)
+        input_entries.extend(
+            generate_entries(
+                name=".test", ext="py", frames=frames, root=self._test_root))
+
+        mock_api_call.return_value = input_entries
 
         parser = get_parser()
-        parser.scan_with_stats = True
+        parser.scan_options["stat"] = True
         parser.scan_path(self._test_root)
         output = list(parser.output())
 
@@ -415,6 +418,18 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(output[0].ctime, 1490908340)
         self.assertEqual(output[0].mtime, 1490908305)
         self.assertEqual(output[0].size, 36520)
+
+        parser = get_parser()
+        parser.scan_options["all"] = True
+        parser.scan_path(self._test_root)
+        output = list(parser.output())
+        expected = [
+            os.path.join(self._test_root, ".test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "test.0001-0004,0006.py")
+        ]
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(map(str, output), expected)
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""

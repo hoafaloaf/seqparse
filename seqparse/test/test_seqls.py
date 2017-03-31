@@ -140,7 +140,7 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(file_names, [])
 
     @mock.patch("seqparse.seqparse.scandir")
-    def test_missing(self, mock_api_call):
+    def test_missing_option(self, mock_api_call):
         """Seqls: Test missing option."""
         file_path = os.path.join(self._test_root, self._test_file_name)
 
@@ -169,7 +169,7 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(inverted[0], str(expected))
 
     @mock.patch("seqparse.seqparse.scandir")
-    def test_long_format(self, mock_api_call):
+    def test_long_format_option(self, mock_api_call):
         """Seqls: Test the long-format option."""
         frames = {4: (1, 2, 3, 4, 6)}
         root_dir = os.path.join(os.getcwd(), self._test_root)
@@ -196,3 +196,35 @@ class TestSeqls(unittest.TestCase):
         output = seqls.main(args, _debug=True)
 
         self.assertEqual(len(output), 0)
+
+    @mock.patch("seqparse.seqparse.scandir")
+    def test_all_option(self, mock_api_call):
+        """Seqls: Test the all option."""
+        frames = {4: (1, 2, 3, 4, 6)}
+        root_dir = os.path.join(os.getcwd(), self._test_root)
+
+        input_entries = generate_entries(
+            name="test", ext="py", frames=frames, root=root_dir)
+
+        input_entries.extend(
+            generate_entries(
+                name=".test", ext="py", frames=frames, root=root_dir))
+
+        mock_api_call.return_value = input_entries
+
+        args = seqls.parse_args(["test_dir"])
+        output = seqls.main(args, _debug=True)
+
+        expected = [
+            os.path.join(root_dir, ".test.0001-0004,0006.py"),
+            os.path.join(root_dir, "test.0001-0004,0006.py")
+        ]
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output[0], expected[1])
+
+        args = seqls.parse_args(["test_dir", "-a"])
+        output = seqls.main(args, _debug=True)
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output, expected)

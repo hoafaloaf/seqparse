@@ -29,7 +29,7 @@ def main(args, _debug=False):
         max_levels=args.max_levels[0], min_levels=args.min_levels[0])
 
     parser = get_parser()
-    parser.scan_with_stats = args.long_format
+    parser.scan_options.update(all=args.all, stat=args.long_format)
 
     for search_path in sorted(args.search_path):
         search_path = os.path.abspath(search_path)
