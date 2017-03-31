@@ -5,6 +5,8 @@ import copy
 import os
 from collections import MutableSet
 
+from posix import stat_result
+
 from .regex import SeqparseRegexMixin
 
 __all__ = ("FrameSequence", "SeqparsePadException")
@@ -168,7 +170,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
             if isinstance(iterable, FrameSequence):
-                self.stat.update(copy.deepcopy(iterable.stat))
+                self.stat().update(copy.deepcopy(iterable.stat()))
         elif isinstance(iterable, basestring):
             if not self.is_frame_sequence(iterable):
                 blurb = "Invalid iterable specified ({}, {!r})"
@@ -274,11 +276,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self.calculate()
         return self._cache["size"]
 
-    @property
-    def stat(self):
-        """Individual frame file system status, indexed by integer frame."""
-        return self._attrs["stat"]
-
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         if isinstance(item, basestring):
@@ -336,6 +333,12 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         for item in iterable:
             self.add(item)
 
+    def cache_stat(self, frame, input_stat):
+        """Cache file system stat data for the specified frame."""
+        frame = int(frame)
+        self._attrs["stat"][frame] = stat_result(input_stat)
+        return self._attrs["stat"][frame]
+
     def calculate(self, force=False):
         """Calculate the output file sequence."""
         if not (self.is_dirty or force):
@@ -386,7 +389,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._output = ",".join(str(x) for x in self._attrs["chunks"])
 
         # Cache disk stats for easy/quick access via property ...
-        self._cache_disk_stats()
+        self._aggregate_stats()
 
         self._attrs["dirty"] = False
 
@@ -398,6 +401,12 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             inverted.add(chunk.invert())
 
         return inverted
+
+    def stat(self, frame=None):
+        """Individual frame file system status, indexed by integer frame."""
+        if frame is None:
+            return self._attrs["stat"]
+        return self._attrs["stat"].get(frame, None)
 
     def _add_frame_sequence(self, frame_seq):
         """Add a string frame sequence to the instance."""
@@ -412,18 +421,22 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
             self.add(FrameChunk(first, last, step, pad))
 
-    def _cache_disk_stats(self):
-        """Cache disk stats for a variety of file sequence properties."""
+    def _aggregate_stats(self):
+        """Aggregate stats for a variety of file sequence properties."""
         self._cache = dict(ctime=None, mtime=None, size=None)
-        if not self.stat:
+        if not self.stat():
             return self._cache
 
         ctime = mtime = size = 0
+
+        # Disabling pylint here because the stat object will never be a
+        # dict at this point ... unless somebody's been messing with the data
+        # cache directly.
         for frame in self._data:
-            stat = self.stat.get(frame, dict())
-            ctime = max(ctime, stat.get("ctime", 0))
-            mtime = max(mtime, stat.get("mtime", 0))
-            size += stat.get("size", 0)
+            stat = self.stat(frame)
+            ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
+            mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
+            size += stat.st_size  # pylint: disable=E1101
 
         self._cache = dict(ctime=ctime, mtime=mtime, size=size)
 

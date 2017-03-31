@@ -6,6 +6,8 @@ import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering
 
+from posix import stat_result
+
 from .sequences import FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
@@ -246,11 +248,6 @@ class SingletonContainer(MutableSet):
     def path(self, val):
         self._path = str(val or "")
 
-    @property
-    def stat(self):
-        """Individual file system status, indexed by base name."""
-        return self._stat
-
     def add(self, item):
         """Defining item addition logic (per standard set)."""
         self._data.add(str(item))
@@ -264,7 +261,18 @@ class SingletonContainer(MutableSet):
         for item in iterable:
             self.add(item)
 
+    def cache_stat(self, base_name, input_stat):
+        """Cache file system stat data for the specified file base name."""
+        self._stat[base_name] = stat_result(input_stat)
+        return self._stat[base_name]
+
     def output(self):
         """Return a formatted list of all contained file sequences."""
         for file_name in sorted(self):
             yield os.path.join(self.path, file_name)
+
+    def stat(self, base_name=None):
+        """Individual file system status, indexed by base name."""
+        if base_name is None:
+            return self._stat
+        return self._stat.get(base_name, None)

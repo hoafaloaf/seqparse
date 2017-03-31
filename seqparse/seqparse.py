@@ -17,9 +17,6 @@ except ImportError:
 
 __all__ = ("Seqparse", )
 
-STAT_ATTRS = ("mode", "ino", "dev", "nlink", "uid", "gid", "size", "atime",
-              "mtime", "ctime")
-
 ###############################################################################
 # Class: Seqparse
 
@@ -93,8 +90,8 @@ class Seqparse(SeqparseRegexMixin):
             # "entry" *should* only ever be defined if it was passed in via the
             # scan_path method.
             if entry and self.scan_options["stat"]:
-                ext[pad].stat[int(frames)] = dict(
-                    zip(STAT_ATTRS, entry.stat(follow_symlinks=True)))
+                ext[pad].cache_stat(
+                    int(frames), entry.stat(follow_symlinks=True))
 
         else:
             dir_name, base_name = os.path.split(file_name)
@@ -108,10 +105,8 @@ class Seqparse(SeqparseRegexMixin):
 
             singletons.add(base_name)
             if entry and self.scan_options["stat"]:
-                singletons.stat[base_name] = dict(
-                    zip(STAT_ATTRS, entry.stat(follow_symlinks=True)))
-
-                print list(entry.stat())
+                singletons.cache_stat(
+                    base_name, entry.stat(follow_symlinks=True))
 
     def output(self, missing=False, seqs_only=False):
         """Yield a list of contained singletons and file sequences."""
