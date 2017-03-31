@@ -15,7 +15,6 @@ from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
-
 ###############################################################################
 # class: TestFrameSequences
 
@@ -58,7 +57,7 @@ class TestSeqls(unittest.TestCase):
             (shlex.split("--maxdepth 1 -S"), dict(
                 max_levels=[1], seqs_only=True)),
             (shlex.split("-m test_dir"), dict(
-                missing=True, search_path=["test_dir"]))]
+                missing=True, search_path=["test_dir"], seqs_only=True))]
         # yapf: enable
 
         for input_args, updated_options in data:
@@ -177,23 +176,39 @@ class TestSeqls(unittest.TestCase):
         input_entries = generate_entries(
             name="test", ext="py", frames=frames, root=root_dir)
 
-        mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(1490908305))
+        input_entries.extend(
+            generate_entries(
+                name=".test", ext="py", frames=frames, root=self._test_root))
+
+        input_entries.append(DirEntry(os.path.join(root_dir, "pony.py")))
+
+        file_date = time.strftime('%Y/%m/%d %H:%M', time.localtime(1490997828))
+        fseq_date = time.strftime('%Y/%m/%d %H:%M', time.localtime(1490908305))
+        opts = dict(file_date=file_date, fseq_date=fseq_date, root=root_dir)
 
         mock_api_call.return_value = input_entries
 
         args = seqls.parse_args(["test_dir", "-l"])
         output = seqls.main(args, _debug=True)
-        expected = "36520  {}  {}/test.0001-0004,0006.py"
+        expected = [
+            "36520  {fseq_date}  {root}/test.0001-0004,0006.py",
+            "9436   {file_date}  {root}/pony.py"
+        ]
+        expected = [x.format(**opts) for x in expected]
 
-        self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], expected.format(mtime, root_dir))
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output, expected)
 
         args = seqls.parse_args(["test_dir", "-l", "-H"])
         output = seqls.main(args, _debug=True)
-        expected = "35.7K  {}  {}/test.0001-0004,0006.py"
+        expected = [
+            "35.7K  {fseq_date}  {root}/test.0001-0004,0006.py",
+            "9.2K   {file_date}  {root}/pony.py"
+        ]
+        expected = [x.format(**opts) for x in expected]
 
-        self.assertEqual(len(output), 1)
-        self.assertEqual(output[0], expected.format(mtime, root_dir))
+        self.assertEqual(len(output), 2)
+        self.assertEqual(output, expected)
 
         args = seqls.parse_args(["test_dir", "-l", "-m"])
         output = seqls.main(args, _debug=True)

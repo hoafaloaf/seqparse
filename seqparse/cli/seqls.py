@@ -148,7 +148,14 @@ def parse_args(args):
         help="Whether to filter out all non-sequence files.")
 
     # Parse the arguments.
-    return parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
+
+    # We'll assume that if the user is requesting missing sequence files that
+    # he/she doesn't want to see any singletons.
+    if parsed_args.missing:
+        parsed_args.seqs_only = True
+
+    return parsed_args
 
 
 if __name__ == "__main__":

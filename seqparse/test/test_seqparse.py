@@ -54,7 +54,7 @@ class TestSeqparseModule(unittest.TestCase):
             sorted(self._singletons), sorted(file_names[self._test_root]))
 
         # Check parser output ...
-        self.assertEqual(sorted(parser.output()), output)
+        self.assertEqual(sorted(map(str, parser.output())), output)
 
         # Test seqs_only option ...
         self.assertEqual(sorted(parser.output(seqs_only=True)), [])
@@ -407,14 +407,22 @@ class TestSeqparseModule(unittest.TestCase):
             generate_entries(
                 name=".test", ext="py", frames=frames, root=self._test_root))
 
+        input_entries.append(
+            DirEntry(os.path.join(self._test_root, "pony.py")))
+
         mock_api_call.return_value = input_entries
 
         parser = get_parser()
         parser.scan_options["stat"] = True
         parser.scan_path(self._test_root)
         output = list(parser.output())
+        expected = [
+            os.path.join(self._test_root, "test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "pony.py")
+        ]
 
-        self.assertEqual(len(output), 1)
+        self.assertEqual(len(output), 2)
+        self.assertEqual(map(str, output), expected)
         self.assertEqual(output[0].ctime, 1490908340)
         self.assertEqual(output[0].mtime, 1490908305)
         self.assertEqual(output[0].size, 36520)
@@ -425,10 +433,11 @@ class TestSeqparseModule(unittest.TestCase):
         output = list(parser.output())
         expected = [
             os.path.join(self._test_root, ".test.0001-0004,0006.py"),
-            os.path.join(self._test_root, "test.0001-0004,0006.py")
+            os.path.join(self._test_root, "test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "pony.py")
         ]
 
-        self.assertEqual(len(output), 2)
+        self.assertEqual(len(output), 3)
         self.assertEqual(map(str, output), expected)
 
     def test_api_calls(self):

@@ -8,7 +8,7 @@ from functools import total_ordering
 
 from posix import stat_result
 
-from .sequences import FileSequence, FrameSequence
+from .sequences import File, FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -269,7 +269,8 @@ class SingletonContainer(MutableSet):
     def output(self):
         """Return a formatted list of all contained file sequences."""
         for file_name in sorted(self):
-            yield os.path.join(self.path, file_name)
+            yield File(
+                os.path.join(self.path, file_name), self.stat(file_name))
 
     def stat(self, base_name=None):
         """Individual file system status, indexed by base name."""

@@ -9,7 +9,7 @@ from posix import stat_result
 
 from .regex import SeqparseRegexMixin
 
-__all__ = ("FrameSequence", "SeqparsePadException")
+__all__ = ("File", "FileSequence", "FrameSequence", "SeqparsePadException")
 
 ###############################################################################
 # Class: SeqparsePadException
@@ -578,3 +578,85 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         file_name = file_name.format(fr=frames, **self._info)
         return os.path.join(self.path or "", file_name)
+
+
+###############################################################################
+# Class: File
+
+
+class File(object):
+    """Simple representation of files on disk."""
+
+    def __init__(self, file_name, stat=None):
+        """Initialise the instance."""
+        self._info = dict(full=None, name=None, path=None)
+        self._stat = None
+
+        self._cache_stat(stat)
+        self._set_name(file_name)
+
+    def __repr__(self):  # pragma: no cover
+        """Pretty representation of the instance."""
+        blurb = ("{cls}({full!r})")
+        return blurb.format(cls=type(self).__name__, **self._info)
+
+    def __str__(self):
+        """String representation of a File instance."""
+        return str(self.full_name)
+
+    @property
+    def full_name(self):
+        """The full (base) name of the file."""
+        return self._info["full"]
+
+    @property
+    def mtime(self):
+        """
+        The modification time of the file.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        if not self._stat:
+            return None
+        return self._stat.st_mtime
+
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self._info["name"]
+
+    @property
+    def path(self):
+        """Directory in which the file is located."""
+        return self._info["path"]
+
+    @property
+    def size(self):
+        """
+        The size of the file in bytes.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        if not self._stat:
+            return None
+        return self._stat.st_size
+
+    def _cache_stat(self, input_stat):
+        """Cache file system stat data for the specified frame."""
+        self._stat = None
+        if input_stat:
+            self._stat = stat_result(input_stat)
+        return self._stat
+
+    def _set_name(self, full_name):
+        """Set all name-related fields on the instance."""
+        path_name, file_name = os.path.split(full_name)
+        self._info.update(full=full_name, name=file_name, path=path_name)
+        return self._info
+
+    def stat(self, follow_symlinks=False, force=False, refresh=False):
+        """Individual frame file system status, indexed by integer frame."""
+        if force or (self._stat and refresh):
+            self._cache_stat(
+                os.stat(self.full_name, follow_symlinks=follow_symlinks))
+        return self._stat
