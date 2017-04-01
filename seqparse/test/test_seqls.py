@@ -15,6 +15,7 @@ from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -213,7 +214,14 @@ class TestSeqls(unittest.TestCase):
         args = seqls.parse_args(["test_dir", "-l", "-m"])
         output = seqls.main(args, _debug=True)
 
-        self.assertEqual(len(output), 0)
+        fseq_date = time.strftime('%Y/%m/%d %H:%M', time.localtime(None))
+        opts = dict(fseq_date=fseq_date, root=root_dir)
+
+        expected = ["----  {fseq_date}  {root}/test.0005.py"]
+        expected = [x.format(**opts) for x in expected]
+
+        self.assertEqual(len(output), 1)
+        self.assertEqual(output, expected)
 
     @mock.patch("seqparse.seqparse.scandir")
     def test_all_option(self, mock_api_call):

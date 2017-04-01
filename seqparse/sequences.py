@@ -108,9 +108,14 @@ class FrameChunk(object):
         """Integer step size for the frame chunk."""
         return max(self._data["step"] or 1, 1)
 
-    def invert(self):
+    def invert(self, first=None, last=None):
         """Return an iterator for the frames missing from the chunk."""
-        full_range = set(xrange(self.first, self.last + 1))
+        if first is None:
+            first = self.first
+        if last is None:
+            last = self.last
+
+        full_range = set(range(first, last + 1))
         return FrameSequence(full_range - set(map(int, self)), pad=self.pad)
 
     def set_frames(self, first, last=None, step=1):
@@ -397,8 +402,18 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """Return a FrameSequence of frames missing from the sequence."""
         self.calculate()
         inverted = FrameSequence(pad=self.pad)
-        for chunk in self._attrs["chunks"]:
-            inverted.add(chunk.invert())
+        num_chunks = len(self._attrs["chunks"])
+
+        if num_chunks == 1:
+            inverted.add(self._attrs["chunks"][0].invert())
+
+        elif num_chunks:
+            for index in xrange(num_chunks - 1):
+                current_chunk = self._attrs["chunks"][index]
+                next_chunk = self._attrs["chunks"][index + 1]
+                inverted.add(current_chunk.invert(last=next_chunk.first - 1))
+
+            inverted.add(self._attrs["chunks"][-1].invert())
 
         return inverted
 

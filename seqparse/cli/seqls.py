@@ -58,16 +58,14 @@ def long_format_output(items, human_readable=False):
     output = list()
 
     for item in items:
-        if not str(item):
-            continue
-
         size = item.size
         if size:
             size = item.size
             if human_readable:
                 size = humanize.naturalsize(size, gnu=True)
-        # else:
-        #     size = "---"
+        else:
+            size = "----"
+
         mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
         bits.append((size, mtime, str(item)))
 
@@ -101,8 +99,8 @@ def parse_args(args):
         "--human-readable",
         action="store_true",
         dest="human_readable",
-        help=("with -l, print sizes in human readable format (e.g., 1K 234M "
-              "2G)."))
+        help=("with -l/--long, print sizes in human readable format (e.g., 1K "
+              "234M 2G)."))
 
     parser.add_argument(
         "-l",
@@ -137,7 +135,7 @@ def parse_args(args):
         "-m",
         "--missing",
         action="store_true",
-        help=("Whether to invert output file sequences to only report the"
+        help=("Whether to invert output file sequences to only report the "
               "missing frames."))
 
     parser.add_argument(

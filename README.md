@@ -31,9 +31,7 @@ Coming soon.
 
 ## TODO
 
-1. *feature/output-file-size*: Fix new bug in which combining long-format and
-   missing options in seqls results in an empty output to the command line.
 1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class
-   to query disk `stat` data post-creation. Probably allow it to rescan for
+   to query disk `stat` data post-creation. Probably allow it to re-scan for
    changed frames and/or newly created, previously missing frames (see:
    `mtime` and `ctime`).
