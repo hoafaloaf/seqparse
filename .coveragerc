@@ -4,6 +4,7 @@ omit =
     *ctypes*
     *encodings*
     *funcsigs*
+    *humanize*
     *mock*
     *nose*
     *packaging*
