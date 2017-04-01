@@ -579,25 +579,29 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             name=self.full_name, frames=frames, ext=self.ext)
         return inverted
 
+    # pylint: disable=W0221
     def stat(self, frame=None, follow_symlinks=False, force=False, lazy=False):
         """Individual frame file system status, indexed by integer frame."""
         if frame is None:
             if force or lazy:
                 raise ValueError(
                     "Must specify frame when querying for file disk stats.")
-            return self._attrs["stat"]
 
-        if force or (lazy and self._attrs["stat"].get(frame) is None):
+        elif force or (lazy and self._attrs["stat"].get(frame) is None):
             file_name = self._get_sequence_output(frame)
             self.cache_stat(
                 frame, os.stat(file_name, follow_symlinks=follow_symlinks))
 
         return super(FileSequence, self).stat(frame)
 
+    # pylint: enable=W0221
+
     def _get_sequence_output(self, frames):
         """Return a valid file sequence string from the given iterator."""
         if not frames:
             return ""
+        elif str(frames).isdigit():
+            frames = "{:0{}d}".format(int(frames), self.pad)
         elif not self.ext:
             raise AttributeError(
                 "File sequence extension has not been defined.")
