@@ -579,6 +579,21 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             name=self.full_name, frames=frames, ext=self.ext)
         return inverted
 
+    def stat(self, frame=None, follow_symlinks=False, force=False, lazy=False):
+        """Individual frame file system status, indexed by integer frame."""
+        if frame is None:
+            if force or lazy:
+                raise ValueError(
+                    "Must specify frame when querying for file disk stats.")
+            return self._attrs["stat"]
+
+        if force or (lazy and self._attrs["stat"].get(frame) is None):
+            file_name = self._get_sequence_output(frame)
+            self.cache_stat(
+                frame, os.stat(file_name, follow_symlinks=follow_symlinks))
+
+        return super(FileSequence, self).stat(frame)
+
     def _get_sequence_output(self, frames):
         """Return a valid file sequence string from the given iterator."""
         if not frames:
@@ -657,7 +672,7 @@ class File(object):
         return self._stat.st_size
 
     def _cache_stat(self, input_stat):
-        """Cache file system stat data for the specified frame."""
+        """Cache file system stat data."""
         self._stat = None
         if input_stat:
             self._stat = stat_result(input_stat)
