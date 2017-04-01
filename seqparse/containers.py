@@ -1,11 +1,14 @@
 """Classes utilized by the Seqparse class."""
 
 # Standard Libraries
+import copy
 import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering
 
-from .sequences import FileSequence, FrameSequence
+from posix import stat_result
+
+from .sequences import File, FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -80,6 +83,9 @@ class FileExtension(MutableMapping):
             if not frames.is_padded:
                 prev_frames = data[0][1]
                 prev_frames.update(frames)
+                # Copying in the current pad's file stats (if any).
+                prev_frames.stat.update(copy.deepcopy(self[pad].stat))
+
                 del self[pad]
 
         for pad in sorted(self):
@@ -204,8 +210,8 @@ class SingletonContainer(MutableSet):
     def __init__(self, iterable=None, file_path=None):
         """Initialise the instance."""
         self._data = set()
-
         self._path = None
+        self._stat = dict()
 
         for item in iterable or []:
             self.add(item)
@@ -255,7 +261,19 @@ class SingletonContainer(MutableSet):
         for item in iterable:
             self.add(item)
 
+    def cache_stat(self, base_name, input_stat):
+        """Cache file system stat data for the specified file base name."""
+        self._stat[base_name] = stat_result(input_stat)
+        return self._stat[base_name]
+
     def output(self):
         """Return a formatted list of all contained file sequences."""
         for file_name in sorted(self):
-            yield os.path.join(self.path, file_name)
+            yield File(
+                os.path.join(self.path, file_name), self.stat(file_name))
+
+    def stat(self, base_name=None):
+        """Individual file system status, indexed by base name."""
+        if base_name is None:
+            return self._stat
+        return self._stat.get(base_name, None)

@@ -3,7 +3,8 @@
 # Standard Libraries
 import unittest
 
-from seqparse.regex import SeqparseRegexMixin
+from ..regex import SeqparseRegexMixin
+
 
 ###############################################################################
 # class: TestRegex
