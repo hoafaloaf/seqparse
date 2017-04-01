@@ -1,3 +1,27 @@
+v0.5.0 (2017/04/01)
+---------------------
+
+Changes (from v0.4.0)
+
+* Added ability to query/report disk footprint for all scanned files.
+* seqls: Implemented new --mindepth and --maxdepth to help limit the depth
+  you'll scan while searching for file sequences. They should have exactly the
+  same functionality as find's similarly named flags.
+* seqls: Added -a/--all and -l/--long-format options to maximize your file
+  sequence scanning pleasure. The options should mimic the behaviour of the
+  similarly named flags for the ls command. Also, paring up the --long-format
+  option with the new -H/--human-readable option will cause seqls to report
+  file sizes in a much more legible (gnu-style) fashion.
+* Seqparse: Now returns all singleton files as "File" instances. As with
+  FileSequence instances, casting a File instance to a string will result in
+  the name of the file.
+* FileSequence, File: Added size and mtime properties that report disk
+  footprint and latest file modification time, respectively, for the referenced
+  files.
+* Renamed all flags with underscores to use dashes instead (hitting the shift
+  key can be a drag).
+
+
 v0.4.0 (2017/03/22)
 ---------------------
 
