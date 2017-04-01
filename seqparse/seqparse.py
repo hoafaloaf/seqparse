@@ -11,9 +11,9 @@ from .sequences import FrameChunk
 # Use the built-in version of scandir/walk if possible, otherwise use the
 # scandir module version.
 try:
-    from os import scandir, walk  # pylint: disable=W0611,C0412
+    from os import scandir  # pylint: disable=W0611,C0412
 except ImportError:
-    from scandir import scandir, walk  # pylint: disable=W0611,C0412
+    from scandir import scandir  # pylint: disable=W0611,C0412
 
 __all__ = ("Seqparse", )
 
@@ -33,10 +33,17 @@ class Seqparse(SeqparseRegexMixin):
                 seqs=defaultdict(FileSequenceContainer),
                 files=SingletonContainer()))
 
+        self._options = dict(all=False, stat=False)
+
     @property
     def locations(self):
         """A dictionary of tracked singletons and file sequences."""
         return self._locs
+
+    @property
+    def scan_options(self):
+        """A dictionary of options used while scanning disk for files."""
+        return self._options
 
     @property
     def sequences(self):
@@ -50,6 +57,11 @@ class Seqparse(SeqparseRegexMixin):
 
     def add_file(self, file_name):
         """Add a file to the parser instance."""
+        entry = None
+        if type(file_name).__name__ == "DirEntry":
+            entry = file_name
+            file_name = file_name.path
+
         file_seq_bits = self.file_seq_match(str(file_name))
 
         if file_seq_bits:
@@ -75,6 +87,12 @@ class Seqparse(SeqparseRegexMixin):
             ext = sequence[file_ext]
             ext[pad].add(frames)
 
+            # "entry" *should* only ever be defined if it was passed in via the
+            # scan_path method.
+            if entry and self.scan_options["stat"]:
+                ext[pad].cache_stat(
+                    int(frames), entry.stat(follow_symlinks=True))
+
         else:
             dir_name, base_name = os.path.split(file_name)
             loc = self.locations[dir_name]
@@ -86,13 +104,9 @@ class Seqparse(SeqparseRegexMixin):
                 singletons.path = dir_name
 
             singletons.add(base_name)
-
-    def add_from_scan(self, root, file_names):
-        """Shortcut for adding file sequences from os/scandir.walk."""
-        root = str(root)
-
-        for file_name in file_names:
-            self.add_file(os.path.join(root, file_name))
+            if entry and self.scan_options["stat"]:
+                singletons.cache_stat(
+                    base_name, entry.stat(follow_symlinks=True))
 
     def output(self, missing=False, seqs_only=False):
         """Yield a list of contained singletons and file sequences."""
@@ -111,34 +125,47 @@ class Seqparse(SeqparseRegexMixin):
             for file_name in sorted(data["files"].output()):
                 yield file_name
 
+    def scandir_walk(self, search_path, follow_symlinks=True):
+        """Recursively yield DirEntry objects for given directory."""
+        root, dir_entries, file_entries = search_path, list(), list()
+        for entry in scandir(search_path):
+            if entry.name.startswith(".") and not self.scan_options["all"]:
+                continue
+            if entry.is_dir(follow_symlinks=follow_symlinks):
+                dir_entries.append(entry)
+            elif entry.is_file(follow_symlinks=follow_symlinks):
+                file_entries.append(entry)
+
+        yield root, dir_entries, file_entries
+
+        for entry in dir_entries:
+            for data in self.scandir_walk(entry.path):
+                yield data
+
+    def add_from_scan(self, file_entries):
+        """Shortcut for adding file sequences from os/scandir.walk."""
+        for file_entry in file_entries:
+            self.add_file(file_entry)
+
     def scan_path(self, search_path, max_levels=-1, min_levels=-1):
         """Scan supplied path, add all discovered files to the instance."""
         search_path = search_path.rstrip(os.path.sep)
         search_seps = search_path.count(os.path.sep)
 
-        for root, dir_names, file_names in walk(search_path):
+        for root, dir_entries, file_entries in self.scandir_walk(search_path):
             # Cheap and easy way to limit our search depth: count path
             # separators!
             cur_level = root.count(os.path.sep) - search_seps
 
             max_out = max_levels > -1 and cur_level == max_levels
-            if max_out:
-                del dir_names[:]
-
             min_out = min_levels > -1 and cur_level <= min_levels
+
+            if max_out:
+                del dir_entries[:]
             if min_out:
-                del file_names[:]
+                del file_entries[:]
 
-            self.add_from_scan(root, file_names)
-
-    def _get_data(self, typ):
-        """Return dictionary of the specified data type from the instance."""
-        output = dict()
-        for loc, data in self.locations.iteritems():
-            if data[typ]:
-                output[loc] = data[typ]
-
-        return output
+            self.add_from_scan(file_entries)
 
     def validate_frame_sequence(self, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
@@ -161,3 +188,12 @@ class Seqparse(SeqparseRegexMixin):
             return ",".join(bits)
 
         return None
+
+    def _get_data(self, typ):
+        """Return dictionary of the specified data type from the instance."""
+        output = dict()
+        for loc, data in self.locations.iteritems():
+            if data[typ]:
+                output[loc] = data[typ]
+
+        return output

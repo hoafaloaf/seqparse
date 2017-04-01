@@ -7,7 +7,8 @@ import unittest
 # Third Party Libraries
 import mock
 
-from . import generate_files, mock_walk_deep
+from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
+               mock_scandir_deep)
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
@@ -28,13 +29,17 @@ class TestSeqparseModule(unittest.TestCase):
         """Set up the test case."""
         pass
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_singletons(self, mock_api_call):
         """Seqparse: Test file singleton discovery from disk location."""
-        mock_api_call.return_value = [(self._test_root, [], self._singletons)]
-
         # Expected outputs ...
         output = [os.path.join(self._test_root, x) for x in self._singletons]
+
+        entries = list()
+        for file_name in output:
+            entries.append(DirEntry(file_name))
+
+        mock_api_call.return_value = iter(entries)
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -50,12 +55,12 @@ class TestSeqparseModule(unittest.TestCase):
             sorted(self._singletons), sorted(file_names[self._test_root]))
 
         # Check parser output ...
-        self.assertEqual(sorted(parser.output()), output)
+        self.assertEqual(sorted(map(str, parser.output())), output)
 
         # Test seqs_only option ...
         self.assertEqual(sorted(parser.output(seqs_only=True)), [])
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_single_padded_file(self, mock_api_call):
         """Seqparse: Test single padded file sequence discovery."""
         frames = {4: [1]}
@@ -66,10 +71,13 @@ class TestSeqparseModule(unittest.TestCase):
             (self._test_file_name, frame_seq_output, self._test_ext))
         final_output = os.path.join(self._test_root, file_seq_output)
 
-        input_files = generate_files(
-            ext=self._test_ext, frames=frames, name=self._test_file_name)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root)
 
-        mock_api_call.return_value = [(self._test_root, [], input_files)]
+        mock_api_call.return_value = iter(input_entries)
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -105,7 +113,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_simple_sequence(self, mock_api_call):
         """Seqparse: Test simple file sequence discoveryn."""
         frames = {4: [0, 1, 2, 3, 4]}
@@ -116,10 +124,13 @@ class TestSeqparseModule(unittest.TestCase):
             (self._test_file_name, frame_seq_output, self._test_ext))
         final_output = os.path.join(self._test_root, file_seq_output)
 
-        input_files = generate_files(
-            ext=self._test_ext, frames=frames, name=self._test_file_name)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root)
 
-        mock_api_call.return_value = [(self._test_root, [], input_files)]
+        mock_api_call.return_value = iter(input_entries)
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -155,7 +166,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(frame_seq), len(frames[4]))
         self.assertEqual(str(frame_seq), frame_seq_output)
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_complex_sequence(self, mock_api_call):
         """Seqparse: Test complex file sequence discovery."""
         frames = {
@@ -164,8 +175,11 @@ class TestSeqparseModule(unittest.TestCase):
             4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
         }
 
-        input_files = generate_files(
-            ext=self._test_ext, frames=frames, name=self._test_file_name)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root)
 
         # Expected output frame sequences. Note how frames 114, 199 move to the
         # "pad 3" group and 2000 moves to the "pad 4" group!
@@ -180,7 +194,7 @@ class TestSeqparseModule(unittest.TestCase):
         # test_dir/TEST_DIR.008-010,012,114,199.exr
         # test_dir/TEST_DIR.0000-0006,0008-0012x2,0101,2000.exr
 
-        mock_api_call.return_value = [(self._test_root, [], input_files)]
+        mock_api_call.return_value = iter(input_entries)
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -214,12 +228,13 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._test_ext][pad]))
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_nested_sequences(self, mock_api_call):
         """Seqparse: Test file sequence discovery in nested directories."""
-        mock_api_call.side_effect = mock_walk_deep
+        mock_api_call.side_effect = mock_scandir_deep
 
         print "\n\n  SEQUENCES\n  ---------"
+        initialise_mock_scandir_data(self._test_root)
         parser = get_parser()
         parser.scan_path(self._test_root)
         for seq in parser.output():
@@ -227,6 +242,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         print "\n  MAX LEVELS\n  ----------"
         for max_levels in xrange(-1, 4):
+            initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
             parser.scan_path(self._test_root, max_levels=max_levels)
 
@@ -235,8 +251,8 @@ class TestSeqparseModule(unittest.TestCase):
                 expected_seqs = 5
 
             seqs = list(parser.output())
-            blurb = "  o max_levels == %d: %d (%d expected) entries"
-            print blurb % (max_levels, len(seqs), expected_seqs)
+            blurb = "  o max_levels == {:d}: {:d} ({:d} expected) entries"
+            print blurb.format(max_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
@@ -244,6 +260,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         print "\n  MIN LEVELS\n  ----------"
         for min_levels in xrange(-1, 4):
+            initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
             parser.scan_path(self._test_root, min_levels=min_levels)
 
@@ -252,8 +269,8 @@ class TestSeqparseModule(unittest.TestCase):
                 expected_seqs = 5
 
             seqs = list(parser.output())
-            blurb = "  o min_levels == %d: %d (%d expected) entries"
-            print blurb % (min_levels, len(seqs), expected_seqs)
+            blurb = "  o min_levels == {:d}: {:d} ({:d} expected) entries"
+            print blurb.format(min_levels, len(seqs), expected_seqs)
 
             for seq in seqs:
                 print "    -", seq
@@ -278,12 +295,12 @@ class TestSeqparseModule(unittest.TestCase):
         print "\n\n  GOOD SEQUENCES\n  --------------"
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
-            print '  o "%s" --> %s' % (frame_seq, output)
+            print '  o "{}" --> {}'.format(frame_seq, output)
             self.assertTrue(output)
 
         print "\n  BAD SEQUENCES\n  -------------"
         for frame_seq in bad_frame_seqs:
-            print '  o "%s"' % frame_seq
+            print '  o "{}"'.format(frame_seq)
             self.assertFalse(validate_frame_sequence(frame_seq))
 
         print
@@ -350,18 +367,17 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(output), 1)
         self.assertEqual(str(output[0]), output_file_seq)
 
-    @mock.patch("seqparse.seqparse.walk")
+    @mock.patch("seqparse.seqparse.scandir")
     def test_inversion(self, mock_api_call):
         """Seqparse: Test usage of the "missing" option in Seqparse.output."""
         file_path = os.path.join(self._test_root, self._test_file_name)
-
         chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
         fseq = FileSequence(
             name=file_path, ext=self._test_ext, frames=chunk_in)
 
-        input_files = list(fseq)
+        input_entries = [DirEntry(x) for x in fseq]
 
-        mock_api_call.return_value = [("", [], input_files)]
+        mock_api_call.return_value = input_entries
 
         chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
         expected = FileSequence(
@@ -379,6 +395,73 @@ class TestSeqparseModule(unittest.TestCase):
         print "  inverted files:", inverted[0]
 
         self.assertEqual(str(inverted[0]), str(expected))
+
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=[1, 2, 3, 4, 6], pad=4)
+
+        input_entries = [DirEntry(x) for x in fseq]
+
+        mock_api_call.return_value = input_entries
+
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=[5], pad=4)
+
+        parser = get_parser()
+        parser.scan_path(self._test_root)
+        inverted = list(parser.output(missing=True))
+
+        self.assertEqual(len(inverted), 1)
+
+        print "\n\n  SEQUENCE\n  --------"
+        print "  input files:   ", fseq
+        print "  expected files:", expected
+        print "  inverted files:", inverted[0]
+
+        self.assertEqual(str(inverted[0]), str(expected))
+
+    @mock.patch("seqparse.seqparse.scandir")
+    def test_scan_options(self, mock_api_call):
+        """Seqparse: Make sure scan_options works as expected."""
+        frames = {4: (1, 2, 3, 4, 6)}
+        input_entries = generate_entries(
+            name="test", ext="py", frames=frames, root=self._test_root)
+
+        input_entries.extend(
+            generate_entries(
+                name=".test", ext="py", frames=frames, root=self._test_root))
+
+        input_entries.append(
+            DirEntry(os.path.join(self._test_root, "pony.py")))
+
+        mock_api_call.return_value = input_entries
+
+        parser = get_parser()
+        parser.scan_options["stat"] = True
+        parser.scan_path(self._test_root)
+        output = list(parser.output())
+        expected = [
+            os.path.join(self._test_root, "test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "pony.py")
+        ]
+
+        self.assertEqual(len(output), 2)
+        self.assertEqual(map(str, output), expected)
+        self.assertEqual(output[0].ctime, 1490908340)
+        self.assertEqual(output[0].mtime, 1490908305)
+        self.assertEqual(output[0].size, 36520)
+
+        parser = get_parser()
+        parser.scan_options["all"] = True
+        parser.scan_path(self._test_root)
+        output = list(parser.output())
+        expected = [
+            os.path.join(self._test_root, ".test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "test.0001-0004,0006.py"),
+            os.path.join(self._test_root, "pony.py")
+        ]
+
+        self.assertEqual(len(output), 3)
+        self.assertEqual(map(str, output), expected)
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""

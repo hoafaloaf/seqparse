@@ -1,12 +1,15 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
 # Standard Libraries
+import copy
 import os
 from collections import MutableSet
 
+from posix import stat_result
+
 from .regex import SeqparseRegexMixin
 
-__all__ = ("FrameSequence", "SeqparsePadException")
+__all__ = ("File", "FileSequence", "FrameSequence", "SeqparsePadException")
 
 ###############################################################################
 # Class: SeqparsePadException
@@ -61,7 +64,7 @@ class FrameChunk(object):
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
         for frame in xrange(self.first, self.last + 1, self.step):
-            yield "%0*d" % (self.pad, frame)
+            yield "{:0{}d}".format(frame, self.pad)
 
     def __len__(self):
         """Return the length of the frame chunk."""
@@ -105,9 +108,14 @@ class FrameChunk(object):
         """Integer step size for the frame chunk."""
         return max(self._data["step"] or 1, 1)
 
-    def invert(self):
+    def invert(self, first=None, last=None):
         """Return an iterator for the frames missing from the chunk."""
-        full_range = set(xrange(self.first, self.last + 1))
+        if first is None:
+            first = self.first
+        if last is None:
+            last = self.last
+
+        full_range = set(range(first, last + 1))
         return FrameSequence(full_range - set(map(int, self)), pad=self.pad)
 
     def set_frames(self, first, last=None, step=1):
@@ -120,8 +128,8 @@ class FrameChunk(object):
         step = max(1, int(step or 1))
 
         if last < first:
-            message = "Last frame is less than first frame: %d < %d"
-            raise ValueError(message % (last, first))
+            message = "Last frame is less than first frame: {:d} < {:d}"
+            raise ValueError(message.format(last, first))
 
         # Calculate the length and the real last frame of the chunk.
         bits = (last - first) / step
@@ -129,14 +137,14 @@ class FrameChunk(object):
         step = min(last - first, step)
 
         # Calculate the string representation of the frame chunk.
-        self._output = "%0*d" % (self.pad, first)
+        self._output = "{:0{}d}".format(first, self.pad)
         if bits == 1:
-            self._output += ",%0*d" % (self.pad, last)
+            self._output += ",{:0{}d}".format(last, self.pad)
         elif bits > 1:
-            self._output += "-%0*d" % (self.pad, last)
+            self._output += "-{:0{}d}".format(last, self.pad)
 
         if step > 1 and bits > 1:
-            self._output += "x%d" % step
+            self._output += "x{:d}".format(step)
 
         self._data.update(first=first, last=last, length=(1 + bits), step=step)
         return self._output
@@ -153,12 +161,12 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """Initialise the instance."""
         super(FrameSequence, self).__init__()
 
-        self._chunks = list()
+        self._attrs = dict(
+            chunks=list(), dirty=True, is_padded=False, pad=None, stat=dict())
+
         self._data = set()
-        self._dirty = True
+        self._cache = dict(ctime=None, mtime=None, size=None)
         self._output = None
-        self._pad = None
-        self._is_padded = False
 
         # NOTE: This could probably be made more efficient by copying a
         # FrameSequence's _data attribute and/or checking to see if _chunks
@@ -166,10 +174,12 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         # the job's already been done for us.
         if isinstance(iterable, (FrameChunk, FrameSequence)):
             pad = iterable.pad
+            if isinstance(iterable, FrameSequence):
+                self.stat().update(copy.deepcopy(iterable.stat()))
         elif isinstance(iterable, basestring):
             if not self.is_frame_sequence(iterable):
-                blurb = "Invalid iterable specified (%s, %r)"
-                raise ValueError(blurb % (type(iterable), iterable))
+                blurb = "Invalid iterable specified ({}, {!r})"
+                raise ValueError(blurb.format(type(iterable), iterable))
             self._add_frame_sequence(iterable)
             return
         elif iterable and not isinstance(iterable, (list, tuple, set)):
@@ -199,7 +209,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         if self.is_dirty:
             self.calculate()
 
-        for chunk in self._chunks:
+        for chunk in self._attrs["chunks"]:
             for frame in chunk:
                 yield frame
 
@@ -209,8 +219,8 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "%s(pad=%d, frames=set(%s))"
-        return blurb % (type(self).__name__, self.pad, sorted(self._data))
+        blurb = "{}(pad={:d}, frames=set({!r}))"
+        return blurb.format(type(self).__name__, self.pad, sorted(self._data))
 
     def __reversed__(self):
         """Allow reversed iteration via reversed()."""
@@ -218,31 +228,58 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def __str__(self):
         """String reprentation of the frame sequence."""
-        if self.is_dirty:
-            self.calculate()
-            self._dirty = False
+        self.calculate()
         return self._output
+
+    @property
+    def ctime(self):
+        """
+        The most recent inode or file change time for a file in the sequence.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["ctime"]
 
     @property
     def is_dirty(self):
         """Whether the output needs to be recalculated after an update."""
-        return self._dirty
+        return self._attrs["dirty"]
 
     @property
     def is_padded(self):
         """Return whether the FrameSequence contains any zero-padded frames."""
-        if self.is_dirty:
-            self.calculate()
-        return self._is_padded
+        self.calculate()
+        return self._attrs["is_padded"]
+
+    @property
+    def mtime(self):
+        """
+        The most recent file modification time for a file in the sequence.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["mtime"]
 
     @property
     def pad(self):
         """Integer zero-padding for the frames contained by the object."""
-        return self._pad
+        return self._attrs["pad"]
 
     @pad.setter
     def pad(self, val):
-        self._pad = max(1, int(val or 1))
+        self._attrs["pad"] = max(1, int(val or 1))
+
+    @property
+    def size(self):
+        """
+        The total size of the file sequence in bytes.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["size"]
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""
@@ -252,12 +289,14 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                     self._add_frame_sequence(item)
                     return
             else:
-                raise ValueError("Invalid value specified (%r)" % item)
+                raise ValueError("Invalid value specified ({!r})".format(item))
 
             item_pad = len(item)
             if item.startswith("0") and item_pad != self.pad:
-                blurb = "Specified value (%r) is incorrectly padded (%d != %d)"
-                raise SeqparsePadException(blurb % (item, item_pad, self.pad))
+                blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
+                         "!= {:d})")
+                raise SeqparsePadException(
+                    blurb.format(item, item_pad, self.pad))
 
             self._data.add(int(item))
 
@@ -266,27 +305,16 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         elif isinstance(item, (FrameChunk, FrameSequence)):
             if item.pad != self.pad:
-                blurb = "Specified value (%r) is incorrectly padded (%d != %d)"
-                raise SeqparsePadException(blurb % (item, item.pad, self.pad))
+                blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
+                         "!= {:d})")
+                raise SeqparsePadException(
+                    blurb.format(item, item.pad, self.pad))
             map(self.add, item)
 
         else:
             self._data.add(int(item))
 
-        self._dirty = True
-
-    def _add_frame_sequence(self, frame_seq):
-        """Add a string frame sequence to the instance."""
-        for bit in frame_seq.split(","):
-            if not bit:
-                continue
-
-            first, last, step = self.bits_match(bit)
-            pad = len(first)
-            if self.pad is None:
-                self.pad = pad
-
-            self.add(FrameChunk(first, last, step, pad))
+        self._attrs["dirty"] = True
 
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
@@ -294,26 +322,36 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             if item.startswith("0"):
                 item_pad = len(item)
                 if item_pad != self.pad:
-                    blurb = ("Specified value (%r) is incorrectly padded "
-                             "(%d != %d))")
-                    raise SeqparsePadException(blurb %
-                                               (item, item_pad, self.pad))
+                    blurb = ("Specified value ({!r}) is incorrectly padded "
+                             "({:d} != {:d}))")
+                    raise SeqparsePadException(
+                        blurb.format(item, item_pad, self.pad))
 
             item = int(item)
 
         self._data.discard(item)
-        self._dirty = True
+        self._attrs["dirty"] = True
+        self._attrs["stat"].pop(item, None)
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
         for item in iterable:
             self.add(item)
 
-    def calculate(self):
+    def cache_stat(self, frame, input_stat):
+        """Cache file system stat data for the specified frame."""
+        frame = int(frame)
+        self._attrs["stat"][frame] = stat_result(input_stat)
+        return self._attrs["stat"][frame]
+
+    def calculate(self, force=False):
         """Calculate the output file sequence."""
-        self._is_padded = False
+        if not (self.is_dirty or force):
+            return
+
+        self._attrs["is_padded"] = False
+        del self._attrs["chunks"][:]
         self._output = ""
-        del self._chunks[:]
 
         num_frames = len(self._data)
         if not num_frames:
@@ -321,7 +359,8 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         all_frames = sorted(self._data)
         if num_frames == 1:
-            self._chunks.append(FrameChunk(all_frames[0], pad=self.pad))
+            self._attrs["chunks"].append(
+                FrameChunk(all_frames[0], pad=self.pad))
 
         else:
             current_frames = set()
@@ -336,7 +375,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                 if prev_step != step:
                     chunk = self._chunk_from_frames(current_frames, prev_step,
                                                     self.pad)
-                    self._chunks.append(chunk)
+                    self._attrs["chunks"].append(chunk)
                     prev_step = 0
                     current_frames = set([frames[1]])
 
@@ -345,26 +384,76 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
             if current_frames:
                 chunk = self._chunk_from_frames(current_frames, step, self.pad)
-                self._chunks.append(chunk)
+                self._attrs["chunks"].append(chunk)
 
         # This will be used by the parent FileExtension instance during the
         # zero-pad consolidation stage of the output process.
-        self._is_padded = all_frames[0] < 10**(self.pad - 1)
+        self._attrs["is_padded"] = all_frames[0] < 10**(self.pad - 1)
 
         # Optimize padding in cases similar to 1, 2, 1000.
-        self._output = ",".join(str(x) for x in self._chunks)
-        self._dirty = False
+        self._output = ",".join(str(x) for x in self._attrs["chunks"])
+
+        # Cache disk stats for easy/quick access via property ...
+        self._aggregate_stats()
+
+        self._attrs["dirty"] = False
 
     def invert(self):
         """Return a FrameSequence of frames missing from the sequence."""
-        if self.is_dirty:
-            self.calculate()
-
+        self.calculate()
         inverted = FrameSequence(pad=self.pad)
-        for chunk in self._chunks:
-            inverted.add(chunk.invert())
+        num_chunks = len(self._attrs["chunks"])
+
+        if num_chunks == 1:
+            inverted.add(self._attrs["chunks"][0].invert())
+
+        elif num_chunks:
+            for index in xrange(num_chunks - 1):
+                current_chunk = self._attrs["chunks"][index]
+                next_chunk = self._attrs["chunks"][index + 1]
+                inverted.add(current_chunk.invert(last=next_chunk.first - 1))
+
+            inverted.add(self._attrs["chunks"][-1].invert())
 
         return inverted
+
+    def stat(self, frame=None):
+        """Individual frame file system status, indexed by integer frame."""
+        if frame is None:
+            return self._attrs["stat"]
+        return self._attrs["stat"].get(frame, None)
+
+    def _add_frame_sequence(self, frame_seq):
+        """Add a string frame sequence to the instance."""
+        for bit in frame_seq.split(","):
+            if not bit:
+                continue
+
+            first, last, step = self.bits_match(bit)
+            pad = len(first)
+            if self.pad is None:
+                self.pad = pad
+
+            self.add(FrameChunk(first, last, step, pad))
+
+    def _aggregate_stats(self):
+        """Aggregate stats for a variety of file sequence properties."""
+        self._cache = dict(ctime=None, mtime=None, size=None)
+        if not self.stat():
+            return self._cache
+
+        ctime = mtime = size = 0
+
+        # Disabling pylint here because the stat object will never be a
+        # dict at this point ... unless somebody's been messing with the data
+        # cache directly.
+        for frame in self._data:
+            stat = self.stat(frame)
+            ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
+            mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
+            size += stat.st_size  # pylint: disable=E1101
+
+        self._cache = dict(ctime=ctime, mtime=mtime, size=size)
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):
@@ -504,3 +593,85 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         file_name = file_name.format(fr=frames, **self._info)
         return os.path.join(self.path or "", file_name)
+
+
+###############################################################################
+# Class: File
+
+
+class File(object):
+    """Simple representation of files on disk."""
+
+    def __init__(self, file_name, stat=None):
+        """Initialise the instance."""
+        self._info = dict(full=None, name=None, path=None)
+        self._stat = None
+
+        self._cache_stat(stat)
+        self._set_name(file_name)
+
+    def __repr__(self):  # pragma: no cover
+        """Pretty representation of the instance."""
+        blurb = ("{cls}({full!r})")
+        return blurb.format(cls=type(self).__name__, **self._info)
+
+    def __str__(self):
+        """String representation of a File instance."""
+        return str(self.full_name)
+
+    @property
+    def full_name(self):
+        """The full (base) name of the file."""
+        return self._info["full"]
+
+    @property
+    def mtime(self):
+        """
+        The modification time of the file.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        if not self._stat:
+            return None
+        return self._stat.st_mtime
+
+    @property
+    def name(self):
+        """The (base) name of the file sequence."""
+        return self._info["name"]
+
+    @property
+    def path(self):
+        """Directory in which the file is located."""
+        return self._info["path"]
+
+    @property
+    def size(self):
+        """
+        The size of the file in bytes.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        if not self._stat:
+            return None
+        return self._stat.st_size
+
+    def _cache_stat(self, input_stat):
+        """Cache file system stat data for the specified frame."""
+        self._stat = None
+        if input_stat:
+            self._stat = stat_result(input_stat)
+        return self._stat
+
+    def _set_name(self, full_name):
+        """Set all name-related fields on the instance."""
+        path_name, file_name = os.path.split(full_name)
+        self._info.update(full=full_name, name=file_name, path=path_name)
+        return self._info
+
+    def stat(self, follow_symlinks=False, force=False, refresh=False):
+        """Individual frame file system status, indexed by integer frame."""
+        if force or (self._stat and refresh):
+            self._cache_stat(
+                os.stat(self.full_name, follow_symlinks=follow_symlinks))
+        return self._stat
