@@ -4,10 +4,15 @@
 import os
 import unittest
 
-from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
+# Third Party Libraries
+import mock
+
+from . import mock_os_stat
+from ..sequences import FileSequence, FrameChunk, FrameSequence
+
 
 ###############################################################################
-# class: TestFrameSequences
+# class: TestFileSequences
 
 
 class TestFileSequences(unittest.TestCase):
@@ -255,3 +260,38 @@ class TestFileSequences(unittest.TestCase):
         self.assertNotEqual(fseq0, fseq3)
         self.assertNotEqual(fseq0, fseq4)
         self.assertNotEqual(fseq0, seq0)
+
+    @mock.patch("seqparse.sequences.os.stat")
+    def test_stat_queries(self, mock_api_call):
+        """File: Test stat setting and queries."""
+        mock_api_call.side_effect = mock_os_stat
+
+        file_name = "test.0001.py"
+        full_name = os.path.join(self._test_path, file_name)
+
+        fseq = FileSequence(full_name)
+
+        self.assertEqual(fseq.stat(), dict())
+        self.assertIsNone(fseq.stat(1))
+        self.assertIsNone(fseq.stat("0001"))
+
+        with self.assertRaises(ValueError):
+            fseq.stat(lazy=True)
+
+        with self.assertRaises(ValueError):
+            fseq.stat(force=True)
+
+        # pylint: disable=E1101
+        stat = fseq.stat(1, lazy=True)
+        self.assertEqual(stat.st_size, 7975)
+        self.assertEqual(stat.st_mtime, 1490908305)
+        self.assertEqual(fseq.size, 7975)
+        self.assertEqual(fseq.mtime, 1490908305)
+
+        fseq = FileSequence(full_name)
+        stat = fseq.stat(1, force=True)
+        self.assertEqual(fseq.stat(1).st_size, 7975)
+        self.assertEqual(fseq.stat(1).st_mtime, 1490908305)
+        self.assertEqual(fseq.size, 7975)
+        self.assertEqual(fseq.mtime, 1490908305)
+        # pylint: enable=E1101

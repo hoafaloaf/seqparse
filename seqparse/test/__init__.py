@@ -5,7 +5,7 @@ import os
 from posix import stat_result
 
 __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
-           "mock_scandir_deep")
+           "mock_os_stat", "mock_scandir_deep")
 
 MOCK_SCANDIR_DEEP_DATA = list()
 
@@ -122,8 +122,13 @@ def initialise_mock_scandir_data(search_path):
         (level0_entries, level1_entries, level2_entries, level3_entries))
 
 
+def mock_os_stat(file_name, follow_symlinks=False):  # pylint: disable=W0613
+    """A mock'd version of os.stat for testing purposes."""
+    return stat_result(MOCK_SCANDIR_STAT_DATA[os.path.basename(file_name)])
+
+
 def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
-    """A mocked version of scandir.scandir for testing purposes."""
+    """A mock'd version of scandir.scandir for testing purposes."""
     global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 
     if MOCK_SCANDIR_DEEP_DATA:
