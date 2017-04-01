@@ -4,9 +4,8 @@
 import os
 import unittest
 
-from seqparse.sequences import (FileSequence, FrameChunk, FrameSequence,
-                                SeqparsePadException)
-
+from ..sequences import (FileSequence, FrameChunk, FrameSequence,
+                         SeqparsePadException)
 
 ###############################################################################
 # class: TestFrameSequences

@@ -669,9 +669,9 @@ class File(object):
         self._info.update(full=full_name, name=file_name, path=path_name)
         return self._info
 
-    def stat(self, follow_symlinks=False, force=False, refresh=False):
-        """Individual frame file system status, indexed by integer frame."""
-        if force or (self._stat and refresh):
+    def stat(self, follow_symlinks=False, force=False, lazy=False):
+        """File system status."""
+        if force or (lazy and self._stat is None):
             self._cache_stat(
                 os.stat(self.full_name, follow_symlinks=follow_symlinks))
         return self._stat

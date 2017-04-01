@@ -3,7 +3,7 @@
 # Standard Libraries
 import unittest
 
-from seqparse.sequences import FrameChunk
+from ..sequences import FrameChunk
 
 
 ###############################################################################

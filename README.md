@@ -31,7 +31,7 @@ Coming soon.
 
 ## TODO
 
-1. *feature/output-file-size*: Create mechanism on the `FrameSequence` class
-   to query disk `stat` data post-creation. Probably allow it to re-scan for
-   changed frames and/or newly created, previously missing frames (see:
+1. *feature/add-stat-query-ability*: Create mechanism on the `FrameSequence`
+   class to query disk `stat` data post-creation. Probably allow it to re-scan
+   for changed frames and/or newly created, previously missing frames (see:
    `mtime` and `ctime`).

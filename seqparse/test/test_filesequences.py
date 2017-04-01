@@ -4,10 +4,11 @@
 import os
 import unittest
 
-from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
+from ..sequences import FileSequence, FrameChunk, FrameSequence
+
 
 ###############################################################################
-# class: TestFrameSequences
+# class: TestFileSequences
 
 
 class TestFileSequences(unittest.TestCase):
