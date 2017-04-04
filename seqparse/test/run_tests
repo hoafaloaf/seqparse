@@ -3,7 +3,7 @@
 pp=$(dirname $(dirname $(readlink -f $0)))
 export PYTHONPATH=${pp}:$PYTHONPATH
 
-nosetests -v -s seqparse --all-modules --cover-erase --cover-html \
+nosetests -v -s seqparse.test --all-modules --cover-erase --cover-html \
   --cover-package=seqparse --traverse-namespace --exe --with-coverage \
   --cover-inclusive --with-id --with-xunit
 
