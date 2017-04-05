@@ -6,6 +6,9 @@ from __future__ import print_function
 # Standard Libraries
 import unittest
 
+# Third Party Libraries
+from builtins import range
+
 from ..sequences import FrameChunk
 
 
@@ -48,7 +51,7 @@ class TestFrameChunks(unittest.TestCase):
     def test_containment(self):
         """FrameChunk: Test if a frame is contained by a chunk."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
-        for frame in xrange(1, 6):
+        for frame in range(1, 6):
             self.assertIn(frame, chunk)
             self.assertIn("{:04d}".format(frame), chunk)
 
@@ -58,21 +61,21 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn("{:04d}".format(frame), chunk)
 
         chunk = FrameChunk(first=1, last=7, step=2, pad=4)
-        for frame in xrange(1, 8, 2):
+        for frame in range(1, 8, 2):
             self.assertIn(frame, chunk)
             self.assertIn("{:04d}".format(frame), chunk)
 
-        for frame in xrange(0, 9, 2):
+        for frame in range(0, 9, 2):
             self.assertNotIn(frame, chunk)
             self.assertNotIn("{:02d}".format(frame), chunk)
             self.assertNotIn("{:04d}".format(frame), chunk)
 
         chunk = FrameChunk(first=1, last=10, step=1, pad=1)
-        for frame in xrange(1, 11):
+        for frame in range(1, 11):
             self.assertIn(frame, chunk)
             self.assertIn(str(frame), chunk)
 
-        for frame in xrange(1, 10):
+        for frame in range(1, 10):
             self.assertNotIn("{:02d}".format(frame), chunk)
 
         for frame in (0, 11):
@@ -83,7 +86,7 @@ class TestFrameChunks(unittest.TestCase):
     def test_iteration(self):
         """FrameChunk: Test iteration over an instance."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
-        frames = ["{:04d}".format(x) for x in xrange(1, 6)]
+        frames = ["{:04d}".format(x) for x in range(1, 6)]
 
         self.assertEqual(set(frames), set(chunk))
 
@@ -95,7 +98,7 @@ class TestFrameChunks(unittest.TestCase):
         print("  o backward:", ", ".join(x for x in reversed(chunk)))
 
         chunk = FrameChunk(first=1, last=20, step=2, pad=1)
-        frames = [str(x) for x in xrange(1, 21, 2)]
+        frames = [str(x) for x in range(1, 21, 2)]
 
         self.assertEqual(set(frames), set(chunk))
 
