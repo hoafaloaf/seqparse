@@ -115,7 +115,7 @@ def parse_args(args):
         dest="max_levels",
         help=("Descend at most levels (a non-negative integer) MAX_LEVELS of "
               "directories below the starting-points. '--maxdepth 0' means "
-              "apply scan the starting-points themselves."),
+              "scan the starting-points themselves."),
         nargs=1,
         required=False,
         type=int)

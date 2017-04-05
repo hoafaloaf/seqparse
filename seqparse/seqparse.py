@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
-from .sequences import FrameChunk
+from .sequences import FrameChunk, FrameSequence
 
 # Use the built-in version of scandir/walk if possible, otherwise use the
 # scandir module version.
@@ -65,7 +65,16 @@ class Seqparse(SeqparseRegexMixin):
         return self._get_data("files")
 
     def add_file(self, file_name):
-        """Add a file to the parser instance."""
+        """
+        Add a file to the parser instance.
+
+        Args:
+            file_name (str): The name of the file you'd like to add to the
+                parser.
+
+        Returns:
+            None
+        """
         entry = None
         if type(file_name).__name__ == "DirEntry":
             entry = file_name
@@ -117,13 +126,20 @@ class Seqparse(SeqparseRegexMixin):
                 singletons.cache_stat(
                     base_name, entry.stat(follow_symlinks=True))
 
-    def add_from_scan(self, file_entries):
-        """Shortcut for adding file sequences from os/scandir.walk."""
-        for file_entry in file_entries:
-            self.add_file(file_entry)
-
     def output(self, missing=False, seqs_only=False):
-        """Yield a list of contained singletons and file sequences."""
+        """
+        Yield a list of contained singletons and file sequences.
+
+        Args:
+            missing (bool, optional): Whether to yield "inverted" file
+                sequences (ie, the missing files). Defaults to False. NOTE:
+                Using this option implies that seqs_only == True.
+            seqs_only (bool, optional): Whether to only yield file sequences
+                (if any). Defaults to False.
+
+        Yields:
+            File and/or FileSequence instances, depending on input arguments.
+        """
         for root_dir in sorted(self.locations):
             data = self.locations[root_dir]
             for container in sorted(data["seqs"].values()):
@@ -140,7 +156,22 @@ class Seqparse(SeqparseRegexMixin):
                 yield file_name
 
     def scan_path(self, search_path, max_levels=-1, min_levels=-1):
-        """Scan supplied path, add all discovered files to the instance."""
+        """
+        Scan supplied path, add all discovered files to the instance.
+
+        Args:
+            search_path (str): The location on disk you'd like to scan for
+                file sequences and singletons.
+            max_levels (int, optional): Descend at most the specified number (a
+                non- negative integer) of directories below the starting point.
+                max_levels == 0 means only scan the starting-point itself.
+            min_levels (int, optional): Do not scan at levels less than
+                specified number (a non-negative integer). min_levels == 1
+                means scan all levels except the starting-point.
+
+        Returns:
+            None
+        """
         search_path = search_path.rstrip(os.path.sep)
         search_seps = search_path.count(os.path.sep)
 
@@ -157,32 +188,63 @@ class Seqparse(SeqparseRegexMixin):
             if min_out:
                 del file_entries[:]
 
-            self.add_from_scan(file_entries)
+            self._add_from_scan(file_entries)
 
     def validate_frame_sequence(self, frame_seq):
-        """Whether the supplied frame (not file) sequence is valid."""
-        if self.is_frame_sequence(frame_seq):
-            bits = list()
-            for bit in frame_seq.split(","):
-                if not bit:
-                    continue
+        """
+        Whether the supplied frame (not file) sequence is valid.
 
-                first, last, step = self.bits_match(bit)
+        Args:
+            frame_seq (str): The string representation of the frame sequence
+                to validate.
 
-                try:
-                    chunk = FrameChunk(first, last, step, len(first))
-                except ValueError:
-                    return None
+        Returns:
+            None if the supplied sequence is invalid, a (possibly corrected)
+            string file sequence if valid.
 
-                bits.append(str(chunk))
+        Examples:
+            >>> from seqparse.seqparse import Seqparse
+            >>> parser = Seqparse()
+            >>> print parser.validate_frame_sequence("0001-0001")
+            0001
+            >>> print parser.validate_frame_sequence("0001-")
+            None
+            >>> print parser.validate_frame_sequence("3,1,5,7")
+            1-7x2
+        """
+        try:
+            seq = FrameSequence(frame_seq)
+        except ValueError:
+            return None
 
-            # Looks good!
-            return ",".join(bits)
+        return str(seq)
 
-        return None
+    def _add_from_scan(self, file_entries):
+        """
+        Shortcut for adding file sequences from os/scandir.walk.
+
+        Args:
+            file_entries (iterable): Iterable (list-like object or generator)
+                of scandir-style DirEntry instances for files discovered on
+                disk.
+
+        Returns:
+            None
+        """
+        for file_entry in file_entries:
+            self.add_file(file_entry)
 
     def _get_data(self, typ):
-        """Return dictionary of the specified data type from the instance."""
+        """
+        Return dictionary of the specified data type from the instance.
+
+        Args:
+            typ (str): "seqs" (for file sequences) or "files" (for singletons).
+
+        Returns:
+            dict of all data of the specified type, indexed by containing
+            directory.
+        """
         output = dict()
         for loc, data in self.locations.iteritems():
             if data[typ]:
@@ -191,7 +253,17 @@ class Seqparse(SeqparseRegexMixin):
         return output
 
     def _scandir_walk(self, search_path, follow_symlinks=True):
-        """Recursively yield DirEntry objects for given directory."""
+        """
+        Recursively yield DirEntry objects for given directory.
+
+        Args:
+            search_path (str): Directory to scan for files.
+            follow_symlinks (bool, optional): Whether to follow symlinks
+                dicovered at scan time. Defaults to False.
+
+        Yields:
+            DirEntry representations of discovered files.
+        """
         root, dir_entries, file_entries = search_path, list(), list()
         for entry in scandir(search_path):
             if entry.name.startswith(".") and not self.scan_options["all"]:
