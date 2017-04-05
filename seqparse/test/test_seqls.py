@@ -11,13 +11,13 @@ import time
 import unittest
 
 # Third Party Libraries
+from builtins import range
 import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
-
 
 ###############################################################################
 # class: TestFrameSequences
@@ -84,7 +84,7 @@ class TestSeqls(unittest.TestCase):
             print(" ", seq)
 
         print("\n  MAX LEVELS\n  ----------")
-        for max_levels in xrange(-1, 4):
+        for max_levels in range(-1, 4):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
@@ -103,7 +103,7 @@ class TestSeqls(unittest.TestCase):
             self.assertEqual(len(seqs), expected_seqs)
 
         print("\n  MIN LEVELS\n  ----------")
-        for min_levels in xrange(-1, 4):
+        for min_levels in range(-1, 4):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
@@ -152,7 +152,7 @@ class TestSeqls(unittest.TestCase):
         fseq = FileSequence(
             name=file_path, ext=self._test_ext, frames=chunk_in)
 
-        input_entries = map(DirEntry, fseq)
+        input_entries = list(map(DirEntry, fseq))
 
         mock_api_call.return_value = iter(input_entries)
 
