@@ -1,5 +1,15 @@
+v0.6.0 (2017/04/05)
+-------------------
+
+Changes (from v0.5.0)
+
+* DOCUMENTED ALL THE THINGS!
+* Some slight parameter refactoring (ie, iterable -> frame/frames where
+  necessary), but no changes in functionality.
+
+
 v0.5.0 (2017/04/01)
----------------------
+-------------------
 
 Changes (from v0.4.0)
 
@@ -23,7 +33,7 @@ Changes (from v0.4.0)
 
 
 v0.4.0 (2017/03/22)
----------------------
+-------------------
 
 Changes (from v0.3.0)
 
