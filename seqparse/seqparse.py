@@ -22,7 +22,42 @@ __all__ = ("Seqparse", )
 
 
 class Seqparse(SeqparseRegexMixin):
-    """Storage and parsing engine for file sequences."""
+    """
+    Storage and parsing engine for file sequences.
+
+    The primary usage for this class is to scan specified locations on disk for
+    file sequences and singletons (any file that cannot be classified as a
+    member of a file sequence).
+
+    Examples:
+
+        With the following file structure ...
+
+            test_dir/
+                TEST_DIR.0001.tif
+                TEST_DIR.0002.tif
+                TEST_DIR.0003.tif
+                TEST_DIR.0004.tif
+                TEST_DIR.0010.tif
+                SINGLETON.jpg
+
+        >>> from seqparse.seqparse import Seqparse
+        >>> parser = Seqparse()
+        >>> parser.scan_path("test_dir")
+        >>> for item in parser.output():
+        ...     print str(item)
+        ...
+        test_dir/TEST_DIR.0001-0004,0010.tif
+        test_dir/SINGLETON.jpg
+        >>> for item in parser.output(seqs_only=True):
+        ...     print str(item)
+        ...
+        test_dir/TEST_DIR.0001-0004,0010.tif
+        >>> for item in parser.output(missing=True):
+        ...     print str(item)
+        ...
+        test_dir/TEST_DIR.0005-0009.tif
+    """
 
     def __init__(self):
         """Initialise the instance."""
@@ -140,6 +175,9 @@ class Seqparse(SeqparseRegexMixin):
         Yields:
             File and/or FileSequence instances, depending on input arguments.
         """
+        if missing:
+            seqs_only = True
+
         for root_dir in sorted(self.locations):
             data = self.locations[root_dir]
             for container in sorted(data["seqs"].values()):
