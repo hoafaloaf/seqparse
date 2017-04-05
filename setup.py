@@ -23,11 +23,13 @@ setup(
     author_email='hoafaloaf@gmail.com',
     classifiers=[
         'Development Status :: 4 - Beta',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
+    download_url='https://github.com/hoafaloaf/seqparse/archive/v0.6.1.tar.gz',
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
@@ -38,5 +40,5 @@ setup(
     test_suite='nose.collector',
     tests_require=['coverage', 'nose', 'pylint'],
     url='http://github.com/hoafaloaf/seqparse',
-    version='0.6.0',
+    version='0.6.1',
     zip_safe=False)
