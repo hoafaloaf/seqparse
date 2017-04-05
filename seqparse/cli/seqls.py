@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Command line tool for listing file sequences."""
+"""
+Command line tool for listing file sequences.
+
+Upon installation of the package this script will be accessable via `seqls`
+command on the command line of your choice.
+"""
 
 # Standard Libraries
 import os
@@ -115,7 +120,7 @@ def parse_args(args):
         dest="max_levels",
         help=("Descend at most levels (a non-negative integer) MAX_LEVELS of "
               "directories below the starting-points. '--maxdepth 0' means "
-              "apply scan the starting-points themselves."),
+              "scan the starting-points themselves."),
         nargs=1,
         required=False,
         type=int)

@@ -49,7 +49,7 @@ class DirEntry(object):
         self.path = file_path
         self._is_file = is_file
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         """A representation for the instance."""
         blurb = "{}(path={!r}, is_file={!r})"
         return blurb.format(type(self).__name__, self.path, self.is_file())

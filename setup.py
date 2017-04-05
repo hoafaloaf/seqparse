@@ -38,5 +38,5 @@ setup(
     test_suite='nose.collector',
     tests_require=['coverage', 'nose', 'pylint'],
     url='http://github.com/hoafaloaf/seqparse',
-    version='0.5.0',
+    version='0.6.0',
     zip_safe=False)

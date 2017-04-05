@@ -8,7 +8,7 @@ import unittest
 import mock
 
 from . import mock_os_stat
-from ..sequences import File
+from ..files import File
 
 
 ###############################################################################

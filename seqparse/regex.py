@@ -38,27 +38,86 @@ class SeqparseRegexMixin(object):
         pass
 
     def bits_match(self, val, as_dict=False):
-        """Return first, last, step for valid string frame chunks."""
+        """
+        Calculate first, last, step for valid string frame chunks.
+
+        Args:
+            val (str): Input chunk of a frame range.
+            as_dict (bool, optional): Whether to output return values as a
+                dict of regex groups. Defaults to False.
+
+        Returns:
+            None if input is an invalid chunk,
+            tuple consisting of (first frame, last frame, frame step) with
+            as_dict = False, or
+            dict of regex groups with as_dict = True.
+        """
         bmatch = self._bits_expr.match(val)
         return self._return_value(bmatch, as_dict)
 
     def file_name_match(self, val, as_dict=False):
-        """Return base name, frame, extension for valid string file name."""
+        """
+        Calculate base name, frame, extension for valid string file name.
+
+        Args:
+            val (str): Input file name.
+            as_dict (bool, optional): Whether to output return values as a
+                dict of regex groups. Defaults to False.
+
+        Returns:
+            None if input is an invalid sequence file name,
+            tuple consisting of (base name, frame, extension) with
+            as_dict = False, or
+            dict of regex groups with as_dict = True.
+        """
         fmatch = self._file_expr.match(val)
         return self._return_value(fmatch, as_dict)
 
     def file_seq_match(self, val, as_dict=False):
-        """Return base name, sequence, extension for valid file sequence."""
+        """
+        Calculate base name, sequence, extension for valid file sequence.
+
+        Args:
+            val (str): Input file sequence.
+            as_dict (bool, optional): Whether to output return values as a
+                dict of regex groups. Defaults to False.
+
+        Returns:
+            None if input is an invalid sequence file sequence,
+            tuple consisting of (base name, frame sequence, extension) with
+            as_dict = False, or
+            dict of regex groups with as_dict = True.
+        """
         fmatch = self._fseq_expr.match(val)
         return self._return_value(fmatch, as_dict)
 
     def is_frame_sequence(self, val):
-        """Return whether a string frame sequence is valid."""
+        """
+        Whether a string frame sequence is valid.
+
+        Args:
+            val (str): Input frame sequence.
+
+        Returns:
+            True if frame sequence is valid, False if it is not.
+        """
         return bool(self._frame_expr.match(val))
 
     @staticmethod
     def _return_value(regex_match, as_dict):
-        """Internal method: Return match data as tuple or dictionary."""
+        """
+        Return match data as tuple or dictionary.
+
+        Args:
+            regex_match (SRE_Match): Regex match or None, depending on Whether
+                the calling method was a valid match.
+            as_dict (bool): Whether to return as a dict of regex groups.
+
+        Returns:
+            None if input is an invalid match,
+            tuple as_dict = False, or
+            dict of regex groups with as_dict = True.
+        """
         if not regex_match:
             return None
         if as_dict:
