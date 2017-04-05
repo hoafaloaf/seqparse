@@ -189,7 +189,7 @@ class FrameChunk(object):
             raise ValueError(message.format(last, first))
 
         # Calculate the length and the real last frame of the chunk.
-        bits = (last - first) / step
+        bits = (last - first) // step
         last = first + bits * step
         step = min(last - first, step)
 

@@ -17,7 +17,7 @@ nosetests -v -s seqparse --all-modules --cover-erase --cover-html ^
 python -m coverage xml --include=seqparse*
 
 >pylint.out (
-  pylint -d I0011,R0204,R0801 seqparse ^
+  pylint -d I0011,R0204,R0801,W0622 seqparse ^
     --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
 )
 
