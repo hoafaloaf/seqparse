@@ -9,10 +9,11 @@ import unittest
 
 # Third Party Libraries
 import mock
+from builtins import range
+from future.utils import lrange
 
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
-
 
 ###############################################################################
 # class: TestFileSequences
@@ -97,7 +98,7 @@ class TestFileSequences(unittest.TestCase):
 
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         seq1 = FrameSequence(chunk1)
-        frames1 = [str(x) for x in xrange(1, 12)]
+        frames1 = [str(x) for x in range(1, 12)]
 
         for frames in (frames1, chunk1, seq1):
             fseq = FileSequence(
@@ -112,7 +113,7 @@ class TestFileSequences(unittest.TestCase):
 
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
         seq2 = FrameSequence(chunk2)
-        frames2 = ["{:04d}".format(x) for x in xrange(1, 12)]
+        frames2 = ["{:04d}".format(x) for x in range(1, 12)]
 
         for frames in (frames2, chunk2, seq2):
             fseq = FileSequence(
@@ -128,7 +129,7 @@ class TestFileSequences(unittest.TestCase):
     def test_file_containment(self):
         """FileSequence: Test if files are contained by a sequence."""
         file_path = os.path.join(self._test_path, self._test_name)
-        frames = range(1, 12)
+        frames = lrange(1, 12)
 
         seq1 = FrameSequence(frames, pad=1)
         fseq1 = FileSequence(name=file_path, ext=self._test_ext, frames=seq1)
@@ -167,7 +168,7 @@ class TestFileSequences(unittest.TestCase):
         """FileSequence: Test iteration over an instance."""
         file_path = os.path.join(self._test_path, self._test_name)
 
-        data = [(range(1, 6), 4), (range(1, 21, 2) + range(100, 105), 1)]
+        data = [(lrange(1, 6), 4), (lrange(1, 21, 2) + lrange(100, 105), 1)]
 
         for frames, pad in data:
             fseq = FileSequence(
@@ -248,9 +249,9 @@ class TestFileSequences(unittest.TestCase):
         """FileSequence: Test the equality of instances."""
         file_path = os.path.join(self._test_path, self._test_name)
         fseq0 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
         fseq1 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
         fseq2 = FileSequence(
             name=file_path, ext=self._test_ext, frames="0001-0010")
         fseq3 = FileSequence(
@@ -258,7 +259,7 @@ class TestFileSequences(unittest.TestCase):
         fseq4 = FileSequence(
             name=self._test_name, ext=self._test_ext, frames="0001-0010")
 
-        seq0 = FrameSequence(range(1, 11), pad=4)
+        seq0 = FrameSequence(lrange(1, 11), pad=4)
 
         self.assertEqual(fseq0, fseq1)
         self.assertEqual(fseq0, fseq2)
