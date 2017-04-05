@@ -8,13 +8,14 @@ import os
 import unittest
 
 # Third Party Libraries
+from builtins import range
+from future.utils import lrange
 import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
 from .. import get_parser, get_sequence, invert, validate_frame_sequence
 from ..sequences import FileSequence, FrameChunk, FrameSequence
-
 
 ###############################################################################
 # class: TestSeqparseModule
@@ -220,7 +221,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         test_output = list(file_seq.output())
         self.assertEqual(len(test_output), 3)
-        self.assertEqual(map(str, test_output), final_output)
+        self.assertEqual(list(map(str, test_output)), final_output)
 
         self.assertIn(self._test_ext, file_seq)
         self.assertEqual(len(file_seq), 1)
@@ -244,7 +245,7 @@ class TestSeqparseModule(unittest.TestCase):
             print(" ", seq)
 
         print("\n  MAX LEVELS\n  ----------")
-        for max_levels in xrange(-1, 4):
+        for max_levels in range(-1, 4):
             initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
             parser.scan_path(self._test_root, max_levels=max_levels)
@@ -262,7 +263,7 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(len(seqs), expected_seqs)
 
         print("\n  MIN LEVELS\n  ----------")
-        for min_levels in xrange(-1, 4):
+        for min_levels in range(-1, 4):
             initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
             parser.scan_path(self._test_root, min_levels=min_levels)
@@ -449,7 +450,7 @@ class TestSeqparseModule(unittest.TestCase):
         ]
 
         self.assertEqual(len(output), 2)
-        self.assertEqual(map(str, output), expected)
+        self.assertEqual(list(map(str, output)), expected)
         self.assertEqual(output[0].ctime, 1490908340)
         self.assertEqual(output[0].mtime, 1490908305)
         self.assertEqual(output[0].size, 36520)
@@ -465,12 +466,12 @@ class TestSeqparseModule(unittest.TestCase):
         ]
 
         self.assertEqual(len(output), 3)
-        self.assertEqual(map(str, output), expected)
+        self.assertEqual(list(map(str, output)), expected)
 
     def test_api_calls(self):
         """Seqparse: Test API calls at root of module."""
         chunk = FrameChunk(first=1, last=7, step=2, pad=4)
-        seq = get_sequence(range(1, 8, 2), pad=4)
+        seq = get_sequence(lrange(1, 8, 2), pad=4)
         self.assertTrue(isinstance(seq, FrameSequence))
         self.assertEqual(str(seq), "0001-0007x2")
 
