@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
-from .sequences import FrameChunk, FrameSequence
+from .sequences import FrameSequence
 
 # Use the built-in version of scandir/walk if possible, otherwise use the
 # scandir module version.
@@ -228,35 +228,6 @@ class Seqparse(SeqparseRegexMixin):
 
             self._add_from_scan(file_entries)
 
-    def validate_frame_sequence(self, frame_seq):
-        """
-        Whether the supplied frame (not file) sequence is valid.
-
-        Args:
-            frame_seq (str): The string representation of the frame sequence
-                to validate.
-
-        Returns:
-            None if the supplied sequence is invalid, a (possibly corrected)
-            string file sequence if valid.
-
-        Examples:
-            >>> from seqparse.seqparse import Seqparse
-            >>> parser = Seqparse()
-            >>> print parser.validate_frame_sequence("0001-0001")
-            0001
-            >>> print parser.validate_frame_sequence("0001-")
-            None
-            >>> print parser.validate_frame_sequence("3,1,5,7")
-            1-7x2
-        """
-        try:
-            seq = FrameSequence(frame_seq)
-        except ValueError:
-            return None
-
-        return str(seq)
-
     def _add_from_scan(self, file_entries):
         """
         Shortcut for adding file sequences from os/scandir.walk.
@@ -316,3 +287,33 @@ class Seqparse(SeqparseRegexMixin):
         for entry in dir_entries:
             for data in self._scandir_walk(entry.path):
                 yield data
+
+    @staticmethod
+    def validate_frame_sequence(frame_seq):
+        """
+        Whether the supplied frame (not file) sequence is valid.
+
+        Args:
+            frame_seq (str): The string representation of the frame sequence
+                to validate.
+
+        Returns:
+            None if the supplied sequence is invalid, a (possibly corrected)
+            string file sequence if valid.
+
+        Examples:
+            >>> from seqparse.seqparse import Seqparse
+            >>> parser = Seqparse()
+            >>> print parser.validate_frame_sequence("0001-0001")
+            0001
+            >>> print parser.validate_frame_sequence("0001-")
+            None
+            >>> print parser.validate_frame_sequence("3,1,5,7")
+            1-7x2
+        """
+        try:
+            seq = FrameSequence(frame_seq)
+        except ValueError:
+            return None
+
+        return str(seq)
