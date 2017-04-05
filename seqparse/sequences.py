@@ -5,6 +5,10 @@ import copy
 import os
 from collections import MutableSet
 
+# Third Party Libraries
+import six
+from builtins import range
+
 from posix import stat_result
 
 from .regex import SeqparseRegexMixin
@@ -56,11 +60,11 @@ class FrameChunk(object):
     def __contains__(self, item):
         """Whether the chunk contains the specified (non-)padded frame."""
         frame_num = int(item)
-        for frame in xrange(self.first, self.last + 1, self.step):
+        for frame in range(self.first, self.last + 1, self.step):
             if frame < frame_num:
                 continue
             elif frame_num == frame:
-                if isinstance(item, basestring):
+                if isinstance(item, six.string_types):
                     frame_len = len(item)
                     if item.startswith("0"):
                         return frame_len == self.pad
@@ -77,7 +81,7 @@ class FrameChunk(object):
 
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
-        for frame in xrange(self.first, self.last + 1, self.step):
+        for frame in range(self.first, self.last + 1, self.step):
             yield "{:0{}d}".format(frame, self.pad)
 
     def __len__(self):
@@ -248,7 +252,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             pad = frames.pad
             if isinstance(frames, FrameSequence):
                 self.stat().update(copy.deepcopy(frames.stat()))
-        elif isinstance(frames, basestring):
+        elif isinstance(frames, six.string_types):
             if not self.is_frame_sequence(frames):
                 blurb = "Invalid iterable specified ({}, {!r})"
                 raise ValueError(blurb.format(type(frames), frames))
@@ -265,7 +269,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
         if int(item) in self._data:
-            if isinstance(item, basestring):
+            if isinstance(item, six.string_types):
                 item_pad = len(item)
                 if item.startswith("0"):
                     return item_pad == self.pad
@@ -359,7 +363,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""
-        if isinstance(item, basestring):
+        if isinstance(item, six.string_types):
             if self.is_frame_sequence(item):
                 if not item.isdigit():
                     self._add_frame_sequence(item)
@@ -377,7 +381,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             self._data.add(int(item))
 
         elif isinstance(item, (list, set, tuple)):
-            map(self.add, item)
+            self._add_from_iterable(item)
 
         elif isinstance(item, (FrameChunk, FrameSequence)):
             if item.pad != self.pad:
@@ -385,16 +389,30 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                          "!= {:d})")
                 raise SeqparsePadException(
                     blurb.format(item, item.pad, self.pad))
-            map(self.add, item)
+            self._add_from_iterable(item)
 
         else:
             self._data.add(int(item))
 
         self._attrs["dirty"] = True
 
+    def _add_from_iterable(self, iterable):
+        """
+        Add items from supplied iterable to the instance.
+
+        Args:
+            iterable (many types): Iterable (usually a list-list object) from
+                which you'd like to add items to the instance.
+
+        Returns:
+            None
+        """
+        for item in iterable:
+            self.add(item)
+
     def discard(self, item):
         """Defining item discard logic (per standard set)."""
-        if isinstance(item, basestring):
+        if isinstance(item, six.string_types):
             if item.startswith("0"):
                 item_pad = len(item)
                 if item_pad != self.pad:
@@ -466,7 +484,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         else:
             current_frames = set()
             prev_step = 0
-            for index in xrange(num_frames - 1):
+            for index in range(num_frames - 1):
                 frames = all_frames[index:index + 2]
                 step = frames[1] - frames[0]
 
@@ -514,7 +532,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             inverted.add(self._attrs["chunks"][0].invert())
 
         elif num_chunks:
-            for index in xrange(num_chunks - 1):
+            for index in range(num_chunks - 1):
                 current_chunk = self._attrs["chunks"][index]
                 next_chunk = self._attrs["chunks"][index + 1]
                 inverted.add(current_chunk.invert(last=next_chunk.first - 1))
