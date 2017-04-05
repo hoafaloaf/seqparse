@@ -7,6 +7,10 @@ from __future__ import print_function
 import os
 import unittest
 
+# Third Party Libraries
+from builtins import range
+from future.utils import lrange
+
 from ..sequences import (FileSequence, FrameChunk, FrameSequence,
                          SeqparsePadException)
 
@@ -32,7 +36,7 @@ class TestFrameSequences(unittest.TestCase):
         # specified pad.
         data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1),
                 (FrameChunk(first=2, pad=4), "0002", None),
-                (FrameSequence(range(30, 41, 2), pad=2), "30-40x2", None)]
+                (FrameSequence(lrange(30, 41, 2), pad=2), "30-40x2", None)]
 
         print("\n\n  INPUT ARGUMENTS\n  ---------------")
 
@@ -57,7 +61,7 @@ class TestFrameSequences(unittest.TestCase):
     def test_basic_containment(self):
         """FrameSequence: Test basic containment of sequences."""
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
-        frames1 = [str(x) for x in xrange(1, 12)]
+        frames1 = [str(x) for x in range(1, 12)]
         str_frames1 = "1-11"
 
         seq = FrameSequence(frames1, pad=1)
@@ -89,7 +93,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(frames1), set(seq))
         self.assertEqual(str_frames1, str(seq))
 
-        for frame in xrange(1, 12):
+        for frame in range(1, 12):
             self.assertIn(frame, seq)
             self.assertIn(str(frame), seq)
             self.assertNotIn("{:04d}".format(frame), seq)
@@ -110,10 +114,10 @@ class TestFrameSequences(unittest.TestCase):
     def test_complex_containment(self):
         """FrameSequence: Test containment of complex sequences."""
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
-        frames2 = ["{:04d}".format(x) for x in xrange(1, 12)]
+        frames2 = ["{:04d}".format(x) for x in range(1, 12)]
         str_frames2 = "0001-0011"
         chunk3 = FrameChunk(first=91, last=101, step=2, pad=4)
-        frames3 = ["{:04d}".format(x) for x in xrange(91, 103, 2)]
+        frames3 = ["{:04d}".format(x) for x in range(91, 103, 2)]
         str_frames3 = "0091-0101x2"
 
         seq = FrameSequence(frames2, pad=4)
@@ -143,7 +147,7 @@ class TestFrameSequences(unittest.TestCase):
     def test_frame_add(self):
         """FrameSequence: Test the addition of frames of various types."""
         chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
-        frames3 = ["{:04d}".format(x) for x in xrange(91, 103, 2)]
+        frames3 = ["{:04d}".format(x) for x in range(91, 103, 2)]
 
         seq = FrameSequence(frames3, pad=4)
         self.assertEqual(str(chunk3), str(seq))
@@ -157,8 +161,8 @@ class TestFrameSequences(unittest.TestCase):
             FrameChunk(first=10, last=20, step=2, pad=2),
             FrameChunk(first=10, last=20, step=2, pad=4),
             FrameSequence([1], pad=4),
-            FrameSequence([x for x in xrange(30, 41, 2)], pad=2),
-            FrameSequence([x for x in xrange(30, 41, 2)], pad=4)
+            FrameSequence([x for x in range(30, 41, 2)], pad=2),
+            FrameSequence([x for x in range(30, 41, 2)], pad=4)
         ]
 
         print("")
@@ -205,7 +209,7 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_iteration(self):
         """FrameSequence: Test iteration over an instance."""
-        frames = ["{:04d}".format(x) for x in xrange(1, 6)]
+        frames = ["{:04d}".format(x) for x in range(1, 6)]
         seq = FrameSequence(frames, pad=4)
 
         print("\n\n  INPUT FRAMES\n  ------------")
@@ -217,8 +221,8 @@ class TestFrameSequences(unittest.TestCase):
 
         self.assertEqual(set(frames), set(seq))
 
-        frames = [str(x) for x in xrange(1, 21, 2)]
-        frames += [str(x) for x in xrange(100, 105)]
+        frames = [str(x) for x in range(1, 21, 2)]
+        frames += [str(x) for x in range(100, 105)]
         seq = FrameSequence(frames, pad=1)
 
         print("\n\n  INPUT FRAMES\n  ------------")
@@ -265,10 +269,10 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_equality(self):
         """FrameSequence: Test the equality of instances."""
-        seq1 = FrameSequence(range(1, 11), pad=4)
-        seq2 = FrameSequence(range(1, 11), pad=4)
-        seq3 = FrameSequence(range(1, 11), pad=3)
-        seq4 = FrameSequence(range(1, 10), pad=4)
+        seq1 = FrameSequence(lrange(1, 11), pad=4)
+        seq2 = FrameSequence(lrange(1, 11), pad=4)
+        seq3 = FrameSequence(lrange(1, 11), pad=3)
+        seq4 = FrameSequence(lrange(1, 10), pad=4)
         seq5 = FrameSequence("0001-0010")
         seq6 = FrameSequence("0001-0010")
         seq7 = FrameSequence("001-010")
@@ -286,6 +290,6 @@ class TestFrameSequences(unittest.TestCase):
 
         file_path = os.path.join(self._test_path, self._test_name)
         fseq1 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=range(1, 11), pad=4)
+            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
 
         self.assertNotEqual(seq1, fseq1)
