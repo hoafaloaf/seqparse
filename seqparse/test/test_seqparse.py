@@ -1,5 +1,8 @@
 """Test file sequence discovery on disk."""
 
+# "Future" Libraries
+from __future__ import print_function
+
 # Standard Libraries
 import os
 import unittest
@@ -233,14 +236,14 @@ class TestSeqparseModule(unittest.TestCase):
         """Seqparse: Test file sequence discovery in nested directories."""
         mock_api_call.side_effect = mock_scandir_deep
 
-        print "\n\n  SEQUENCES\n  ---------"
+        print("\n\n  SEQUENCES\n  ---------")
         initialise_mock_scandir_data(self._test_root)
         parser = get_parser()
         parser.scan_path(self._test_root)
         for seq in parser.output():
-            print " ", seq
+            print(" ", seq)
 
-        print "\n  MAX LEVELS\n  ----------"
+        print("\n  MAX LEVELS\n  ----------")
         for max_levels in xrange(-1, 4):
             initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
@@ -252,13 +255,13 @@ class TestSeqparseModule(unittest.TestCase):
 
             seqs = list(parser.output())
             blurb = "  o max_levels == {:d}: {:d} ({:d} expected) entries"
-            print blurb.format(max_levels, len(seqs), expected_seqs)
+            print(blurb.format(max_levels, len(seqs), expected_seqs))
 
             for seq in seqs:
-                print "    -", seq
+                print("    -", seq)
             self.assertEqual(len(seqs), expected_seqs)
 
-        print "\n  MIN LEVELS\n  ----------"
+        print("\n  MIN LEVELS\n  ----------")
         for min_levels in xrange(-1, 4):
             initialise_mock_scandir_data(self._test_root)
             parser = get_parser()
@@ -270,13 +273,13 @@ class TestSeqparseModule(unittest.TestCase):
 
             seqs = list(parser.output())
             blurb = "  o min_levels == {:d}: {:d} ({:d} expected) entries"
-            print blurb.format(min_levels, len(seqs), expected_seqs)
+            print(blurb.format(min_levels, len(seqs), expected_seqs))
 
             for seq in seqs:
-                print "    -", seq
+                print("    -", seq)
             self.assertEqual(len(seqs), expected_seqs)
 
-        print
+        print("")
 
     def test_valid_frame_sequences(self):
         """Seqparse: Test validity of simple frame ranges."""
@@ -293,18 +296,18 @@ class TestSeqparseModule(unittest.TestCase):
             "0010-0001", "x", ",", ",,", ""
         ]
 
-        print "\n\n  GOOD SEQUENCES\n  --------------"
+        print("\n\n  GOOD SEQUENCES\n  --------------")
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
-            print '  o {!r} --> {!r}'.format(frame_seq, output)
+            print('  o {!r} --> {!r}'.format(frame_seq, output))
             self.assertTrue(output)
 
-        print "\n  BAD SEQUENCES\n  -------------"
+        print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_frame_seqs:
-            print '  o {!r}'.format(frame_seq)
+            print('  o {!r}'.format(frame_seq))
             self.assertFalse(validate_frame_sequence(frame_seq))
 
-        print
+        print("")
 
     def test_add_file_sequence(self):
         """Seqparse: Test file sequence addition via seqparse.add_file."""
@@ -321,9 +324,9 @@ class TestSeqparseModule(unittest.TestCase):
             (self._test_file_name, output_frame_seq, self._test_ext))
         output_file_seq = os.path.join(self._test_root, output_file_seq)
 
-        print "\n\n  INPUT FILES\n  -----------"
-        print "  o", input_file_seq
-        print "  o", input_file
+        print("\n\n  INPUT FILES\n  -----------")
+        print("  o", input_file_seq)
+        print("  o", input_file)
 
         parser = get_parser()
         parser.add_file(input_file_seq)
@@ -331,13 +334,13 @@ class TestSeqparseModule(unittest.TestCase):
 
         output = list(parser.output())
 
-        print "\n  OUTPUT FILES\n  ------------"
+        print("\n  OUTPUT FILES\n  ------------")
         for line in output:
-            print "  o", line
+            print("  o", line)
 
-        print "\n  EXPECTED OUTPUT\n  ---------------"
-        print "  o", output_file_seq
-        print
+        print("\n  EXPECTED OUTPUT\n  ---------------")
+        print("  o", output_file_seq)
+        print("")
 
         self.assertEqual(len(output), 1)
         self.assertEqual(str(output[0]), output_file_seq)
@@ -347,9 +350,9 @@ class TestSeqparseModule(unittest.TestCase):
             (self._test_file_name, input_frame_seq, self._test_ext))
         input_file_seq = os.path.join(self._test_root, input_file_seq)
 
-        print "\n  INPUT FILES\n  -----------"
-        print "  o", input_file_seq
-        print "  o", input_file
+        print("\n  INPUT FILES\n  -----------")
+        print("  o", input_file_seq)
+        print("  o", input_file)
 
         parser = get_parser()
         parser.add_file(input_file_seq)
@@ -357,13 +360,13 @@ class TestSeqparseModule(unittest.TestCase):
 
         output = list(parser.output())
 
-        print "\n  OUTPUT FILES\n  ------------"
+        print("\n  OUTPUT FILES\n  ------------")
         for line in output:
-            print "  o", line
+            print("  o", line)
 
-        print "\n  EXPECTED OUTPUT\n  ---------------"
-        print "  o", output_file_seq
-        print
+        print("\n  EXPECTED OUTPUT\n  ---------------")
+        print("  o", output_file_seq)
+        print("")
 
         self.assertEqual(len(output), 1)
         self.assertEqual(str(output[0]), output_file_seq)
@@ -390,10 +393,10 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(len(inverted), 1)
 
-        print "\n\n  SEQUENCE\n  --------"
-        print "  input files:   ", fseq
-        print "  expected files:", expected
-        print "  inverted files:", inverted[0]
+        print("\n\n  SEQUENCE\n  --------")
+        print("  input files:   ", fseq)
+        print("  expected files:", expected)
+        print("  inverted files:", inverted[0])
 
         self.assertEqual(str(inverted[0]), str(expected))
 
@@ -413,10 +416,10 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(len(inverted), 1)
 
-        print "\n\n  SEQUENCE\n  --------"
-        print "  input files:   ", fseq
-        print "  expected files:", expected
-        print "  inverted files:", inverted[0]
+        print("\n\n  SEQUENCE\n  --------")
+        print("  input files:   ", fseq)
+        print("  expected files:", expected)
+        print("  inverted files:", inverted[0])
 
         self.assertEqual(str(inverted[0]), str(expected))
 
