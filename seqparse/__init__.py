@@ -1,4 +1,34 @@
-"""Seqparse: A nifty way to list your file sequences."""
+"""
+seqparse: A nifty way to list your file sequences.
+
+The seqparse module may be used to ...
+
+    * Scan specified paths for file sequences and "singletons,"
+    * Construct frame and file sequence from supplied values, and
+    * Query disk for overall footprint of tracked files.
+
+The module also comes supplied with a simple command-line tool named "seqls."
+
+Frame sequences are broken down into comma-separated chunks of the format
+
+    (first frame)-(last frame)x(step)
+
+where the following rules apply:
+
+    * Frame numbers can be zero-padded,
+    * Frame step (increment) is always a positive integer,
+    * The number of digits in a frame may exceed the padding of a sequence, eg
+      "001,010,100,1000",
+    * Frame chunks with a specified step will *always* consist of three or more
+      frames.
+
+Examples of proper frame sequences:
+
+    * Non-padded sequence, frames == (1, 3, 5, 7): 1-7x2
+    * Four-padded sequence, frames == (1, 3, 5, 7): 0001-0007x2
+    * Three-padded sequence, frames == (11, 13): 011,013
+    * Two-padded sequence (1, 3, 5, 7, 11, 13, 102): 01-07x2,11,13,102
+"""
 
 from .seqparse import Seqparse
 from .sequences import FrameChunk, FrameSequence
@@ -16,9 +46,10 @@ def get_parser():
     Returns:
         Valid Seqparse instance.
 
-    >>> from seqparse import get_parser
-    >>> get_parser()
-    Seqparse(sequences=0, singletons=0)
+    Examples:
+        >>> from seqparse import get_parser
+        >>> get_parser()
+        Seqparse(sequences=0, singletons=0)
     """
     return Seqparse()
 
@@ -36,13 +67,14 @@ def get_sequence(frames, pad=1):
     Returns:
         Valid FrameSequence instance.
 
-    >>> from seqparse import get_sequence
-    >>> get_sequence(range(5))
-    FrameSequence(pad=1, frames=set([0, 1, 2, 3, 4]))
-    >>> get_sequence([1, 2, 3])
-    FrameSequence(pad=1, frames=set([1, 2, 3]))
-    >>> get_sequence("0001-0005x2")
-    FrameSequence(pad=4, frames=set([1, 3, 5]))
+    Examples:
+        >>> from seqparse import get_sequence
+        >>> get_sequence(range(5))
+        FrameSequence(pad=1, frames=set([0, 1, 2, 3, 4]))
+        >>> get_sequence([1, 2, 3])
+        FrameSequence(pad=1, frames=set([1, 2, 3]))
+        >>> get_sequence("0001-0005x2")
+        FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
     return FrameSequence(frames, pad=pad)
 
@@ -61,13 +93,14 @@ def invert(iterable):
             Should the input sequences contain no gaps, will return an empty
             sequence instance.
 
-    >>> from seqparse import get_sequence, invert
-    >>> seq = get_sequence("0001-0005x2")
-    >>> print repr(seq), str(seq)
-    FrameSequence(pad=4, frames=set([1, 3, 5])) 0001-0005x2
-    >>> inverted = invert(seq)
-    >>> print repr(inverted), str(inverted)
-    FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
+    Examples:
+        >>> from seqparse import get_sequence, invert
+        >>> seq = get_sequence("0001-0005x2")
+        >>> print repr(seq), str(seq)
+        FrameSequence(pad=4, frames=set([1, 3, 5])) 0001-0005x2
+        >>> inverted = invert(seq)
+        >>> print repr(inverted), str(inverted)
+        FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
@@ -87,10 +120,11 @@ def validate_frame_sequence(frame_seq):
         None for invalid inputs, corrected/validated str frame sequence for
         valid input (see below for examples).
 
-    >>> from seqparse import validate_frame_sequence
-    >>> print validate_frame_sequence("0001-0001")
-    0001
-    >>> print validate_frame_sequence("0001-")
-    None
+    Examples:
+        >>> from seqparse import validate_frame_sequence
+        >>> print validate_frame_sequence("0001-0001")
+        0001
+        >>> print validate_frame_sequence("0001-")
+        None
     """
     return Seqparse().validate_frame_sequence(frame_seq)

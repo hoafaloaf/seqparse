@@ -144,7 +144,7 @@ class Seqparse(SeqparseRegexMixin):
         search_path = search_path.rstrip(os.path.sep)
         search_seps = search_path.count(os.path.sep)
 
-        for root, dir_entries, file_entries in self.scandir_walk(search_path):
+        for root, dir_entries, file_entries in self._scandir_walk(search_path):
             # Cheap and easy way to limit our search depth: count path
             # separators!
             cur_level = root.count(os.path.sep) - search_seps
@@ -158,23 +158,6 @@ class Seqparse(SeqparseRegexMixin):
                 del file_entries[:]
 
             self.add_from_scan(file_entries)
-
-    def scandir_walk(self, search_path, follow_symlinks=True):
-        """Recursively yield DirEntry objects for given directory."""
-        root, dir_entries, file_entries = search_path, list(), list()
-        for entry in scandir(search_path):
-            if entry.name.startswith(".") and not self.scan_options["all"]:
-                continue
-            if entry.is_dir(follow_symlinks=follow_symlinks):
-                dir_entries.append(entry)
-            elif entry.is_file(follow_symlinks=follow_symlinks):
-                file_entries.append(entry)
-
-        yield root, dir_entries, file_entries
-
-        for entry in dir_entries:
-            for data in self.scandir_walk(entry.path):
-                yield data
 
     def validate_frame_sequence(self, frame_seq):
         """Whether the supplied frame (not file) sequence is valid."""
@@ -206,3 +189,20 @@ class Seqparse(SeqparseRegexMixin):
                 output[loc] = data[typ]
 
         return output
+
+    def _scandir_walk(self, search_path, follow_symlinks=True):
+        """Recursively yield DirEntry objects for given directory."""
+        root, dir_entries, file_entries = search_path, list(), list()
+        for entry in scandir(search_path):
+            if entry.name.startswith(".") and not self.scan_options["all"]:
+                continue
+            if entry.is_dir(follow_symlinks=follow_symlinks):
+                dir_entries.append(entry)
+            elif entry.is_file(follow_symlinks=follow_symlinks):
+                file_entries.append(entry)
+
+        yield root, dir_entries, file_entries
+
+        for entry in dir_entries:
+            for data in self._scandir_walk(entry.path):
+                yield data
