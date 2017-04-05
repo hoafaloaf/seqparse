@@ -4,6 +4,9 @@
 import os
 from posix import stat_result
 
+# Third Party Libraries
+import six
+
 __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
            "mock_os_stat", "mock_scandir_deep")
 
@@ -11,27 +14,27 @@ MOCK_SCANDIR_DEEP_DATA = list()
 
 MOCK_SCANDIR_STAT_DATA = {
     'test.0001.py': [
-        33279L, 12666373952092765L, 14L, 1L, 0L, 0L, 7975L, 1490908305,
+        33279, 12666373952092765, 14, 1, 0, 0, 7975, 1490908305,
         1490908305, 1490908313
     ],
     'test.0002.py': [
-        33279L, 2814749767415947L, 14L, 1L, 0L, 0L, 987L, 1490908305,
+        33279, 2814749767415947, 14, 1, 0, 0, 987, 1490908305,
         1490908305, 1490908318
     ],
     'test.0003.py': [
-        33279L, 2251799813994636L, 14L, 1L, 0L, 0L, 2561L, 1490908305,
+        33279, 2251799813994636, 14, 1, 0, 0, 2561, 1490908305,
         1490908305, 1490908325
     ],
     'test.0004.py': [
-        33279L, 2251799813994637L, 14L, 1L, 0L, 0L, 6487L, 1490908305,
+        33279, 2251799813994637, 14, 1, 0, 0, 6487, 1490908305,
         1490908305, 1490908333
     ],
     'test.0006.py': [
-        33279L, 2251799813994638L, 14L, 1L, 0L, 0L, 18510L, 1490908305,
+        33279, 2251799813994638, 14, 1, 0, 0, 18510, 1490908305,
         1490908305, 1490908340
     ],
     'pony.py': [
-        33279L, 36028797019078328L, 14L, 1L, 0L, 0L, 9436L, 1490997828,
+        33279, 36028797019078328, 14, 1, 0, 0, 9436, 1490997828,
         1490997828, 1490997828
     ]
 }
@@ -84,7 +87,7 @@ def generate_entries(name="dog",
 
     file_entries = set()
 
-    for pad, frame_list in frames.iteritems():
+    for pad, frame_list in six.iteritems(frames):
         for frame in frame_list:
             file_name = "{}.{:0{}d}.{}".format(name, frame, pad, ext)
             file_entries.add(
