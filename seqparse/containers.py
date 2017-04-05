@@ -8,7 +8,8 @@ from functools import total_ordering
 
 from posix import stat_result
 
-from .sequences import File, FileSequence, FrameSequence
+from .files import File
+from .sequences import FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
