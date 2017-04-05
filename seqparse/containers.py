@@ -8,7 +8,8 @@ from functools import total_ordering
 
 from posix import stat_result
 
-from .sequences import File, FileSequence, FrameSequence
+from .files import File
+from .sequences import FileSequence, FrameSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -17,7 +18,13 @@ __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
 
 class FileExtension(MutableMapping):
-    """Container for frame sequences, indexed by zero-padding."""
+    """
+    Container for frame sequences, indexed by zero-padding.
+
+    Args:
+        name (str, optional): The file extension used by the contents of the
+            container (ie, "exr", "tif").
+    """
 
     _CHILD_CLASS = FrameSequence
 
@@ -62,7 +69,7 @@ class FileExtension(MutableMapping):
 
     @property
     def name(self):
-        """The name of the file extension."""
+        """str: name of the file extension."""
         return self._name
 
     @name.setter
@@ -72,7 +79,12 @@ class FileExtension(MutableMapping):
             self._name = str(val)
 
     def output(self):
-        """Return a formatted list of all contained file extentions."""
+        """
+        Calculate a sorted list of all contained file extentions.
+
+        Yields:
+            FrameSequence, sorted by zero-pad length.
+        """
         # First, check to see if we need to consolidate our frame sequences.
         data = sorted(self.items(), reverse=True)
         while len(data) > 1:
@@ -98,7 +110,14 @@ class FileExtension(MutableMapping):
 
 @total_ordering
 class FileSequenceContainer(MutableMapping):
-    """Representative for file sequences, indexed by file extension."""
+    """
+    Container for file sequences, indexed by file extension.
+
+    Args:
+        name (str, optional): Base name of the contained files.
+        file_path (str, optional): Directory in which the contained files
+            reside.
+    """
 
     _CHILD_CLASS = FileExtension
 
@@ -164,12 +183,12 @@ class FileSequenceContainer(MutableMapping):
 
     @property
     def full_name(self):
-        """The full (base) name of the file sequence."""
+        """str: Full (base) name of the file sequence."""
         return self._full
 
     @property
     def name(self):
-        """The (base) name of the file sequence."""
+        """str: Base name of the file sequence (no containing directory)."""
         return self._name
 
     @name.setter
@@ -181,7 +200,7 @@ class FileSequenceContainer(MutableMapping):
 
     @property
     def path(self):
-        """Directory in which the contained files are located."""
+        """str: directory in which the contained files reside."""
         return self._path
 
     @path.setter
@@ -192,7 +211,13 @@ class FileSequenceContainer(MutableMapping):
         self._full = os.path.join(self._path or "", self._name or "")
 
     def output(self):
-        """Return a sorted list of all contained file sequences."""
+        """
+        Calculate a sorted list of all contained file sequences.
+
+        Yields:
+            FileSequence, sorted (in order) by file path, extension, and zero-
+                padding length.
+        """
         for ext, data in sorted(self.items()):
             for frame_seq in data.output():
                 file_seq = FileSequence(
@@ -205,15 +230,23 @@ class FileSequenceContainer(MutableMapping):
 
 
 class SingletonContainer(MutableSet):
-    """Representative for singleton files."""
+    """
+    Container for singleton files, indexed alphabetically by file path.
 
-    def __init__(self, iterable=None, file_path=None):
+    Args:
+        file_names (list-like of str, optional): List of base file names to
+            store in the container.
+        file_path (str, optional): Directory in which the contained files
+            reside.
+    """
+
+    def __init__(self, file_names=None, file_path=None):
         """Initialise the instance."""
         self._data = set()
         self._path = None
         self._stat = dict()
 
-        for item in iterable or []:
+        for item in file_names or []:
             self.add(item)
 
         self.path = file_path
@@ -262,18 +295,53 @@ class SingletonContainer(MutableSet):
             self.add(item)
 
     def cache_stat(self, base_name, input_stat):
-        """Cache file system stat data for the specified file base name."""
+        """
+        Cache file system stat data for the specified file base name.
+
+        Input disk stat value will be stored in a new posix.stat_result
+        instance.
+
+        Args:
+            base_name (str): Base name of the file for which the supplied disk
+                stats are being cached.
+            input_stat (posix.stat_result): Value that you'd like to cache.
+
+        Returns:
+            posix.stat_result that was successfully cached.
+        """
         self._stat[base_name] = stat_result(input_stat)
         return self._stat[base_name]
 
     def output(self):
-        """Return a formatted list of all contained file sequences."""
+        """
+        Calculate formatted list of all contained file sequences.
+
+        Yields:
+            File, sorted alphabetically.
+        """
         for file_name in sorted(self):
             yield File(
                 os.path.join(self.path, file_name), self.stat(file_name))
 
     def stat(self, base_name=None):
-        """Individual file system status, indexed by base name."""
+        """
+        Individual file system status, indexed by base name.
+
+        This method only returns cached disk stats (if any exist). Use the
+        `cache_stat` method if you'd like to set new values.
+
+        Args:
+            base_name (str, optional): Base name of the file for which you'd
+                like to return the disk stats.
+
+        Returns:
+            None if a file has been specified but disk stats have not been
+            cached.
+            posix.stat_result if a file has been specified and disk stats have
+            been previously cached.
+            dict of disk stats, indexed by str base name if no name has been
+            specified.
+        """
         if base_name is None:
             return self._stat
         return self._stat.get(base_name, None)

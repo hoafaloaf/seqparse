@@ -7,6 +7,7 @@ import unittest
 from ..sequences import (FileSequence, FrameChunk, FrameSequence,
                          SeqparsePadException)
 
+
 ###############################################################################
 # class: TestFrameSequences
 
@@ -42,7 +43,7 @@ class TestFrameSequences(unittest.TestCase):
                 print
 
             try:
-                seq = FrameSequence(iterable=iterable, pad=pad)
+                seq = FrameSequence(frames=iterable, pad=pad)
             except ValueError as error:
                 print "    - EXPECTED ERROR: %s --> %s" % (iterable, error)
             else:
