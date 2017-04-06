@@ -72,3 +72,18 @@ class TestFiles(unittest.TestCase):
         self.assertEqual(entry.stat().st_mtime, 1490908305)
         self.assertEqual(entry.size, 7975)
         self.assertEqual(entry.mtime, 1490908305)
+
+    def test_sorting(self):
+        """File: Test instance sorting."""
+        file1 = File("/golly/gosh/geewhiz.txt")
+        file2 = File("/golly/gosh/geewhiz.txt")
+        file3 = File("/golly/gosh/geewhillickers.txt")
+
+        str3 = "/golly/gosh/geewhillickers.txt"
+
+        self.assertLess(file3, file1)
+        self.assertEqual(file2, file1)
+        self.assertGreater(str3, file2)
+        self.assertGreater(str3, file3)
+        with self.assertRaises(AssertionError):
+            self.assertEqual(str3, file3)

@@ -1,5 +1,8 @@
 """Tests for the seqls script (seqparse.cli.seqls)."""
 
+# "Future" Libraries
+from __future__ import print_function
+
 # Standard Libraries
 import copy
 import os
@@ -8,13 +11,13 @@ import time
 import unittest
 
 # Third Party Libraries
+from builtins import range
 import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
-
 
 ###############################################################################
 # class: TestFrameSequences
@@ -72,16 +75,16 @@ class TestSeqls(unittest.TestCase):
         """Seqls: Test seqls with supplied arguments."""
         mock_api_call.side_effect = mock_scandir_deep
 
-        print "\n  SEQUENCES\n  ---------"
+        print("\n  SEQUENCES\n  ---------")
         initialise_mock_scandir_data(
             os.path.join(os.getcwd(), self._test_root))
         args = seqls.parse_args(["test_dir"])
         seqs = list(seqls.main(args, _debug=True))
         for seq in seqs:
-            print " ", seq
+            print(" ", seq)
 
-        print "\n  MAX LEVELS\n  ----------"
-        for max_levels in xrange(-1, 4):
+        print("\n  MAX LEVELS\n  ----------")
+        for max_levels in range(-1, 4):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
@@ -93,14 +96,14 @@ class TestSeqls(unittest.TestCase):
                 expected_seqs = 5
 
             blurb = "  o max_levels == {:d}: {:d} ({:d} expected) entries"
-            print blurb.format(max_levels, len(seqs), expected_seqs)
+            print(blurb.format(max_levels, len(seqs), expected_seqs))
 
             for seq in seqs:
-                print "    -", seq
+                print("    -", seq)
             self.assertEqual(len(seqs), expected_seqs)
 
-        print "\n  MIN LEVELS\n  ----------"
-        for min_levels in xrange(-1, 4):
+        print("\n  MIN LEVELS\n  ----------")
+        for min_levels in range(-1, 4):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
@@ -112,13 +115,13 @@ class TestSeqls(unittest.TestCase):
                 expected_seqs = 5
 
             blurb = "  o min_levels == {:d}: {:d} ({:d} expected) entries"
-            print blurb.format(min_levels, len(seqs), expected_seqs)
+            print(blurb.format(min_levels, len(seqs), expected_seqs))
 
             for seq in seqs:
-                print "    -", seq
+                print("    -", seq)
             self.assertEqual(len(seqs), expected_seqs)
 
-        print
+        print("")
 
     @mock.patch("seqparse.seqparse.scandir")
     def test_singletons(self, mock_api_call):
@@ -149,7 +152,7 @@ class TestSeqls(unittest.TestCase):
         fseq = FileSequence(
             name=file_path, ext=self._test_ext, frames=chunk_in)
 
-        input_entries = map(DirEntry, fseq)
+        input_entries = list(map(DirEntry, fseq))
 
         mock_api_call.return_value = iter(input_entries)
 
@@ -162,10 +165,10 @@ class TestSeqls(unittest.TestCase):
 
         self.assertEqual(len(inverted), 1)
 
-        print "\n\n  SEQUENCE\n  --------"
-        print "  input files:   ", fseq
-        print "  expected files:", expected
-        print "  inverted files:", inverted[0]
+        print("\n\n  SEQUENCE\n  --------")
+        print("  input files:   ", fseq)
+        print("  expected files:", expected)
+        print("  inverted files:", inverted[0])
 
         self.assertEqual(inverted[0], str(expected))
 

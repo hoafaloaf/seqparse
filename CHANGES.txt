@@ -1,3 +1,11 @@
+v0.6.1 (2017/04/06)
+-------------------
+
+Changes (from v0.6.1)
+
+* Added support for python 3.4+
+* Packaging changes in preparation for pushing module to PyPi.
+
 v0.6.0 (2017/04/05)
 -------------------
 

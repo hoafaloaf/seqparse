@@ -4,6 +4,9 @@
 import os
 from collections import defaultdict
 
+# Third Party Libraries
+import six
+
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
 from .sequences import FrameSequence
@@ -12,7 +15,7 @@ from .sequences import FrameSequence
 # scandir module version.
 try:
     from os import scandir  # pylint: disable=W0611,C0412
-except ImportError:
+except ImportError:  # pragma: no cover
     from scandir import scandir  # pylint: disable=W0611,C0412
 
 __all__ = ("Seqparse", )
@@ -255,7 +258,7 @@ class Seqparse(SeqparseRegexMixin):
             directory.
         """
         output = dict()
-        for loc, data in self.locations.iteritems():
+        for loc, data in six.iteritems(self.locations):
             if data[typ]:
                 output[loc] = data[typ]
 

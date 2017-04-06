@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import os
+from functools import total_ordering
 
 from posix import stat_result
 
@@ -11,6 +12,7 @@ __all__ = ("File", )
 # Class: File
 
 
+@total_ordering
 class File(object):
     """
     Simple representation of files on disk.
@@ -28,6 +30,18 @@ class File(object):
 
         self._cache_stat(stat)
         self._set_name(file_name)
+
+    def __eq__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return self.full_name == other.full_name
+        return False
+
+    def __lt__(self, other):
+        """Define equality between instances."""
+        if type(other) is type(self):
+            return self.full_name < other.full_name
+        return True
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""

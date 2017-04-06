@@ -86,7 +86,7 @@ class FileExtension(MutableMapping):
             FrameSequence, sorted by zero-pad length.
         """
         # First, check to see if we need to consolidate our frame sequences.
-        data = sorted(self.items(), reverse=True)
+        data = sorted(list(self.items()), reverse=True)
         while len(data) > 1:
             pad, frames = data.pop(0)
 

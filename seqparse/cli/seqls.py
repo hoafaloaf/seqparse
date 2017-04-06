@@ -6,6 +6,9 @@ Upon installation of the package this script will be accessable via `seqls`
 command on the command line of your choice.
 """
 
+# "Future" Libraries
+from __future__ import print_function
+
 # Standard Libraries
 import os
 import sys
@@ -52,9 +55,9 @@ def main(args, _debug=False):
         return output
 
     else:  # pragma: no cover
-        print
+        print("")
         for line in output:
-            print line
+            print(line)
 
 
 def long_format_output(items, human_readable=False):
