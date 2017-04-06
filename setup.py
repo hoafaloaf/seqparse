@@ -23,11 +23,16 @@ setup(
     author_email='hoafaloaf@gmail.com',
     classifiers=[
         'Development Status :: 4 - Beta',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
+    download_url='https://github.com/hoafaloaf/seqparse/archive/v0.6.1.tar.gz',
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },

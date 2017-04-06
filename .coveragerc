@@ -1,12 +1,18 @@
 [run]
 omit =
+    *appdirs.py
     *argparse*
+    *builtins.py
     *ctypes*
+    *decimal.py
     *encodings*
+    *fractions.py
     *funcsigs*
+    *future*
     *humanize*
     *mock*
     *nose*
+    *numbers.py
     *packaging*
     *pkg_resources*
     *pbr*
