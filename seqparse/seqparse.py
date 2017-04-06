@@ -4,6 +4,9 @@
 import os
 from collections import defaultdict
 
+# Third Party Libraries
+import six
+
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
 from .sequences import FrameSequence
@@ -255,7 +258,7 @@ class Seqparse(SeqparseRegexMixin):
             directory.
         """
         output = dict()
-        for loc, data in self.locations.iteritems():
+        for loc, data in six.iteritems(self.locations):
             if data[typ]:
                 output[loc] = data[typ]
 
