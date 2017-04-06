@@ -33,7 +33,7 @@ setup(
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
-    install_requires=['humanize', 'scandir;python_version<"3.5"'],
+    install_requires=['humanize', 'scandir;python_version<"3.5"', 'six'],
     keywords='command-line file sequence',
     license='MIT',
     packages=find_packages(exclude=['*test']),

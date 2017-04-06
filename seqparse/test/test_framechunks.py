@@ -1,7 +1,13 @@
 """Test the FrameChunk class."""
 
+# "Future" Libraries
+from __future__ import print_function
+
 # Standard Libraries
 import unittest
+
+# Third Party Libraries
+from builtins import range
 
 from ..sequences import FrameChunk
 
@@ -26,105 +32,105 @@ class TestFrameChunks(unittest.TestCase):
 
     def test_chunk_length(self):
         """FrameChunk: Test chunk length (number of included frames)."""
-        print "\n  GOOD CHUNKS\n  --------------"
+        print("\n  GOOD CHUNKS\n  --------------")
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
             self.assertEqual(len(chunk), bit[-1])
-            print "  o %s -> %s (%r, %d frames)" % (bit, chunk, chunk,
-                                                    len(chunk))
+            print("  o {} -> {} ({!r}, {:d} frames)".format(bit, chunk, chunk,
+                                                            len(chunk)))
 
-        print "\n  BAD CHUNKS\n  -------------"
+        print("\n  BAD CHUNKS\n  -------------")
         for bit in self.bad_bits:
             try:
                 chunk = FrameChunk(*bit)
 
             except ValueError as error:
-                print "  o EXPECTED ERROR: %s --> %s" % (bit, error)
+                print("  o EXPECTED ERROR: {} --> {}".format(bit, error))
                 assert True
 
     def test_containment(self):
         """FrameChunk: Test if a frame is contained by a chunk."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
-        for frame in xrange(1, 6):
+        for frame in range(1, 6):
             self.assertIn(frame, chunk)
-            self.assertIn("%04d" % frame, chunk)
+            self.assertIn("{:04d}".format(frame), chunk)
 
         for frame in (0, 6):
             self.assertNotIn(frame, chunk)
-            self.assertNotIn("%02d" % frame, chunk)
-            self.assertNotIn("%04d" % frame, chunk)
+            self.assertNotIn("{:02d}".format(frame), chunk)
+            self.assertNotIn("{:04d}".format(frame), chunk)
 
         chunk = FrameChunk(first=1, last=7, step=2, pad=4)
-        for frame in xrange(1, 8, 2):
+        for frame in range(1, 8, 2):
             self.assertIn(frame, chunk)
-            self.assertIn("%04d" % frame, chunk)
+            self.assertIn("{:04d}".format(frame), chunk)
 
-        for frame in xrange(0, 9, 2):
+        for frame in range(0, 9, 2):
             self.assertNotIn(frame, chunk)
-            self.assertNotIn("%02d" % frame, chunk)
-            self.assertNotIn("%04d" % frame, chunk)
+            self.assertNotIn("{:02d}".format(frame), chunk)
+            self.assertNotIn("{:04d}".format(frame), chunk)
 
         chunk = FrameChunk(first=1, last=10, step=1, pad=1)
-        for frame in xrange(1, 11):
+        for frame in range(1, 11):
             self.assertIn(frame, chunk)
             self.assertIn(str(frame), chunk)
 
-        for frame in xrange(1, 10):
-            self.assertNotIn("%02d" % frame, chunk)
+        for frame in range(1, 10):
+            self.assertNotIn("{:02d}".format(frame), chunk)
 
         for frame in (0, 11):
             self.assertNotIn(frame, chunk)
             self.assertNotIn(str(frame), chunk)
-            self.assertNotIn("%02d" % frame, chunk)
+            self.assertNotIn("{:02d}".format(frame), chunk)
 
     def test_iteration(self):
         """FrameChunk: Test iteration over an instance."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
-        frames = ["%04d" % x for x in xrange(1, 6)]
+        frames = ["{:04d}".format(x) for x in range(1, 6)]
 
         self.assertEqual(set(frames), set(chunk))
 
-        print "\n\n  INPUT FRAMES\n  ------------"
-        print " ", frames
+        print("\n\n  INPUT FRAMES\n  ------------")
+        print(" ", frames)
 
-        print "\n\n  ITERATION\n  ---------"
-        print "  o forward: ", ", ".join(x for x in chunk)
-        print "  o backward:", ", ".join(x for x in reversed(chunk))
+        print("\n\n  ITERATION\n  ---------")
+        print("  o forward: ", ", ".join(x for x in chunk))
+        print("  o backward:", ", ".join(x for x in reversed(chunk)))
 
         chunk = FrameChunk(first=1, last=20, step=2, pad=1)
-        frames = [str(x) for x in xrange(1, 21, 2)]
+        frames = [str(x) for x in range(1, 21, 2)]
 
         self.assertEqual(set(frames), set(chunk))
 
-        print "\n\n  INPUT FRAMES\n  ------------"
-        print " ", frames
+        print("\n\n  INPUT FRAMES\n  ------------")
+        print(" ", frames)
 
-        print "\n\n  ITERATION\n  ---------"
-        print "  o forward: ", ", ".join(x for x in chunk)
-        print "  o backward:", ", ".join(x for x in reversed(chunk))
+        print("\n\n  ITERATION\n  ---------")
+        print("  o forward: ", ", ".join(x for x in chunk))
+        print("  o backward:", ", ".join(x for x in reversed(chunk)))
 
     def test_inversion(self):
         """FrameChunk: Test frame inversion (ie, report missing frames)."""
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         expected = FrameChunk(first=2, last=10, step=2, pad=4)
 
-        print "\n\n  SEQUENCE\n  --------"
-        print "  input frames:   ", chunk
-        print "  expected frames:", expected
+        print("\n\n  SEQUENCE\n  --------")
+        print("  input frames:   ", chunk)
+        print("  expected frames:", expected)
         inverted = chunk.invert()
-        print "  returned frames:", inverted
+        print("  returned frames:", inverted)
 
         self.assertEqual(str(inverted), str(expected))
 
         chunk = FrameChunk(first=10, pad=4)
         expected = ""
 
-        print "\n  SINGLE FRAME\n  -----------"
-        print "  input frames:   ", chunk
-        print "  expected frames:", expected
+        print("\n  SINGLE FRAME\n  -----------")
+        print("  input frames:   ", chunk)
+        print("  expected frames:", expected)
         inverted = chunk.invert()
-        print "  returned frames:", inverted
-        print
+        print("  returned frames:", inverted)
+        print("")
 
         self.assertEqual(str(inverted), str(expected))
 

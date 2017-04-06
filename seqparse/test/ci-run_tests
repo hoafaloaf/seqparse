@@ -5,7 +5,7 @@ nosetests -v -s seqparse --with-xunit --all-modules --traverse-namespace \
 
 EXIT_STATUS=$?
 
-pylint -d I0011,R0204,R0801 seqparse \
+pylint -d I0011,R0204,R0801,W0622 seqparse \
   --msg-template='{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}]'
 
 exit ${EXIT_STATUS}
