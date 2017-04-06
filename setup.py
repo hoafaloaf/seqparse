@@ -12,8 +12,8 @@ if sys.version_info < (2, 7):
 
 
 def readme():
-    """Pass back the package's README.md."""
-    with open('README.md') as ff:
+    """Pass back the package's README.rst."""
+    with open('README.rst') as ff:
         return ff.read()
 
 
