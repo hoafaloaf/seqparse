@@ -15,7 +15,7 @@ from .sequences import FrameSequence
 # scandir module version.
 try:
     from os import scandir  # pylint: disable=W0611,C0412
-except ImportError:
+except ImportError:  # pragma: no cover
     from scandir import scandir  # pylint: disable=W0611,C0412
 
 __all__ = ("Seqparse", )
