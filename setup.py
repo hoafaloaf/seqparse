@@ -31,12 +31,14 @@ setup(
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
-    install_requires=['humanize', 'scandir;python_version<"3.5"', 'six'],
+    install_requires=[
+        'future', 'humanize', 'scandir;python_version<"3.5"', 'six'
+    ],
     keywords='command-line file sequence',
     license='MIT',
     packages=find_packages(exclude=['*test']),
     test_suite='nose.collector',
-    tests_require=['coverage', 'nose', 'pylint'],
+    tests_require=['coverage', 'mock', 'nose', 'pylint'],
     url='http://github.com/hoafaloaf/seqparse',
     version='0.6.1',
     zip_safe=False)
