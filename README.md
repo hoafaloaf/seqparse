@@ -187,14 +187,10 @@ documentation for details).
 
 ## Roadmap
 
-1. v0.6.0
-    1. ***DOCUMENT ALL THE THINGS!***
 1. v0.7.0
     1. Refactor `FrameSequence` and `FileSequence` classes to move all disk stat
     related code to the `FileSequence` class.
     1. Get around to setting up full coverage for the container classes.
-1. v0.8.0
-    1. Add full python 3.x compatibility.
 1. v1.0.0
     1. Release.
 
