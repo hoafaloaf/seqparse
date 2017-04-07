@@ -11,8 +11,8 @@ import time
 import unittest
 
 # Third Party Libraries
-from builtins import range
 import mock
+from builtins import range
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
@@ -198,7 +198,7 @@ class TestSeqls(unittest.TestCase):
             "36520  {fseq_date}  {root}/test.0001-0004,0006.py",
             "9436   {file_date}  {root}/pony.py"
         ]
-        expected = [x.format(**opts) for x in expected]
+        expected = [x.replace("/", os.sep).format(**opts) for x in expected]
 
         self.assertEqual(len(output), 2)
         self.assertEqual(output, expected)
@@ -209,7 +209,7 @@ class TestSeqls(unittest.TestCase):
             "35.7K  {fseq_date}  {root}/test.0001-0004,0006.py",
             "9.2K   {file_date}  {root}/pony.py"
         ]
-        expected = [x.format(**opts) for x in expected]
+        expected = [x.replace("/", os.sep).format(**opts) for x in expected]
 
         self.assertEqual(len(output), 2)
         self.assertEqual(output, expected)
@@ -221,7 +221,7 @@ class TestSeqls(unittest.TestCase):
         opts = dict(fseq_date=fseq_date, root=root_dir)
 
         expected = ["----  {fseq_date}  {root}/test.0005.py"]
-        expected = [x.format(**opts) for x in expected]
+        expected = [x.replace("/", os.sep).format(**opts) for x in expected]
 
         self.assertEqual(len(output), 1)
         self.assertEqual(output, expected)
