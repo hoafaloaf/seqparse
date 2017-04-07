@@ -33,10 +33,10 @@ Examples of proper frame sequences:
 # Standard Libraries
 import os
 
-from .seqparse import Seqparse
-from .sequences import FrameChunk, FrameSequence
+__all__ = ("get_parser", "get_sequence", "get_version", "invert",
+           "validate_frame_sequence")
 
-__all__ = ("get_parser", "get_sequence", "invert", "validate_frame_sequence")
+__version__ = "0.6.4b1"
 
 ###############################################################################
 # EXPORTED METHODS
@@ -54,6 +54,7 @@ def get_parser():
         >>> get_parser()
         Seqparse(sequences=0, singletons=0)
     """
+    from .seqparse import Seqparse
     return Seqparse()
 
 
@@ -79,6 +80,7 @@ def get_sequence(frames, pad=1):
         >>> get_sequence("0001-0005x2")
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
+    from .sequences import FrameSequence
     return FrameSequence(frames, pad=pad)
 
 
@@ -98,6 +100,21 @@ def get_stat_result(input_stat):
         from nt import stat_result  # pylint: disable=E0401
 
     return stat_result(input_stat)
+
+
+def get_version(pretty=False):
+    """
+    Report which version of seqparse you're using.
+
+    Args:
+        pretty (bool) Whether you'd like the super purty, long form version.
+
+    Returns:
+        str seqparse version.
+    """
+    if pretty:
+        return "seqls (seqparse-v{})".format(__version__)
+    return __version__
 
 
 def invert(iterable):
@@ -123,6 +140,8 @@ def invert(iterable):
         >>> print repr(inverted), str(inverted)
         FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
+    from .sequences import FrameChunk, FrameSequence
+
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
             "Only able to invert FrameChunk and FrameSequence instances.")
@@ -148,4 +167,5 @@ def validate_frame_sequence(frame_seq):
         >>> print validate_frame_sequence("0001-")
         None
     """
+    from .seqparse import Seqparse
     return Seqparse().validate_frame_sequence(frame_seq)

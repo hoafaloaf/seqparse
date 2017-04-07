@@ -1,7 +1,6 @@
 #!/bin/bash
 
-nosetests -v -s seqparse --with-xunit --all-modules --traverse-namespace \
-  --cover-erase --cover-html --with-coverage --cover-inclusive --with-id
+nosetests -v
 
 EXIT_STATUS=$?
 
