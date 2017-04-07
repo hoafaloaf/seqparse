@@ -2,7 +2,7 @@
 seqparse: A nifty way to list your file sequences.
 ==================================================
 
-|Build Status| |Coverage Status| |Code Health|
+|Build Status| |Coverage Status| |Code Health| |License|
 
 Overview
 --------
@@ -230,3 +230,4 @@ Lemme know if you have any requests/complaints/suggestions!
    :target: https://coveralls.io/github/hoafaloaf/seqparse
 .. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat
    :target: https://landscape.io/github/hoafaloaf/seqparse
+.. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg

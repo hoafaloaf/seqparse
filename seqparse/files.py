@@ -4,8 +4,6 @@
 import os
 from functools import total_ordering
 
-from posix import stat_result
-
 __all__ = ("File", )
 
 ###############################################################################
@@ -19,8 +17,8 @@ class File(object):
 
     Args:
         file_name (str): Full path to the input file.
-        stat (posix.stat_result, optional): Disk stats you'd like to cache for
-            the specified file.
+        stat (stat_result, optional): Disk stats you'd like to cache for the
+            specified file.
     """
 
     def __init__(self, file_name, stat=None):
@@ -94,14 +92,16 @@ class File(object):
         Cache file system stat data.
 
         Args:
-            input_stat (posix.stat_result): Value that you'd like to cache.
+            input_stat (stat_result): Value that you'd like to cache.
 
         Returns:
-            posix.stat_result that was successfully cached.
+            stat_result that was successfully cached.
         """
+        from . import get_stat_result
+
         self._stat = None
         if input_stat:
-            self._stat = stat_result(input_stat)
+            self._stat = get_stat_result(input_stat)
         return self._stat
 
     def _set_name(self, full_name):
@@ -133,7 +133,7 @@ class File(object):
         Returns:
             None if a frame has been specified but disk stats have not been
             cached.
-            posix.stat_result if a frame has been specified and disk stats have
+            stat_result if a frame has been specified and disk stats have
             been previously cached.
         """
         if force or (lazy and self._stat is None):
