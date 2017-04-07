@@ -20,7 +20,7 @@ class TestFiles(unittest.TestCase):
 
     _test_ext = "py"
     _test_name = "test"
-    _test_path = "/pretty/kitty"
+    _test_path = "/pretty/kitty".replace("/", os.sep)
 
     def setUp(self):
         """Set up the test instance."""

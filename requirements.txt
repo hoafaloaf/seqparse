@@ -1,0 +1,4 @@
+future
+humanize
+scandir ; python_version < '3.5'
+six

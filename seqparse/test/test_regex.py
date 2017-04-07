@@ -4,9 +4,11 @@
 from __future__ import print_function
 
 # Standard Libraries
+import os
 import unittest
 
 from ..regex import SeqparseRegexMixin
+
 
 ###############################################################################
 # class: TestRegex
@@ -59,8 +61,10 @@ class TestSeqparseModule(unittest.TestCase):
         good_names = [
             ("0001.exr", dict(name=None, frame="0001", ext="exr")),
             ("kitty.1.jpg", dict(name="kitty", frame="1", ext="jpg")), (
-                "/i/like/cats/kitty.0001.tif",
-                dict(name="/i/like/cats/kitty", frame="0001", ext="tif"))
+                "/i/like/cats/kitty.0001.tif".replace("/", os.sep), dict(
+                    name="/i/like/cats/kitty".replace("/", os.sep),
+                    frame="0001",
+                    ext="tif"))
         ]
         bad_names = ["kitty.0001", "1", ".111", "111.", ".22.tif"]
         bad_names.extend(self._singletons)
@@ -88,8 +92,10 @@ class TestSeqparseModule(unittest.TestCase):
         good_names = [
             ("0001-0011.exr", dict(name=None, frames="0001-0011", ext="exr")),
             ("kitty.1,3,9.jpg", dict(name="kitty", frames="1,3,9", ext="jpg")),
-            ("/i/like/cats/kitty.11,22-33.tif",
-             dict(name="/i/like/cats/kitty", frames="11,22-33", ext="tif"))
+            ("/i/like/cats/kitty.11,22-33.tif".replace("/", os.sep), dict(
+                name="/i/like/cats/kitty".replace("/", os.sep),
+                frames="11,22-33",
+                ext="tif"))
         ]
         bad_names = ["kitty.0001-0011", "1,3,9", ".111", "111.", ".22.tif"]
         bad_names.extend(self._singletons)

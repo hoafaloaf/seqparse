@@ -30,6 +30,9 @@ Examples of proper frame sequences:
     * Two-padded sequence (1, 3, 5, 7, 11, 13, 102): 01-07x2,11,13,102
 """
 
+# Standard Libraries
+import os
+
 from .seqparse import Seqparse
 from .sequences import FrameChunk, FrameSequence
 
@@ -77,6 +80,24 @@ def get_sequence(frames, pad=1):
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
     return FrameSequence(frames, pad=pad)
+
+
+def get_stat_result(input_stat):
+    """
+    Wrapper for os-specific stat_result instance.
+
+    Args:
+        input_stat (stat_result or stat_result): instance you'd like to clone.
+
+    Returns:
+        nt.stat_result or posix.stat_result, dependent on system platform.
+    """
+    if os.name == "posix":
+        from posix import stat_result  # pylint: disable=E0401
+    else:  # pragma: no cover
+        from nt import stat_result  # pylint: disable=E0401
+
+    return stat_result(input_stat)
 
 
 def invert(iterable):

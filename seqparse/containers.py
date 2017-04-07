@@ -6,8 +6,6 @@ import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering
 
-from posix import stat_result
-
 from .files import File
 from .sequences import FileSequence, FrameSequence
 
@@ -298,18 +296,20 @@ class SingletonContainer(MutableSet):
         """
         Cache file system stat data for the specified file base name.
 
-        Input disk stat value will be stored in a new posix.stat_result
+        Input disk stat value will be stored in a new stat_result
         instance.
 
         Args:
             base_name (str): Base name of the file for which the supplied disk
                 stats are being cached.
-            input_stat (posix.stat_result): Value that you'd like to cache.
+            input_stat (stat_result): Value that you'd like to cache.
 
         Returns:
-            posix.stat_result that was successfully cached.
+            stat_result that was successfully cached.
         """
-        self._stat[base_name] = stat_result(input_stat)
+        from . import get_stat_result
+
+        self._stat[base_name] = get_stat_result(input_stat)
         return self._stat[base_name]
 
     def output(self):
@@ -337,7 +337,7 @@ class SingletonContainer(MutableSet):
         Returns:
             None if a file has been specified but disk stats have not been
             cached.
-            posix.stat_result if a file has been specified and disk stats have
+            stat_result if a file has been specified and disk stats have
             been previously cached.
             dict of disk stats, indexed by str base name if no name has been
             specified.

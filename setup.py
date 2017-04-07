@@ -12,8 +12,8 @@ if sys.version_info < (2, 7):
 
 
 def readme():
-    """Pass back the package's README.md."""
-    with open('README.md') as ff:
+    """Pass back the package's README.rst."""
+    with open('README.rst') as ff:
         return ff.read()
 
 
@@ -32,7 +32,7 @@ setup(
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
-    download_url='https://github.com/hoafaloaf/seqparse/archive/v0.6.2.tar.gz',
+    download_url='https://github.com/hoafaloaf/seqparse/archive/v0.6.3.tar.gz',
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
@@ -45,5 +45,5 @@ setup(
     test_suite='nose.collector',
     tests_require=['coverage', 'mock', 'nose', 'pylint'],
     url='http://github.com/hoafaloaf/seqparse',
-    version='0.6.2',
+    version='0.6.3',
     zip_safe=False)

@@ -2,10 +2,11 @@
 
 # Standard Libraries
 import os
-from posix import stat_result
 
 # Third Party Libraries
 import six
+
+from .. import get_stat_result
 
 __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
            "mock_os_stat", "mock_scandir_deep")
@@ -14,28 +15,28 @@ MOCK_SCANDIR_DEEP_DATA = list()
 
 MOCK_SCANDIR_STAT_DATA = {
     'test.0001.py': [
-        33279, 12666373952092765, 14, 1, 0, 0, 7975, 1490908305,
-        1490908305, 1490908313
+        33279, 12666373952092765, 14, 1, 0, 0, 7975, 1490908305, 1490908305,
+        1490908313
     ],
     'test.0002.py': [
-        33279, 2814749767415947, 14, 1, 0, 0, 987, 1490908305,
-        1490908305, 1490908318
+        33279, 2814749767415947, 14, 1, 0, 0, 987, 1490908305, 1490908305,
+        1490908318
     ],
     'test.0003.py': [
-        33279, 2251799813994636, 14, 1, 0, 0, 2561, 1490908305,
-        1490908305, 1490908325
+        33279, 2251799813994636, 14, 1, 0, 0, 2561, 1490908305, 1490908305,
+        1490908325
     ],
     'test.0004.py': [
-        33279, 2251799813994637, 14, 1, 0, 0, 6487, 1490908305,
-        1490908305, 1490908333
+        33279, 2251799813994637, 14, 1, 0, 0, 6487, 1490908305, 1490908305,
+        1490908333
     ],
     'test.0006.py': [
-        33279, 2251799813994638, 14, 1, 0, 0, 18510, 1490908305,
-        1490908305, 1490908340
+        33279, 2251799813994638, 14, 1, 0, 0, 18510, 1490908305, 1490908305,
+        1490908340
     ],
     'pony.py': [
-        33279, 36028797019078328, 14, 1, 0, 0, 9436, 1490997828,
-        1490997828, 1490997828
+        33279, 36028797019078328, 14, 1, 0, 0, 9436, 1490997828, 1490997828,
+        1490997828
     ]
 }
 
@@ -69,7 +70,7 @@ class DirEntry(object):
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
             raise IOError("Mock'd file not found: {}".format(self.name))
-        return stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
+        return get_stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
 
 
 ###############################################################################
@@ -127,7 +128,7 @@ def initialise_mock_scandir_data(search_path):
 
 def mock_os_stat(file_name, follow_symlinks=False):  # pylint: disable=W0613
     """A mock'd version of os.stat for testing purposes."""
-    return stat_result(MOCK_SCANDIR_STAT_DATA[os.path.basename(file_name)])
+    return get_stat_result(MOCK_SCANDIR_STAT_DATA[os.path.basename(file_name)])
 
 
 def mock_scandir_deep(search_path="."):  # pylint: disable=W0613

@@ -15,6 +15,7 @@ from future.utils import lrange
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestFileSequences
 
@@ -24,7 +25,7 @@ class TestFileSequences(unittest.TestCase):
 
     _test_ext = "exr"
     _test_name = "cat"
-    _test_path = "/pretty/kitty"
+    _test_path = "/pretty/kitty".replace("/", os.sep)
 
     def setUp(self):
         """Set up the test instance."""
