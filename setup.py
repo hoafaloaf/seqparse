@@ -10,6 +10,9 @@ from setuptools import find_packages, setup
 if sys.version_info < (2, 7):
     sys.exit('Sorry, Python < 2.7 is not supported')
 
+VERSION = '0.6.3.1'
+DOWNLOAD_URL = 'https://github.com/hoafaloaf/seqparse/archive/v{ver}.tar.gz'
+
 
 def readme():
     """Pass back the package's README.rst."""
@@ -32,7 +35,7 @@ setup(
         'Topic :: Text Processing'
     ],
     description='A nifty way to parse your file sequences.',
-    download_url='https://github.com/hoafaloaf/seqparse/archive/v0.6.3.tar.gz',
+    download_url=DOWNLOAD_URL.format(ver=VERSION),
     entry_points={
         'console_scripts': ['seqls = seqparse.cli.seqls:_entry_point']
     },
@@ -45,5 +48,5 @@ setup(
     test_suite='nose.collector',
     tests_require=['coverage', 'mock', 'nose', 'pylint'],
     url='http://github.com/hoafaloaf/seqparse',
-    version='0.6.3',
+    version=VERSION,
     zip_safe=False)
