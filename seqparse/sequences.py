@@ -9,8 +9,6 @@ from collections import MutableSet
 import six
 from builtins import range
 
-from posix import stat_result
-
 from .regex import SeqparseRegexMixin
 
 __all__ = ("FileSequence", "FrameSequence", "SeqparsePadException")
@@ -436,19 +434,21 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """
         Cache file system stat data for the specified frame.
 
-        Input disk stat value will be stored in a new posix.stat_result
+        Input disk stat value will be stored in a new stat_result
         instance.
 
         Args:
             frame (int): Frame for which you'd like to cache the supplied stat
                 data.
-            input_stat (posix.stat_result): Value that you'd like to cache.
+            input_stat (stat_result): Value that you'd like to cache.
 
         Returns:
-            posix.stat_result that was successfully cached.
+            stat_result that was successfully cached.
         """
+        from . import get_stat_result
+
         frame = int(frame)
-        self._attrs["stat"][frame] = stat_result(input_stat)
+        self._attrs["stat"][frame] = get_stat_result(input_stat)
         return self._attrs["stat"][frame]
 
     def calculate(self, force=False):
@@ -555,7 +555,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         Returns:
             None if a frame has been specified but disk stats have not been
             cached.
-            posix.stat_result if a frame has been specified and disk stats have
+            stat_result if a frame has been specified and disk stats have
             been previously cached.
             dict of disk stats, indexed by int frame if no frame has been
             specified.
@@ -797,7 +797,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             None if a frame has been specified but disk stats have not been
             cached.
-            posix.stat_result if a frame has been specified and disk stats have
+            stat_result if a frame has been specified and disk stats have
             been previously cached.
             dict of disk stats, indexed by int frame if no frame has been
             specified.
