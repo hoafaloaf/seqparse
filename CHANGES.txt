@@ -1,3 +1,11 @@
+v0.6.3 (2017/04/07)
+-------------------
+
+Changes (from v0.6.2)
+
+* Miscellaneous updates in preparation for pypi release.
+
+
 v0.6.2 (2017/04/06)
 -------------------
 
