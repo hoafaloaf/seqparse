@@ -8,13 +8,14 @@ import os
 import unittest
 
 # Third Party Libraries
+import mock
 from builtins import range
 from future.utils import lrange
-import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
-from .. import get_parser, get_sequence, invert, validate_frame_sequence
+from .. import (__version__, get_parser, get_sequence, get_version, invert,
+                validate_frame_sequence)
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
 ###############################################################################
@@ -119,7 +120,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     @mock.patch("seqparse.seqparse.scandir")
     def test_simple_sequence(self, mock_api_call):
-        """Seqparse: Test simple file sequence discoveryn."""
+        """Seqparse: Test simple file sequence discovery."""
         frames = {4: [0, 1, 2, 3, 4]}
 
         # Expected outputs ...
@@ -483,3 +484,5 @@ class TestSeqparseModule(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             invert(get_parser())
+
+        self.assertEqual(get_version(), __version__)

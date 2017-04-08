@@ -18,16 +18,24 @@ from argparse import ArgumentParser
 # Third Party Libraries
 import humanize
 
-from .. import get_parser
+from .. import get_parser, get_version
 
 
-def _entry_point():  # pragma: no cover
+def run_main():  # pragma: no cover
     """Main entry point into the script."""
     main(parse_args(sys.argv[1:]))
 
 
 def main(args, _debug=False):
     """Wrap and initialise the Seqparse class."""
+    if args.version:
+        # Print the version and exit.
+        if _debug:
+            return get_version(pretty=True)
+        else:  # pragma: no cover
+            print(get_version(pretty=True))
+            return
+
     if args.max_levels[0] != -1:
         args.max_levels[0] = max(args.max_levels[0], 0)
     if args.min_levels[0] != -1:
@@ -153,6 +161,12 @@ def parse_args(args):
         dest="seqs_only",
         help="Whether to filter out all non-sequence files.")
 
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        help="Print the version and exit.")
+
     # Parse the arguments.
     parsed_args = parser.parse_args(args)
 
@@ -165,5 +179,5 @@ def parse_args(args):
 
 
 if __name__ == "__main__":
-    _entry_point()
+    run_main()
     sys.exit(0)

@@ -16,8 +16,10 @@ from builtins import range
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
+from .. import get_version
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
+
 
 ###############################################################################
 # class: TestFrameSequences
@@ -45,7 +47,8 @@ class TestSeqls(unittest.TestCase):
             min_levels=[-1],
             missing=False,
             search_path=["."],
-            seqs_only=False)
+            seqs_only=False,
+            version=False)
         args = vars(seqls.parse_args([]))
         self.assertEqual(args, defaults)
 
@@ -74,6 +77,10 @@ class TestSeqls(unittest.TestCase):
     def test_seqls_with_arguments(self, mock_api_call):
         """Seqls: Test seqls with supplied arguments."""
         mock_api_call.side_effect = mock_scandir_deep
+
+        args = seqls.parse_args(["--version"])
+        version = seqls.main(args, _debug=True)
+        self.assertEqual(version, get_version(pretty=True))
 
         print("\n  SEQUENCES\n  ---------")
         initialise_mock_scandir_data(
