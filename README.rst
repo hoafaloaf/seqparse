@@ -2,7 +2,7 @@
 seqparse: A nifty way to list your file sequences.
 ==================================================
 
-|Build Status| |Coverage Status| |Code Health| |License|
+|Pypi Package| |Build Status| |Coverage Status| |Code Health| |License|
 
 Overview
 --------
@@ -231,3 +231,5 @@ Lemme know if you have any requests/complaints/suggestions!
 .. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat
    :target: https://landscape.io/github/hoafaloaf/seqparse
 .. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
+.. |PyPi Package| image:: https://badge.fury.io/py/seqparse.svg
+   :target: https://badge.fury.io/py/seqparse
