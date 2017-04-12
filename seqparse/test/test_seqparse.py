@@ -112,11 +112,11 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertTrue(4 in file_seq[self._test_ext])
         self.assertEqual(len(file_seq[self._test_ext]), 1)
 
-        # And finally, the frame sequence.
-        frame_seq = file_seq[self._test_ext][4]
+        # And finally, the file sequence.
+        file_seq = file_seq[self._test_ext][4]
 
-        self.assertEqual(len(frame_seq), len(frames[4]))
-        self.assertEqual(str(frame_seq), frame_seq_output)
+        self.assertEqual(len(file_seq), len(frames[4]))
+        self.assertEqual(str(file_seq), final_output)
 
     @mock.patch("seqparse.seqparse.scandir")
     def test_simple_sequence(self, mock_api_call):
@@ -165,11 +165,11 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertTrue(4 in file_seq[self._test_ext])
         self.assertEqual(len(file_seq[self._test_ext]), 1)
 
-        # And finally, the frame sequence.
-        frame_seq = file_seq[self._test_ext][4]
+        # And finally, the file sequence.
+        file_seq = file_seq[self._test_ext][4]
 
-        self.assertEqual(len(frame_seq), len(frames[4]))
-        self.assertEqual(str(frame_seq), frame_seq_output)
+        self.assertEqual(len(file_seq), len(frames[4]))
+        self.assertEqual(str(file_seq), final_output)
 
     @mock.patch("seqparse.seqparse.scandir")
     def test_complex_sequence(self, mock_api_call):
@@ -207,7 +207,8 @@ class TestSeqparseModule(unittest.TestCase):
         final_output = list()
         for pad, seq_frames in sorted(output_seqs.items()):
             bits = (self._test_file_name, seq_frames, self._test_ext)
-            final_output.append(os.path.join(self._test_root, ".".join(bits)))
+            output_seqs[pad] = os.path.join(self._test_root, ".".join(bits))
+            final_output.append(output_seqs[pad])
 
         data = parser.sequences
 
@@ -228,7 +229,7 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(len(file_seq), 1)
         self.assertEqual(set(file_seq[self._test_ext]), set(output_seqs))
 
-        # And finally, the frame sequences.
+        # And finally, the file sequences.
         for pad in sorted(output_seqs):
             self.assertEqual(output_seqs[pad],
                              str(file_seq[self._test_ext][pad]))

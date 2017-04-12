@@ -1,7 +1,6 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
 # Standard Libraries
-import copy
 import os
 from collections import MutableSet
 
@@ -601,10 +600,10 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         self._cache = dict(ctime=None, mtime=None, size=None)
         self._info = dict(ext=None, full=None, name=None, path=None)
 
-        if name:
-            name_bits = self.file_seq_match(name)
-            if name_bits:
-                name, frames, ext = name_bits
+        if name and isinstance(name, six.string_types):
+            file_seq_bits = self.file_seq_match(name)
+            if file_seq_bits:
+                name, frames, ext = file_seq_bits
                 pad = None
 
         if frames is None:

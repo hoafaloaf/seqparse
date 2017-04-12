@@ -7,7 +7,7 @@ from collections import MutableMapping, MutableSet
 from functools import total_ordering
 
 from .files import File
-from .sequences import FileSequence, FrameSequence
+from .sequences import FileSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -22,16 +22,20 @@ class FileExtension(MutableMapping):
     Args:
         name (str, optional): The file extension used by the contents of the
             container (ie, "exr", "tif").
+        parent (FileSequenceContainer, optional): The container from which this
+            instance was spawned.
     """
 
-    _CHILD_CLASS = FrameSequence
+    _CHILD_CLASS = FileSequence
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, parent=None):
         """Initialise the instance."""
         self._data = dict()
         self._name = None
+        self._parent = None
 
         self.name = name
+        self.parent = parent
 
     def __delitem__(self, key):
         """Define key deletion logic (per standard dictionary)."""
@@ -40,7 +44,10 @@ class FileExtension(MutableMapping):
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
-            self._data[key] = self._CHILD_CLASS(pad=key)
+            opts = dict(ext=self.name, pad=key)
+            if self.parent:
+                opts.update(name=self.parent.full_name)
+            self._data[key] = self._CHILD_CLASS(**opts)
         return self._data[key]
 
     def __iter__(self):
@@ -75,6 +82,17 @@ class FileExtension(MutableMapping):
         self._name = None
         if val:
             self._name = str(val)
+
+    @property
+    def parent(self):
+        """FileSequenceContainer: parent of the instance."""
+        return self._parent
+
+    @parent.setter
+    def parent(self, val):
+        self._parent = None
+        if isinstance(val, FileSequenceContainer):
+            self._parent = val
 
     def output(self):
         """
@@ -143,7 +161,7 @@ class FileSequenceContainer(MutableMapping):
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
-            self._data[key] = self._CHILD_CLASS(name=key)
+            self._data[key] = self._CHILD_CLASS(name=key, parent=self)
 
         return self._data[key]
 
@@ -216,10 +234,8 @@ class FileSequenceContainer(MutableMapping):
             FileSequence, sorted (in order) by file path, extension, and zero-
                 padding length.
         """
-        for ext, data in sorted(self.items()):
-            for frame_seq in data.output():
-                file_seq = FileSequence(
-                    self.full_name, frames=frame_seq, ext=ext)
+        for data in sorted(self.values()):
+            for file_seq in data.output():
                 yield file_seq
 
 
