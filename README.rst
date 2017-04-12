@@ -207,8 +207,8 @@ Roadmap
 
 1. v0.7.0
 
-   1. Refactor ``FrameSequence`` and ``FileSequence`` classes to move
-      all disk stat related code to the ``FileSequence`` class.
+   1. Figure out what's borked after the stat-related logic move to the
+      `FileSequence` class.
    2. Get around to setting up full coverage for the container classes.
 
 2. v1.0.0
@@ -228,7 +228,7 @@ Lemme know if you have any requests/complaints/suggestions!
    :target: https://travis-ci.org/hoafaloaf/seqparse
 .. |Coverage Status| image:: https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg
    :target: https://coveralls.io/github/hoafaloaf/seqparse
-.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat
+.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/master/landscape.svg?style=flat
    :target: https://landscape.io/github/hoafaloaf/seqparse
 .. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
 .. |PyPi Package| image:: https://badge.fury.io/py/seqparse.svg
