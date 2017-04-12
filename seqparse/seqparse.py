@@ -143,11 +143,14 @@ class Seqparse(SeqparseRegexMixin):
             ext = sequence[file_ext]
             ext[pad].add(frames)
 
-            # "entry" *should* only ever be defined if it was passed in via the
-            # scan_path method.
-            if entry and self.scan_options["stat"]:
-                ext[pad].cache_stat(
-                    int(frames), entry.stat(follow_symlinks=True))
+            if self.scan_options["stat"]:
+                # "entry" *should* only ever be defined if it was passed in via
+                # the scan_path method.
+                if entry:
+                    stat = entry.stat(follow_symlinks=True)
+                else:
+                    stat = os.stat(file_name)
+                ext[pad].cache_stat(int(frames), stat)
 
         else:
             dir_name, base_name = os.path.split(file_name)
@@ -160,9 +163,12 @@ class Seqparse(SeqparseRegexMixin):
                 singletons.path = dir_name
 
             singletons.add(base_name)
-            if entry and self.scan_options["stat"]:
-                singletons.cache_stat(
-                    base_name, entry.stat(follow_symlinks=True))
+            if self.scan_options["stat"]:
+                if entry:
+                    stat = entry.stat(follow_symlinks=True)
+                else:
+                    stat = os.stat(file_name)
+                singletons.cache_stat(base_name, stat)
 
     def output(self, missing=False, seqs_only=False):
         """
@@ -196,12 +202,12 @@ class Seqparse(SeqparseRegexMixin):
             for file_name in sorted(data["files"].output()):
                 yield file_name
 
-    def scan_path(self, search_path, max_levels=-1, min_levels=-1):
+    def scan_path(self, search_paths, max_levels=-1, min_levels=-1):
         """
         Scan supplied path, add all discovered files to the instance.
 
         Args:
-            search_path (str): The location on disk you'd like to scan for
+            search_paths (str): The location(s) on disk you'd like to scan for
                 file sequences and singletons.
             max_levels (int, optional): Descend at most the specified number (a
                 non- negative integer) of directories below the starting point.
@@ -213,8 +219,16 @@ class Seqparse(SeqparseRegexMixin):
         Returns:
             None
         """
-        search_path = search_path.rstrip(os.path.sep)
-        search_seps = search_path.count(os.path.sep)
+        if isinstance(search_paths, (list, set, tuple)):
+            for search_path in search_paths:
+                self.scan_path(search_path, max_levels=-1, min_levels=-1)
+            return
+        if os.path.isfile(search_paths):
+            self.add_file(search_paths)
+            return
+
+        search_path = search_paths.rstrip(os.path.sep)
+        search_seps = search_paths.count(os.path.sep)
 
         for root, dir_entries, file_entries in self._scandir_walk(search_path):
             # Cheap and easy way to limit our search depth: count path

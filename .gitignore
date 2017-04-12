@@ -5,10 +5,11 @@
 .project
 .pydevproject
 .metadata.xml
-/*.egg-info
-/*.egg
+/*.egg-info/
+/*.eggs/
 /*.xml
 /.coverage
+/.eggs
 /.noseids
 /pylint.out
 /build/
