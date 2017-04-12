@@ -93,6 +93,7 @@ seqls
       -m, --missing         Whether to invert output file sequences to only report
                             the missing frames.
       -S, --seqs-only       Whether to filter out all non-sequence files.
+      -v, --version         Print the version and exit.
 
 Most of the functionality is self-explanatory, but the ``-m/--missing``
 option is probably the most useful to users generating large sequences
@@ -207,9 +208,7 @@ Roadmap
 
 1. v0.7.0
 
-   1. Figure out what's borked after the stat-related logic move to the
-      `FileSequence` class.
-   2. Get around to setting up full coverage for the container classes.
+   1. Get around to setting up full coverage for the container classes.
 
 2. v1.0.0
 

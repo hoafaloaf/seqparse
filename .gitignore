@@ -6,7 +6,6 @@
 .pydevproject
 .metadata.xml
 /*.egg-info/
-/*.eggs/
 /*.xml
 /.coverage
 /.eggs
