@@ -163,9 +163,12 @@ class Seqparse(SeqparseRegexMixin):
                 singletons.path = dir_name
 
             singletons.add(base_name)
-            if entry and self.scan_options["stat"]:
-                singletons.cache_stat(
-                    base_name, entry.stat(follow_symlinks=True))
+            if self.scan_options["stat"]:
+                if entry:
+                    stat = entry.stat(follow_symlinks=True)
+                else:
+                    stat = os.stat(file_name)
+                singletons.cache_stat(base_name, stat)
 
     def output(self, missing=False, seqs_only=False):
         """
