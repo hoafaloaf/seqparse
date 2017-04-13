@@ -209,6 +209,8 @@ Roadmap
 1. v0.7.0
 
    1. Get around to setting up full coverage for the container classes.
+   2. Add flag to Seqparse so that it knows when it's supposed to test if files
+      actually exist (ie, when it's launched from seqls).
 
 2. v1.0.0
 

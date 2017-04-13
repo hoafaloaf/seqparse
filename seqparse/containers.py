@@ -153,7 +153,12 @@ class FileSequenceContainer(MutableMapping):
         del self._data[key]
 
     def __eq__(self, other):
-        """Define equality between instances."""
+        """
+        Define equality between instances.
+
+        NOTE: Equality is solely based upon comparison of the "full_name"
+        property and is only used for output sorting.
+        """
         if type(other) is type(self):
             return self.full_name == other.full_name
         return False
@@ -162,7 +167,6 @@ class FileSequenceContainer(MutableMapping):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
             self._data[key] = self._CHILD_CLASS(name=key, parent=self)
-
         return self._data[key]
 
     def __iter__(self):
@@ -174,7 +178,12 @@ class FileSequenceContainer(MutableMapping):
         return len(self._data)
 
     def __lt__(self, other):
-        """Define equality between instances."""
+        """
+        Define whether one instance may be sorted below another.
+
+        NOTE: Equality is solely based upon comparison of the "full_name"
+        property and is only used for output sorting.
+        """
         if type(other) is type(self):
             return self.full_name < other.full_name
         return True
@@ -189,13 +198,19 @@ class FileSequenceContainer(MutableMapping):
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
-        if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
-
         if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
+            blurb = 'Container may only hold "{}" instances ("{}" provided)'
+            raise ValueError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
+
+        elif key != value.name:
+            blurb = ("Key value must match extension name of provided value "
+                     "({!r} != {!r})")
+            raise ValueError(blurb.format(key, value.name))
 
         self._data[key] = value
+        # Overriding child container's name to match!
+        value.name = self.full_name
 
     @property
     def full_name(self):
@@ -284,7 +299,7 @@ class SingletonContainer(MutableSet):
 
     def __str__(self):
         """String reprentation of the singleton files."""
-        return "\n".join(list(self.output()))
+        return "\n".join(list(map(str, self.output())))
 
     @property
     def path(self):
