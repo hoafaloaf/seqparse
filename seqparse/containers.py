@@ -60,15 +60,22 @@ class FileExtension(MutableMapping):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{name}(pads={pads})"
-        return blurb.format(name=type(self).__name__, pads=sorted(self))
+        blurb = "{cls}(name={name!r}, pads={pads})"
+        return blurb.format(
+            cls=type(self).__name__, name=self.name, pads=sorted(self))
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
+            opts = dict(ext=self.name, frames=value, pad=key)
+            if self.parent:
+                opts.update(name=self.parent.full_name)
+            value = self._CHILD_CLASS(**opts)
+
+        if not isinstance(value, self._CHILD_CLASS):
+            blurb = 'Container may only hold "{}" instances ("{}" provided)'
+            raise ValueError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
 
         self._data[key] = value
 
@@ -101,19 +108,16 @@ class FileExtension(MutableMapping):
         Yields:
             FrameSequence, sorted by zero-pad length.
         """
-        # First, check to see if we need to consolidate our frame sequences.
+        # First, check to see if we need to consolidate our file sequences.
         data = sorted(list(self.items()), reverse=True)
         while len(data) > 1:
-            pad, frames = data.pop(0)
+            pad, fseq = data.pop(0)
 
             # NOTE: the is_padded() method will force recalculation if the
             # object is dirty.
-            if not frames.is_padded:
-                prev_frames = data[0][1]
-                prev_frames.update(frames)
-                # Copying in the current pad's file stats (if any).
-                prev_frames.stat.update(copy.deepcopy(self[pad].stat))
-
+            if not fseq.is_padded:
+                prev_fseq = data[0][1]
+                prev_fseq.update(fseq)
                 del self[pad]
 
         for pad in sorted(self):
@@ -198,7 +202,7 @@ class FileSequenceContainer(MutableMapping):
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
+        if not isinstance(value, self._CHILD_CLASS):
             blurb = 'Container may only hold "{}" instances ("{}" provided)'
             raise ValueError(
                 blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
