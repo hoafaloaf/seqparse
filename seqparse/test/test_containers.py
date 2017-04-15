@@ -19,6 +19,7 @@ from .. import (__version__, get_parser, get_sequence, get_version, invert,
 from ..containers import FileExtension
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestFileSequenceContainer
 
@@ -244,18 +245,61 @@ class TestFileExtension(unittest.TestCase):
     def test_membership(self, fake_isfile):
         """FileExtension: Test membership setting, deletion."""
         fake_isfile.return_value = True
-        '''
-        frames = [1, 2, 3, 10, 11, 12, 100, 101, 102]
+        frames1 = [1, 2, 3, 10, 11, 12, 100, 101, 102]
         full_name = os.path.join(self._test_root, self._test_file_name1)
 
         parser = get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq = FileSequence(
-            ext=self._test_ext, frames=frames, name=full_name)
-        parser.scan_path(list(map(str, input_seq)))
-        container = parser.sequences[input_seq.path][input_seq.name]
+        input_seq1 = FileSequence(
+            ext=self._test_ext, frames=frames1, name=full_name)
+        parser.scan_path(list(map(str, input_seq1)))
+        container = parser.sequences[input_seq1.path][input_seq1.name]
 
         file_ext = container[self._test_ext]
-        print(map(str, file_ext.output()))
-        '''
+
+        # Test __setitem__, __delitem__ ...
+        frames4 = lrange(1000, 1003)
+        input_seq4 = FileSequence(
+            ext=self._test_ext, frames=frames4, name=full_name)
+
+        for test_input in (frames4, input_seq4):
+            raised = False
+            blurb = ""
+            try:
+                file_ext[4] = test_input
+                del file_ext[4]
+            except KeyError:
+                raised = False
+                blurb = "Unable to delete specified value: {!r}"
+            except ValueError:
+                raised = False
+                blurb = "Unable to set specified value: {!r}"
+
+            self.assertFalse(raised, blurb.format(test_input))
+
+        with self.assertRaises(KeyError):
+            del file_ext[4]
+
+        with self.assertRaises(ValueError):
+            file_ext[4] = str(input_seq4)
+
+    @mock.patch("seqparse.seqparse.os.path.isfile")
+    def test_output(self, fake_isfile):
+        """FileExtension: Verify sequence output."""
+        fake_isfile.return_value = True
+        frames1 = [1, 2, 3, 10, 11, 12, 100, 101, 102]
+        full_name = os.path.join(self._test_root, self._test_file_name1)
+
+        parser = get_parser()
+
+        # Add in the source FileSequence files one-by-one.
+        input_seq1 = FileSequence(
+            ext=self._test_ext, frames=frames1, name=full_name)
+        parser.scan_path(list(map(str, input_seq1)))
+        container = parser.sequences[input_seq1.path][input_seq1.name]
+
+        file_ext = container[self._test_ext]
+        output = "\n".join(map(str, file_ext.output()))
+
+        self.assertEqual(output, str(input_seq1))
