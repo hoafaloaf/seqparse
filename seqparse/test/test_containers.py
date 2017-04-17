@@ -16,8 +16,86 @@ from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
 from .. import (__version__, get_parser, get_sequence, get_version, invert,
                 validate_frame_sequence)
-from ..containers import FileExtension
+from ..containers import FileExtension, SingletonContainer
 from ..sequences import FileSequence, FrameChunk, FrameSequence
+
+###############################################################################
+# class: TestSingletonContainer
+
+
+class TestSingletonContainer(unittest.TestCase):
+    """Test the SingletonContainer class used by the Seqparse module."""
+
+    _test_root = "/pretty/kitty".replace("/", os.sep)
+    _singletons = ["singleton0.jpg", "singleton1.jpg"]
+
+    def setUp(self):
+        """Set up the test case."""
+
+    @mock.patch("seqparse.seqparse.os.path.isfile")
+    def test_properties(self, fake_isfile):
+        """SingletonContainer: Test class properties."""
+        fake_isfile.return_value = True
+
+        parser = get_parser()
+
+        # Add in the source files one-by-one.
+        for file_name in self._singletons:
+            parser.add_file(os.path.join(self._test_root, file_name))
+
+        container = parser.singletons[self._test_root]
+        self.assertEqual(self._test_root, container.path)
+
+    @mock.patch("seqparse.seqparse.os.path.isfile")
+    def test_membership(self, fake_isfile):
+        """SingletonContainer: Test class properties."""
+        fake_isfile.return_value = True
+
+        parser = get_parser()
+
+        # Add in the source files one-by-one.
+        for file_name in self._singletons:
+            parser.add_file(os.path.join(self._test_root, file_name))
+
+        container = parser.singletons[self._test_root]
+
+        for file_name in self._singletons:
+            self.assertIn(file_name, container)
+
+        self.assertEqual(len(container), len(self._singletons))
+
+        container.discard(self._singletons[0])
+        self.assertNotIn(self._singletons[0], container)
+        self.assertEqual(len(container), len(self._singletons) - 1)
+
+        container.update([self._singletons[0]])
+        self.assertEqual(len(container), len(self._singletons))
+
+        file_names = set(container)
+        self.assertEqual(file_names, set(self._singletons))
+
+    def test_initialisation(self):
+        """SingletonContainer: Test class initialisation."""
+        container = SingletonContainer()
+        self.assertEqual(len(container), 0)
+        self.assertEqual(container.path, "")
+
+        container = SingletonContainer(self._singletons, self._test_root)
+        self.assertEqual(len(container), len(self._singletons))
+        self.assertEqual(container.path, self._test_root)
+
+    def test_output(self):
+        """SingletonContainer: Test output method."""
+        file_names = [
+            os.path.join(self._test_root, x) for x in sorted(self._singletons)
+        ]
+
+        container = SingletonContainer(self._singletons, self._test_root)
+        self.assertEqual("\n".join(file_names), str(container))
+
+        output = [str(x) for x in container.output()]
+        self.assertEqual("\n".join(file_names), str(container))
+        self.assertEqual("\n".join(file_names), "\n".join(output))
 
 
 ###############################################################################
@@ -31,7 +109,6 @@ class TestFileSequenceContainer(unittest.TestCase):
     _test_file_name1 = "kitty"
     _test_file_name2 = "cat"
     _test_root = "/pretty/kitty".replace("/", os.sep)
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
 
     def setUp(self):
         """Set up the test case."""
@@ -149,7 +226,6 @@ class TestFileExtension(unittest.TestCase):
     _test_file_name1 = "kitty"
     _test_file_name2 = "cat"
     _test_root = "/pretty/kitty".replace("/", os.sep)
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
 
     def setUp(self):
         """Set up the test case."""
