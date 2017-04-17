@@ -97,6 +97,23 @@ class TestSingletonContainer(unittest.TestCase):
         self.assertEqual("\n".join(file_names), str(container))
         self.assertEqual("\n".join(file_names), "\n".join(output))
 
+    @mock.patch("seqparse.seqparse.scandir")
+    def test_stats(self, mock_api_call):
+        """SingletonContainer: Test disk stat functionality."""
+        input_entries = [DirEntry(os.path.join(self._test_root, "pony.py"))]
+
+        mock_api_call.return_value = input_entries
+
+        parser = get_parser()
+        parser.scan_options["stat"] = True
+        parser.scan_path(self._test_root)
+        output = list(parser.output())
+        expected = [os.path.join(self._test_root, "pony.py")]
+
+        container = parser.singletons[self._test_root]
+        self.assertEqual(container.stat("pony.py").st_size, 9436)
+        self.assertEqual(container.stat()["pony.py"].st_size, 9436)
+
 
 ###############################################################################
 # class: TestFileSequenceContainer
