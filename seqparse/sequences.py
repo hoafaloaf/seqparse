@@ -579,10 +579,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     """
     Representative for sequences of files.
 
-    Although you may initialise an instance without specifying pretty much
-    anything, in order output a valid file sequence you'll need to specify at
-    least one frame and a file extension (base name is optional in every sense
-    of the word).
+    You may create a new instance of this class a couple of ways:
+
+    1. Either clone a new instance from an existing one ...
+
+        >>> clone = FileSequence(parent)
+
+    2. ... or create a valid instance by providing a file extension and at
+       least one frame (the base name is optional in every sense of the word):
+
+       >>> fseq = FileSequence(frames="0001", ext="exr")
 
     Args:
         name (str, optional): Base name (including containing directory) for
@@ -600,11 +606,15 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         self._cache = dict(ctime=None, mtime=None, size=None)
         self._info = dict(ext=None, full=None, name=None, path=None)
 
-        if name and isinstance(name, six.string_types):
-            file_seq_bits = self.file_seq_match(name)
-            if file_seq_bits:
-                name, frames, ext = file_seq_bits
-                pad = None
+        if name:
+            if isinstance(name, FileSequence):
+                name, frames, ext, pad = (name.full_name, name.pretty_frames,
+                                          name.ext, name.pad)
+            elif isinstance(name, six.string_types):
+                file_seq_bits = self.file_seq_match(name)
+                if file_seq_bits:
+                    name, frames, ext = file_seq_bits
+                    pad = None
 
         if frames is None:
             frames = list()
@@ -672,6 +682,17 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             self._info["ext"] = str(val)
 
     @property
+    def frames(self):
+        """iterator(str): the file sequence's padded frames."""
+        for frame in super(FileSequence, self).__iter__():
+            yield frame
+
+    @property
+    def pretty_frames(self):
+        """str: pretty representation of the file sequence's print frames."""
+        return super(FileSequence, self).__str__()
+
+    @property
     def full_name(self):
         """str: Full name of the sequence, including containing directory."""
         return self._info["full"]
@@ -728,18 +749,6 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         self._info["full"] = os.path.join(val or "", self._info["name"] or "")
 
-    def invert(self):
-        """
-        Calculate file names missing from the sequence.
-
-        Returns:
-            FileSequence containing the missing files (if any).
-        """
-        frames = super(FileSequence, self).invert()
-        inverted = FileSequence(
-            name=self.full_name, frames=frames, ext=self.ext)
-        return inverted
-
     @property
     def size(self):
         """
@@ -749,6 +758,26 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         """
         self.calculate()
         return self._cache["size"]
+
+    def update(self, other):
+        """Defining item update logic (per standard set)."""
+        if isinstance(other, FileSequence):
+            for attr in ("ext", "full_name"):
+                other_value = getattr(other, attr)
+                self_value = getattr(self, attr)
+                if other_value != self_value:
+                    blurb = ("Attribute mismatch on supplied FileSequence "
+                             "instance ({}): self:{!r} != other:{!r}")
+                    raise ValueError(
+                        blurb.format(attr, self_value, other_value))
+
+            other = other.frames
+            '''
+            self.stat().update(other.stat())
+            '''
+
+        for item in other:
+            self.add(item)
 
     def calculate(self, force=False):
         """
@@ -771,6 +800,18 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         # Cache disk stats for easy/quick access via property ...
         self._aggregate_stats()
+
+    def invert(self):
+        """
+        Calculate file names missing from the sequence.
+
+        Returns:
+            FileSequence containing the missing files (if any).
+        """
+        frames = super(FileSequence, self).invert()
+        inverted = FileSequence(
+            name=self.full_name, frames=frames, ext=self.ext)
+        return inverted
 
     # pylint: disable=W0221
     def stat(self, frame=None, follow_symlinks=False, force=False, lazy=False):

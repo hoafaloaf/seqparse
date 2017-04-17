@@ -60,15 +60,22 @@ class FileExtension(MutableMapping):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{name}(pads={pads})"
-        return blurb.format(name=type(self).__name__, pads=sorted(self))
+        blurb = "{cls}(name={name!r}, pads={pads})"
+        return blurb.format(
+            cls=type(self).__name__, name=self.name, pads=sorted(self))
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
+            opts = dict(ext=self.name, frames=value, pad=key)
+            if self.parent:
+                opts.update(name=self.parent.full_name)
+            value = self._CHILD_CLASS(**opts)
+
+        if not isinstance(value, self._CHILD_CLASS):
+            blurb = 'Container may only hold "{}" instances ("{}" provided)'
+            raise ValueError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
 
         self._data[key] = value
 
@@ -101,19 +108,16 @@ class FileExtension(MutableMapping):
         Yields:
             FrameSequence, sorted by zero-pad length.
         """
-        # First, check to see if we need to consolidate our frame sequences.
+        # First, check to see if we need to consolidate our file sequences.
         data = sorted(list(self.items()), reverse=True)
         while len(data) > 1:
-            pad, frames = data.pop(0)
+            pad, fseq = data.pop(0)
 
             # NOTE: the is_padded() method will force recalculation if the
             # object is dirty.
-            if not frames.is_padded:
-                prev_frames = data[0][1]
-                prev_frames.update(frames)
-                # Copying in the current pad's file stats (if any).
-                prev_frames.stat.update(copy.deepcopy(self[pad].stat))
-
+            if not fseq.is_padded:
+                prev_fseq = data[0][1]
+                prev_fseq.update(fseq)
                 del self[pad]
 
         for pad in sorted(self):
@@ -153,7 +157,12 @@ class FileSequenceContainer(MutableMapping):
         del self._data[key]
 
     def __eq__(self, other):
-        """Define equality between instances."""
+        """
+        Define equality between instances.
+
+        NOTE: Equality is solely based upon comparison of the "full_name"
+        property and is only used for output sorting.
+        """
         if type(other) is type(self):
             return self.full_name == other.full_name
         return False
@@ -162,7 +171,6 @@ class FileSequenceContainer(MutableMapping):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
             self._data[key] = self._CHILD_CLASS(name=key, parent=self)
-
         return self._data[key]
 
     def __iter__(self):
@@ -174,7 +182,12 @@ class FileSequenceContainer(MutableMapping):
         return len(self._data)
 
     def __lt__(self, other):
-        """Define equality between instances."""
+        """
+        Define whether one instance may be sorted below another.
+
+        NOTE: Equality is solely based upon comparison of the "full_name"
+        property and is only used for output sorting.
+        """
         if type(other) is type(self):
             return self.full_name < other.full_name
         return True
@@ -189,13 +202,19 @@ class FileSequenceContainer(MutableMapping):
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
-        if isinstance(value, (list, tuple, set)):
-            value = self._CHILD_CLASS(value)
+        if not isinstance(value, self._CHILD_CLASS):
+            blurb = 'Container may only hold "{}" instances ("{}" provided)'
+            raise ValueError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
 
-        if not isinstance(value, self._CHILD_CLASS) or value is None:
-            raise ValueError
+        elif key != value.name:
+            blurb = ("Key value must match extension name of provided value "
+                     "({!r} != {!r})")
+            raise ValueError(blurb.format(key, value.name))
 
         self._data[key] = value
+        # Overriding child container's name to match!
+        value.name = self.full_name
 
     @property
     def full_name(self):
@@ -284,7 +303,7 @@ class SingletonContainer(MutableSet):
 
     def __str__(self):
         """String reprentation of the singleton files."""
-        return "\n".join(list(self.output()))
+        return "\n".join(list(map(str, self.output())))
 
     @property
     def path(self):

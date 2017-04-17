@@ -25,7 +25,7 @@ Frame Sequences
 ~~~~~~~~~~~~~~~
 
 Frame sequences are broken down into comma-separated chunks of the
-format ``first frame``**-**``last frame``**x**``step`` where the following rules
+format ``first frame`` **-** ``last frame`` **x** ``step`` where the following rules
 apply:
 
 -  Frame numbers can be zero-padded,
@@ -69,7 +69,7 @@ seqls
                  [search_path [search_path ...]]
 
     Command line tool for listing file sequences. Upon installation of the package
-    this script will be accessable via `seqls` command on the command line of your
+    this script will be accessable via ``seqls`` command on the command line of your
     choice.
 
     positional arguments:
@@ -213,6 +213,15 @@ Roadmap
 2. v1.0.0
 
    1. Release.
+
+Current Tasks
+-------------
+
+1. Add flag to ``Seqparse`` so that it knows when it's supposed to test if
+   files actually exist (ie, when it's launched from ``seqls``).
+2. Add output testing for ``FileSequenceContainer`` instances.
+3. Fix stat copying between ``FileSequence`` instances (it's currently
+   totally borked).
 
 Final Notes
 -----------
