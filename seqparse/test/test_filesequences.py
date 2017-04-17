@@ -334,8 +334,6 @@ class TestFileSequences(unittest.TestCase):
         frames1 = lrange(1, 4)
         frames2 = lrange(11, 14)
 
-        frame_seq = FrameSequence(frames1 + frames2)
-
         input_seq1 = FileSequence(
             ext=self._test_ext, frames=frames1, name=full_name1)
         input_seq2 = FileSequence(
@@ -346,7 +344,7 @@ class TestFileSequences(unittest.TestCase):
         raised = False
         try:
             input_seq1.update(input_seq2)
-        except:
+        except ValueError:
             raised = True
 
         blurb = "Unable to update with specified value: {!r}"

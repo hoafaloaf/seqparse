@@ -9,15 +9,12 @@ import unittest
 
 # Third Party Libraries
 import mock
-from builtins import range
 from future.utils import lrange
 
-from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
-               mock_scandir_deep)
-from .. import (__version__, get_parser, get_sequence, get_version, invert,
-                validate_frame_sequence)
+from . import DirEntry
+from .. import get_parser
 from ..containers import FileExtension, SingletonContainer
-from ..sequences import FileSequence, FrameChunk, FrameSequence
+from ..sequences import FileSequence
 
 ###############################################################################
 # class: TestSingletonContainer
@@ -107,8 +104,6 @@ class TestSingletonContainer(unittest.TestCase):
         parser = get_parser()
         parser.scan_options["stat"] = True
         parser.scan_path(self._test_root)
-        output = list(parser.output())
-        expected = [os.path.join(self._test_root, "pony.py")]
 
         container = parser.singletons[self._test_root]
         self.assertEqual(container.stat("pony.py").st_size, 9436)
@@ -279,60 +274,6 @@ class TestFileExtension(unittest.TestCase):
 
         file_ext = container[self._test_ext]
         self.assertEqual(input_seq.ext, file_ext.name)
-
-    @mock.patch("seqparse.seqparse.os.path.isfile")
-    def test_membership(self, fake_isfile):
-        """FileExtension: Test membership setting, deletion."""
-        fake_isfile.return_value = True
-
-        parser = get_parser()
-
-        # Add in the source FileSequence files one-by-one.
-        input_seq1 = self._input_seqs[0]
-        input_seq2 = FileSequence(input_seq1)
-        input_seq2.pad = 2
-        input_seq3 = FileSequence(input_seq1)
-        input_seq3.pad = 3
-
-        parser.scan_path(list(map(str, input_seq1)))
-        container = parser.sequences[input_seq1.path][input_seq1.name]
-
-        file_ext = container[self._test_ext]
-
-        # Test __setitem__
-        raised = False
-        try:
-            file_ext[2] = input_seq2
-        except ValueError:
-            raised = False
-        self.assertFalse(
-            raised, "Unable to set specified value: {!r}".format(input_seq2))
-
-        with self.assertRaises(ValueError):
-            file_ext[2] = str(input_seq2)
-
-        raised = False
-        try:
-            file_ext[3] = lrange(0, 5)
-        except ValueError:
-            raised = False
-        self.assertFalse(
-            raised, "Unable to set specified value: {!r}".format(input_seq2))
-
-        self.assertEqual(str(file_ext[3]), str(input_seq3))
-
-        # Test __delitem__
-        raised = False
-        pad = 3
-        try:
-            del file_ext[pad]
-        except ValueError:
-            raised = False
-        self.assertFalse(raised,
-                         "Unable to delete specified value: {!r}".format(pad))
-
-        with self.assertRaises(KeyError):
-            del file_ext[pad]
 
     @mock.patch("seqparse.seqparse.os.path.isfile")
     def test_membership(self, fake_isfile):
