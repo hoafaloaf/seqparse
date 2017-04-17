@@ -15,6 +15,7 @@ from future.utils import lrange
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
+
 ###############################################################################
 # class: TestFileSequences
 
@@ -29,6 +30,7 @@ class TestFileSequences(unittest.TestCase):
     def setUp(self):
         """Set up the test instance."""
 
+    '''
     def test_file_name_initialization(self):
         """FileSequence: Test initialization of an instance by file name."""
         file_path = os.path.join(self._test_root, self._test_name)
@@ -325,6 +327,7 @@ class TestFileSequences(unittest.TestCase):
 
         self.assertEqual(fseq.pretty_frames, str(frames))
         self.assertEqual(frames_seq, fseq_frames)
+    '''
 
     def test_update(self):
         """FileSequence: Test the update method."""
