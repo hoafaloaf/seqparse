@@ -240,22 +240,22 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._data = set()
         self._output = None
 
-        # NOTE: This could probably be made more efficient by copying a
-        # FrameSequence's _data attribute and/or checking to see if _chunks
-        # had anything in it. We shouldn't have to count on recalculating if
-        # the job's already been done for us.
-        if isinstance(frames, (FrameChunk, FrameSequence)):
-            pad = frames.pad
-            '''
-            if isinstance(frames, FrameSequence):
-                self.stat().update(copy.deepcopy(frames.stat()))
-            '''
-        elif isinstance(frames, six.string_types):
+        if isinstance(frames, six.string_types):
             if not self.is_frame_sequence(frames):
                 blurb = "Invalid iterable specified ({}, {!r})"
                 raise ValueError(blurb.format(type(frames), frames))
             self._add_frame_sequence(frames)
             return
+        # NOTE: This could probably be made more efficient by copying a
+        # FrameSequence's _data attribute and/or checking to see if _chunks
+        # had anything in it. We shouldn't have to count on recalculating if
+        # the job's already been done for us.
+        elif isinstance(frames, (FrameChunk, FrameSequence)):
+            pad = frames.pad
+            '''
+            if isinstance(frames, FrameSequence):
+                self.stat().update(copy.deepcopy(frames.stat()))
+            '''
         elif frames and not isinstance(frames, (list, tuple, set)):
             frames = [frames]
 
@@ -563,15 +563,15 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         self._stat = dict()
 
         if name:
-            if isinstance(name, FileSequence):
-                name, frames, ext, pad = (name.full_name, name.pretty_frames,
-                                          name.ext, name.pad)
-            elif isinstance(name, six.string_types):
+            if isinstance(name, six.string_types):
                 file_seq_bits = self.file_seq_match(name)
                 if file_seq_bits:
                     name, frames, ext = file_seq_bits
                     pad = None
 
+            elif isinstance(name, FileSequence):
+                name, frames, ext, pad = (name.full_name, name.pretty_frames,
+                                          name.ext, name.pad)
         if frames is None:
             frames = list()
 
@@ -732,12 +732,8 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                     raise ValueError(
                         blurb.format(attr, self_value, other_value))
 
-            other_frames = other.frames
-            print("self: {}".format(self.stat()))
-            print("other: {}".format(other.stat()))
-            '''
             self.stat().update(other.stat())
-            '''
+            other = other.frames
 
         for item in other:
             self.add(item)
@@ -797,15 +793,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             name=self.full_name, frames=frames, ext=self.ext)
         return inverted
 
-    def stat(self, frame=None, follow_symlinks=False, force=False, lazy=False):
+    def stat(self, frame=None, force=False, lazy=False):
         """
         Individual frame file system status.
 
         Args:
             frame (int, optional): Frame for which you'd like to return the
                 disk stats.
-            follow_symlinks (bool, optional): Whether to follow symlinks
-                dicovered at scan time. Defaults to False.
             force (bool, optional): Whether to force disk stat query,
                 regardless of caching status.
             lazy (bool, optional): Whether to query disk stats should no cached
@@ -826,12 +820,11 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         elif force or (lazy and self._stat.get(frame) is None):
             file_name = self._get_sequence_output(frame)
-            self.cache_stat(
-                frame, os.stat(file_name, follow_symlinks=follow_symlinks))
+            self.cache_stat(frame, os.stat(file_name))
 
         if frame is None:
             return self._stat
-        return self._stat.get(frame, None)
+        return self._stat.get(int(frame), None)
 
     def _aggregate_stats(self):
         """

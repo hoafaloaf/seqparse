@@ -15,7 +15,6 @@ from future.utils import lrange
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestFileSequences
 
@@ -30,7 +29,6 @@ class TestFileSequences(unittest.TestCase):
     def setUp(self):
         """Set up the test instance."""
 
-    '''
     def test_file_name_initialization(self):
         """FileSequence: Test initialization of an instance by file name."""
         file_path = os.path.join(self._test_root, self._test_name)
@@ -327,23 +325,34 @@ class TestFileSequences(unittest.TestCase):
 
         self.assertEqual(fseq.pretty_frames, str(frames))
         self.assertEqual(frames_seq, fseq_frames)
-    '''
 
     def test_update(self):
         """FileSequence: Test the update method."""
-        full_name1 = os.path.join(self._test_root, self._test_name)
+        full_name1 = os.path.join(self._test_root, "test")
         full_name3 = os.path.join(self._test_root, "manx")
 
-        frames1 = lrange(1, 4)
-        frames2 = lrange(11, 14)
+        frames1 = [1, 2, 3]
+        frames2 = [4, 6]
 
         input_seq1 = FileSequence(
-            ext=self._test_ext, frames=frames1, name=full_name1)
+            ext="py", frames=frames1, name=full_name1, pad=4)
         input_seq2 = FileSequence(
-            ext=self._test_ext, frames=frames2, name=full_name1)
+            ext="py", frames=frames2, name=full_name1, pad=4)
         input_seq3 = FileSequence(
-            ext=self._test_ext, frames=frames2, name=full_name3)
+            ext="py", frames=frames2, name=full_name3, pad=4)
 
+        # Caching disk stats (because mocking os.stat is hard):
+        for seq in (input_seq1, input_seq2):
+            for file_name in seq:
+                frame = seq.file_name_match(file_name, as_dict=True)["frame"]
+                stat = mock_os_stat(file_name)
+                seq.cache_stat(frame, stat)
+
+        # Invalid base name ...
+        with self.assertRaises(ValueError):
+            input_seq1.update(input_seq3)
+
+        # Valid base name, testing stat copies as well.
         raised = False
         try:
             input_seq1.update(input_seq2)
@@ -353,10 +362,14 @@ class TestFileSequences(unittest.TestCase):
         blurb = "Unable to update with specified value: {!r}"
         self.assertFalse(raised, blurb.format(input_seq2))
 
-        input_seq1 = FileSequence(
-            ext=self._test_ext, frames=frames1, name=full_name1)
-        input_seq3 = FileSequence(
-            ext=self._test_ext, frames=frames2, name=full_name3)
+    def test_discard(self):
+        """FileSequence: Test the discard method."""
+        full_name = os.path.join(self._test_root, self._test_name)
+        frames = lrange(1, 6)
 
-        with self.assertRaises(ValueError):
-            input_seq1.update(input_seq3)
+        input_seq = FileSequence(
+            ext=self._test_ext, frames=frames, name=full_name)
+
+        self.assertIn(frames[0], input_seq)
+        input_seq.discard(frames[0])
+        self.assertNotIn(frames[0], input_seq)

@@ -118,13 +118,11 @@ class File(object):
         self._info.update(full=full_name, name=file_name, path=path_name)
         return self._info
 
-    def stat(self, follow_symlinks=False, force=False, lazy=False):
+    def stat(self, force=False, lazy=False):
         """
         File system status.
 
         Args:
-            follow_symlinks (bool, optional): Whether to follow symlinks
-                dicovered at scan time. Defaults to False.
             force (bool, optional): Whether to force disk stat query,
                 regardless of caching status.
             lazy (bool, optional): Whether to query disk stats should no cached
@@ -137,6 +135,5 @@ class File(object):
             been previously cached.
         """
         if force or (lazy and self._stat is None):
-            self._cache_stat(
-                os.stat(self.full_name, follow_symlinks=follow_symlinks))
+            self._cache_stat(os.stat(self.full_name))
         return self._stat
