@@ -220,8 +220,6 @@ Current Tasks
 1. Add flag to ``Seqparse`` so that it knows when it's supposed to test if
    files actually exist (ie, when it's launched from ``seqls``).
 2. Add output testing for ``FileSequenceContainer`` instances.
-3. Fix stat copying between ``FileSequence`` instances (it's currently
-   totally borked).
 
 Final Notes
 -----------

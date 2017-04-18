@@ -1,7 +1,6 @@
 """Classes utilized by the Seqparse class."""
 
 # Standard Libraries
-import copy
 import os
 from collections import MutableMapping, MutableSet
 from functools import total_ordering

@@ -126,9 +126,10 @@ def initialise_mock_scandir_data(search_path):
         (level0_entries, level1_entries, level2_entries, level3_entries))
 
 
-def mock_os_stat(file_name, follow_symlinks=False):  # pylint: disable=W0613
+def mock_os_stat(file_name):
     """A mock'd version of os.stat for testing purposes."""
-    return get_stat_result(MOCK_SCANDIR_STAT_DATA[os.path.basename(file_name)])
+    base_name = os.path.basename(file_name)
+    return get_stat_result(MOCK_SCANDIR_STAT_DATA[base_name])
 
 
 def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
