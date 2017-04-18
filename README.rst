@@ -25,7 +25,7 @@ Frame Sequences
 ~~~~~~~~~~~~~~~
 
 Frame sequences are broken down into comma-separated chunks of the
-format ``first frame``**-**``last frame``**x**``step`` where the following rules
+format ``first frame`` **-** ``last frame`` **x** ``step`` where the following rules
 apply:
 
 -  Frame numbers can be zero-padded,
@@ -69,7 +69,7 @@ seqls
                  [search_path [search_path ...]]
 
     Command line tool for listing file sequences. Upon installation of the package
-    this script will be accessable via `seqls` command on the command line of your
+    this script will be accessable via ``seqls`` command on the command line of your
     choice.
 
     positional arguments:
@@ -93,6 +93,7 @@ seqls
       -m, --missing         Whether to invert output file sequences to only report
                             the missing frames.
       -S, --seqs-only       Whether to filter out all non-sequence files.
+      -v, --version         Print the version and exit.
 
 Most of the functionality is self-explanatory, but the ``-m/--missing``
 option is probably the most useful to users generating large sequences
@@ -207,13 +208,18 @@ Roadmap
 
 1. v0.7.0
 
-   1. Refactor ``FrameSequence`` and ``FileSequence`` classes to move
-      all disk stat related code to the ``FileSequence`` class.
-   2. Get around to setting up full coverage for the container classes.
+   1. Get around to setting up full coverage for the container classes.
 
 2. v1.0.0
 
    1. Release.
+
+Current Tasks
+-------------
+
+1. Add flag to ``Seqparse`` so that it knows when it's supposed to test if
+   files actually exist (ie, when it's launched from ``seqls``).
+2. Add output testing for ``FileSequenceContainer`` instances.
 
 Final Notes
 -----------
@@ -228,7 +234,7 @@ Lemme know if you have any requests/complaints/suggestions!
    :target: https://travis-ci.org/hoafaloaf/seqparse
 .. |Coverage Status| image:: https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg
    :target: https://coveralls.io/github/hoafaloaf/seqparse
-.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/develop/landscape.svg?style=flat
+.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/master/landscape.svg?style=flat
    :target: https://landscape.io/github/hoafaloaf/seqparse
 .. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
 .. |PyPi Package| image:: https://badge.fury.io/py/seqparse.svg

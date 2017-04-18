@@ -1,7 +1,6 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
 # Standard Libraries
-import copy
 import os
 from collections import MutableSet
 
@@ -239,23 +238,24 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             chunks=list(), dirty=True, is_padded=False, pad=None, stat=dict())
 
         self._data = set()
-        self._cache = dict(ctime=None, mtime=None, size=None)
         self._output = None
 
-        # NOTE: This could probably be made more efficient by copying a
-        # FrameSequence's _data attribute and/or checking to see if _chunks
-        # had anything in it. We shouldn't have to count on recalculating if
-        # the job's already been done for us.
-        if isinstance(frames, (FrameChunk, FrameSequence)):
-            pad = frames.pad
-            if isinstance(frames, FrameSequence):
-                self.stat().update(copy.deepcopy(frames.stat()))
-        elif isinstance(frames, six.string_types):
+        if isinstance(frames, six.string_types):
             if not self.is_frame_sequence(frames):
                 blurb = "Invalid iterable specified ({}, {!r})"
                 raise ValueError(blurb.format(type(frames), frames))
             self._add_frame_sequence(frames)
             return
+        # NOTE: This could probably be made more efficient by copying a
+        # FrameSequence's _data attribute and/or checking to see if _chunks
+        # had anything in it. We shouldn't have to count on recalculating if
+        # the job's already been done for us.
+        elif isinstance(frames, (FrameChunk, FrameSequence)):
+            pad = frames.pad
+            '''
+            if isinstance(frames, FrameSequence):
+                self.stat().update(copy.deepcopy(frames.stat()))
+            '''
         elif frames and not isinstance(frames, (list, tuple, set)):
             frames = [frames]
 
@@ -306,16 +306,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         return self._output
 
     @property
-    def ctime(self):
-        """
-        int: Most recent inode or file change time for a file in the sequence.
-
-        Returns None if the files have not been stat'd on disk.
-        """
-        self.calculate()
-        return self._cache["ctime"]
-
-    @property
     def is_dirty(self):
         """bool: Whether output needs to be recalculated after an update."""
         return self._attrs["dirty"]
@@ -325,16 +315,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """bool: Whether the FrameSequence contains any zero-padded frames."""
         self.calculate()
         return self._attrs["is_padded"]
-
-    @property
-    def mtime(self):
-        """
-        int: Most recent file modification time for a file in the sequence.
-
-        Returns None if the files have not been stat'd on disk.
-        """
-        self.calculate()
-        return self._cache["mtime"]
 
     @property
     def pad(self):
@@ -348,16 +328,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     @pad.setter
     def pad(self, val):
         self._attrs["pad"] = max(1, int(val or 1))
-
-    @property
-    def size(self):
-        """
-        int: Total size of the file sequence in bytes.
-
-        Returns None if the files have not been stat'd on disk.
-        """
-        self.calculate()
-        return self._cache["size"]
 
     def add(self, item):
         """Defining item addition logic (per standard set)."""
@@ -423,33 +393,11 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         self._data.discard(item)
         self._attrs["dirty"] = True
-        self._attrs["stat"].pop(item, None)
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
         for item in iterable:
             self.add(item)
-
-    def cache_stat(self, frame, input_stat):
-        """
-        Cache file system stat data for the specified frame.
-
-        Input disk stat value will be stored in a new stat_result
-        instance.
-
-        Args:
-            frame (int): Frame for which you'd like to cache the supplied stat
-                data.
-            input_stat (stat_result): Value that you'd like to cache.
-
-        Returns:
-            stat_result that was successfully cached.
-        """
-        from . import get_stat_result
-
-        frame = int(frame)
-        self._attrs["stat"][frame] = get_stat_result(input_stat)
-        return self._attrs["stat"][frame]
 
     def calculate(self, force=False):
         """
@@ -512,9 +460,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._attrs["chunks"])
 
-        # Cache disk stats for easy/quick access via property ...
-        self._aggregate_stats()
-
         self._attrs["dirty"] = False
 
     def invert(self):
@@ -541,29 +486,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         return inverted
 
-    def stat(self, frame=None):
-        """
-        Individual frame file system status.
-
-        This method only returns cached disk stats (if any exist). Use the
-        `cache_stat` method if you'd like to set new values.
-
-        Args:
-            frame (int, optional): Frame for which you'd like to return the
-                disk stats.
-
-        Returns:
-            None if a frame has been specified but disk stats have not been
-            cached.
-            stat_result if a frame has been specified and disk stats have
-            been previously cached.
-            dict of disk stats, indexed by int frame if no frame has been
-            specified.
-        """
-        if frame is None:
-            return self._attrs["stat"]
-        return self._attrs["stat"].get(frame, None)
-
     def _add_frame_sequence(self, frame_seq):
         """
         Add a string frame sequence to the instance.
@@ -585,33 +507,6 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                 self.pad = pad
 
             self.add(FrameChunk(first, last, step, pad))
-
-    def _aggregate_stats(self):
-        """
-        Aggregate stats for a variety of file sequence properties.
-
-        This method clears all cached aggregate values before recalculating
-        new values.
-
-        Returns:
-            None
-        """
-        self._cache = dict(ctime=None, mtime=None, size=None)
-        if not self.stat():
-            return self._cache
-
-        ctime = mtime = size = 0
-
-        # Disabling pylint here because the stat object will never be a
-        # dict at this point ... unless somebody's been messing with the data
-        # cache directly.
-        for frame in self._data:
-            stat = self.stat(frame)
-            ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
-            mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
-            size += stat.st_size  # pylint: disable=E1101
-
-        self._cache = dict(ctime=ctime, mtime=mtime, size=size)
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):
@@ -639,10 +534,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     """
     Representative for sequences of files.
 
-    Although you may initialise an instance without specifying pretty much
-    anything, in order output a valid file sequence you'll need to specify at
-    least one frame and a file extension (base name is optional in every sense
-    of the word).
+    You may create a new instance of this class a couple of ways:
+
+    1. Either clone a new instance from an existing one ...
+
+        >>> clone = FileSequence(parent)
+
+    2. ... or create a valid instance by providing a file extension and at
+       least one frame (the base name is optional in every sense of the word):
+
+       >>> fseq = FileSequence(frames="0001", ext="exr")
 
     Args:
         name (str, optional): Base name (including containing directory) for
@@ -657,14 +558,20 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
+        self._cache = dict(ctime=None, mtime=None, size=None)
         self._info = dict(ext=None, full=None, name=None, path=None)
+        self._stat = dict()
 
         if name:
-            name_bits = self.file_seq_match(name)
-            if name_bits:
-                name, frames, ext = name_bits
-                pad = None
+            if isinstance(name, six.string_types):
+                file_seq_bits = self.file_seq_match(name)
+                if file_seq_bits:
+                    name, frames, ext = file_seq_bits
+                    pad = None
 
+            elif isinstance(name, FileSequence):
+                name, frames, ext, pad = (name.full_name, name.pretty_frames,
+                                          name.ext, name.pad)
         if frames is None:
             frames = list()
 
@@ -710,6 +617,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         return self._get_sequence_output(frames)
 
     @property
+    def ctime(self):
+        """
+        int: Most recent inode or file change time for a file in the sequence.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["ctime"]
+
+    @property
     def ext(self):
         """str: File extension for the sequence."""
         return self._info["ext"]
@@ -721,9 +638,30 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             self._info["ext"] = str(val)
 
     @property
+    def frames(self):
+        """iterator(str): the file sequence's padded frames."""
+        for frame in super(FileSequence, self).__iter__():
+            yield frame
+
+    @property
+    def pretty_frames(self):
+        """str: pretty representation of the file sequence's print frames."""
+        return super(FileSequence, self).__str__()
+
+    @property
     def full_name(self):
         """str: Full name of the sequence, including containing directory."""
         return self._info["full"]
+
+    @property
+    def mtime(self):
+        """
+        int: Most recent file modification time for a file in the sequence.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["mtime"]
 
     @property
     def name(self):
@@ -767,6 +705,82 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
         self._info["full"] = os.path.join(val or "", self._info["name"] or "")
 
+    @property
+    def size(self):
+        """
+        int: Total size of the file sequence in bytes.
+
+        Returns None if the files have not been stat'd on disk.
+        """
+        self.calculate()
+        return self._cache["size"]
+
+    def discard(self, item):
+        """Defining item discard logic (per standard set)."""
+        super(FileSequence, self).discard(item)
+        self._stat.pop(item, None)
+
+    def update(self, other):
+        """Defining item update logic (per standard set)."""
+        if isinstance(other, FileSequence):
+            for attr in ("ext", "full_name"):
+                other_value = getattr(other, attr)
+                self_value = getattr(self, attr)
+                if other_value != self_value:
+                    blurb = ("Attribute mismatch on supplied FileSequence "
+                             "instance ({}): self:{!r} != other:{!r}")
+                    raise ValueError(
+                        blurb.format(attr, self_value, other_value))
+
+            self.stat().update(other.stat())
+            other = other.frames
+
+        for item in other:
+            self.add(item)
+
+    def cache_stat(self, frame, input_stat):
+        """
+        Cache file system stat data for the specified frame.
+
+        Input disk stat value will be stored in a new stat_result
+        instance.
+
+        Args:
+            frame (int): Frame for which you'd like to cache the supplied stat
+                data.
+            input_stat (stat_result): Value that you'd like to cache.
+
+        Returns:
+            stat_result that was successfully cached.
+        """
+        from . import get_stat_result
+
+        frame = int(frame)
+        self._stat[frame] = get_stat_result(input_stat)
+        return self._stat[frame]
+
+    def calculate(self, force=False):
+        """
+        Calculate the output file sequence.
+
+        Output string file sequence will always be recalculated if the instance
+        has been marked as "dirty" when its contents have been modified by an
+        external process.
+
+        Args:
+            force (bool, optional): Whether to force recalculation.
+
+        Returns:
+            None
+        """
+        if not (self.is_dirty or force):
+            return
+
+        super(FileSequence, self).calculate(force=force)
+
+        # Cache disk stats for easy/quick access via property ...
+        self._aggregate_stats()
+
     def invert(self):
         """
         Calculate file names missing from the sequence.
@@ -779,16 +793,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             name=self.full_name, frames=frames, ext=self.ext)
         return inverted
 
-    # pylint: disable=W0221
-    def stat(self, frame=None, follow_symlinks=False, force=False, lazy=False):
+    def stat(self, frame=None, force=False, lazy=False):
         """
         Individual frame file system status.
 
         Args:
             frame (int, optional): Frame for which you'd like to return the
                 disk stats.
-            follow_symlinks (bool, optional): Whether to follow symlinks
-                dicovered at scan time. Defaults to False.
             force (bool, optional): Whether to force disk stat query,
                 regardless of caching status.
             lazy (bool, optional): Whether to query disk stats should no cached
@@ -807,14 +818,40 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                 raise ValueError(
                     "Must specify frame when querying for file disk stats.")
 
-        elif force or (lazy and self._attrs["stat"].get(frame) is None):
+        elif force or (lazy and self._stat.get(frame) is None):
             file_name = self._get_sequence_output(frame)
-            self.cache_stat(
-                frame, os.stat(file_name, follow_symlinks=follow_symlinks))
+            self.cache_stat(frame, os.stat(file_name))
 
-        return super(FileSequence, self).stat(frame)
+        if frame is None:
+            return self._stat
+        return self._stat.get(int(frame), None)
 
-    # pylint: enable=W0221
+    def _aggregate_stats(self):
+        """
+        Aggregate stats for a variety of file sequence properties.
+
+        This method clears all cached aggregate values before recalculating
+        new values.
+
+        Returns:
+            None
+        """
+        self._cache = dict(ctime=None, mtime=None, size=None)
+        if not self.stat():
+            return self._cache
+
+        ctime = mtime = size = 0
+
+        # Disabling pylint here because the stat object will never be a
+        # dict at this point ... unless somebody's been messing with the data
+        # cache directly.
+        for frame in self._data:
+            stat = self.stat(frame)
+            ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
+            mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
+            size += stat.st_size  # pylint: disable=E1101
+
+        self._cache = dict(ctime=ctime, mtime=mtime, size=size)
 
     def _get_sequence_output(self, frames):
         """

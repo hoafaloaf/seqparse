@@ -15,7 +15,6 @@ from future.utils import lrange
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
 
-
 ###############################################################################
 # class: TestFileSequences
 
@@ -25,14 +24,14 @@ class TestFileSequences(unittest.TestCase):
 
     _test_ext = "exr"
     _test_name = "cat"
-    _test_path = "/pretty/kitty".replace("/", os.sep)
+    _test_root = "/pretty/kitty".replace("/", os.sep)
 
     def setUp(self):
         """Set up the test instance."""
 
     def test_file_name_initialization(self):
         """FileSequence: Test initialization of an instance by file name."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         file_name = "{}.{}.{}".format(file_path, chunk, self._test_ext)
 
@@ -41,7 +40,7 @@ class TestFileSequences(unittest.TestCase):
             file_names.add("{}.{}.{}".format(file_path, frame, self._test_ext))
 
         fseq = FileSequence(file_name)
-        self.assertEqual(fseq.path, self._test_path)
+        self.assertEqual(fseq.path, self._test_root)
         self.assertEqual(fseq.name, self._test_name)
         self.assertEqual(fseq.pad, 4)
         self.assertEqual(set(fseq), file_names)
@@ -58,29 +57,29 @@ class TestFileSequences(unittest.TestCase):
         self.assertIsNone(fseq.path)
 
         fseq = FileSequence()
-        fseq.path = self._test_path
+        fseq.path = self._test_root
         self.assertIsNone(fseq.name)
-        self.assertEqual(fseq.path, self._test_path)
+        self.assertEqual(fseq.path, self._test_root)
 
         fseq = FileSequence()
         fseq.ext = self._test_ext
         fseq.name = self._test_name
-        fseq.path = self._test_path
+        fseq.path = self._test_root
         self.assertEqual(fseq.ext, self._test_ext)
         self.assertEqual(fseq.name, self._test_name)
-        self.assertEqual(fseq.path, self._test_path)
+        self.assertEqual(fseq.path, self._test_root)
 
-        fseq.path = self._test_path + os.sep
-        self.assertEqual(fseq.path, self._test_path)
+        fseq.path = self._test_root + os.sep
+        self.assertEqual(fseq.path, self._test_root)
 
         fseq = FileSequence()
-        fseq.name = os.path.join(self._test_path, self._test_name)
+        fseq.name = os.path.join(self._test_root, self._test_name)
         self.assertEqual(fseq.name, self._test_name)
-        self.assertEqual(fseq.path, self._test_path)
+        self.assertEqual(fseq.path, self._test_root)
 
     def test_output(self):
         """FileSequence: Test string output."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
 
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         fseq = FileSequence(name=file_path, ext=self._test_ext, frames=chunk)
@@ -95,7 +94,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_frame_containment(self):
         """FileSequence: Test if frames are contained by a sequence."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
 
         chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
         seq1 = FrameSequence(chunk1)
@@ -129,7 +128,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_file_containment(self):
         """FileSequence: Test if files are contained by a sequence."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
         frames = lrange(1, 12)
 
         seq1 = FrameSequence(frames, pad=1)
@@ -167,7 +166,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_iteration(self):
         """FileSequence: Test iteration over an instance."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
 
         data = [(lrange(1, 6), 4), (lrange(1, 21, 2) + lrange(100, 105), 1)]
 
@@ -193,7 +192,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_inversion(self):
         """FileSequence: Test frame inversion (ie, report missing frames)."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
 
         chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
         fseq = FileSequence(
@@ -248,7 +247,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_equality(self):
         """FileSequence: Test the equality of instances."""
-        file_path = os.path.join(self._test_path, self._test_name)
+        file_path = os.path.join(self._test_root, self._test_name)
         fseq0 = FileSequence(
             name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
         fseq1 = FileSequence(
@@ -274,7 +273,7 @@ class TestFileSequences(unittest.TestCase):
         mock_api_call.side_effect = mock_os_stat
 
         file_name = "test.0001.py"
-        full_name = os.path.join(self._test_path, file_name)
+        full_name = os.path.join(self._test_root, file_name)
 
         fseq = FileSequence(full_name)
 
@@ -302,3 +301,75 @@ class TestFileSequences(unittest.TestCase):
         self.assertEqual(fseq.size, 7975)
         self.assertEqual(fseq.mtime, 1490908305)
         # pylint: enable=E1101
+
+    def test_cloning(self):
+        """FileSequence: Test cloning from an existing instance."""
+        file_name = "test.0001-0005,0010.py"
+        full_name = os.path.join(self._test_root, file_name)
+
+        parent = FileSequence(full_name)
+        clone = FileSequence(parent)
+
+        self.assertEqual(str(parent), str(clone))
+        for attr in ("full_name", "name", "pad", "path"):
+            self.assertEqual(getattr(parent, attr), getattr(clone, attr))
+
+    def test_frame_properties(self):
+        """FileSequence: Test frames, pretty_frames properties."""
+        frames = FrameSequence(lrange(1, 6), pad=4)
+        full_name = os.path.join(self._test_root, self._test_name)
+        fseq = FileSequence(name=full_name, frames=frames, ext="exr")
+
+        frames_seq = list(frames)
+        fseq_frames = list(fseq.frames)
+
+        self.assertEqual(fseq.pretty_frames, str(frames))
+        self.assertEqual(frames_seq, fseq_frames)
+
+    def test_update(self):
+        """FileSequence: Test the update method."""
+        full_name1 = os.path.join(self._test_root, "test")
+        full_name3 = os.path.join(self._test_root, "manx")
+
+        frames1 = [1, 2, 3]
+        frames2 = [4, 6]
+
+        input_seq1 = FileSequence(
+            ext="py", frames=frames1, name=full_name1, pad=4)
+        input_seq2 = FileSequence(
+            ext="py", frames=frames2, name=full_name1, pad=4)
+        input_seq3 = FileSequence(
+            ext="py", frames=frames2, name=full_name3, pad=4)
+
+        # Caching disk stats (because mocking os.stat is hard):
+        for seq in (input_seq1, input_seq2):
+            for file_name in seq:
+                frame = seq.file_name_match(file_name, as_dict=True)["frame"]
+                stat = mock_os_stat(file_name)
+                seq.cache_stat(frame, stat)
+
+        # Invalid base name ...
+        with self.assertRaises(ValueError):
+            input_seq1.update(input_seq3)
+
+        # Valid base name, testing stat copies as well.
+        raised = False
+        try:
+            input_seq1.update(input_seq2)
+        except ValueError:
+            raised = True
+
+        blurb = "Unable to update with specified value: {!r}"
+        self.assertFalse(raised, blurb.format(input_seq2))
+
+    def test_discard(self):
+        """FileSequence: Test the discard method."""
+        full_name = os.path.join(self._test_root, self._test_name)
+        frames = lrange(1, 6)
+
+        input_seq = FileSequence(
+            ext=self._test_ext, frames=frames, name=full_name)
+
+        self.assertIn(frames[0], input_seq)
+        input_seq.discard(frames[0])
+        self.assertNotIn(frames[0], input_seq)
