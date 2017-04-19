@@ -16,7 +16,8 @@ python -m coverage xml --include=seqparse*
 
 >pylint.out (
   pylint -d I0011,R0204,R0801,W0622 seqparse ^
-    --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
+    --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" ^
+    --reports=yes
 )
 
 rem Reset PYTHONPATH back to its original state because Windows is stupid.
