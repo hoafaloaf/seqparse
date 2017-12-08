@@ -418,19 +418,37 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         else:
             current_frames = set()
             prev_step = 0
-            for index in range(num_frames - 1):
-                frames = all_frames[index:index + 2]
+            for idx in range(num_frames - 1):
+                frames = all_frames[idx:idx + 2]
                 step = frames[1] - frames[0]
 
                 if not prev_step:
                     prev_step = step
 
                 if prev_step != step:
-                    chunk = self._chunk_from_frames(current_frames, prev_step,
-                                                    self.pad)
+                    # A special case that allows frame sequences like
+                    #     [1, 3, 4, 5]
+                    # to be expressed as
+                    #     "1,3-5"
+                    # The typical "easy" login was previously expressing this
+                    # as
+                    #     "1,3,4,5"
+                    if len(current_frames) == 2 \
+                            and max(current_frames) != all_frames[-1]:
+                        min_frame = min(current_frames)
+                        chunk = self._chunk_from_frames([min_frame], 1,
+                                                        self.pad)
+                        current_frames = set(frames)
+                        prev_step = step
+                        idx += 1
+
+                    else:
+                        chunk = self._chunk_from_frames(
+                            current_frames, prev_step, self.pad)
+                        current_frames = set([frames[1]])
+                        prev_step = 0
+
                     self._attrs["chunks"].append(chunk)
-                    prev_step = 0
-                    current_frames = set([frames[1]])
 
                 else:
                     current_frames.update(frames)
@@ -463,9 +481,9 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             inverted.add(self._attrs["chunks"][0].invert())
 
         elif num_chunks:
-            for index in range(num_chunks - 1):
-                current_chunk = self._attrs["chunks"][index]
-                next_chunk = self._attrs["chunks"][index + 1]
+            for idx in range(num_chunks - 1):
+                current_chunk = self._attrs["chunks"][idx]
+                next_chunk = self._attrs["chunks"][idx + 1]
                 inverted.add(current_chunk.invert(last=next_chunk.first - 1))
 
             inverted.add(self._attrs["chunks"][-1].invert())
