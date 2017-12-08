@@ -32,9 +32,9 @@ def main(args, _debug=False):
         # Print the version and exit.
         if _debug:
             return get_version(pretty=True)
-        else:  # pragma: no cover
-            print(get_version(pretty=True))
-            return
+
+        print(get_version(pretty=True))  # pragma: no cover
+        return  # pragma: no cover
 
     if args.max_levels[0] != -1:
         args.max_levels[0] = max(args.max_levels[0], 0)

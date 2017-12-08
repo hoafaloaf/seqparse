@@ -313,17 +313,17 @@ class SingletonContainer(MutableSet):
     def path(self, val):
         self._path = str(val or "")
 
-    def add(self, item):
-        """Defining item addition logic (per standard set)."""
-        self._data.add(str(item))
+    def add(self, value):
+        """Defining value addition logic (per standard set)."""
+        self._data.add(str(value))
 
-    def discard(self, item):
-        """Defining item discard logic (per standard set)."""
-        self._data.discard(item)
+    def discard(self, value):
+        """Defining value discard logic (per standard set)."""
+        self._data.discard(value)
 
-    def update(self, iterable):
-        """Defining item update logic (per standard set)."""
-        for item in iterable:
+    def update(self, value):
+        """Defining update logic (per standard set)."""
+        for item in value:
             self.add(item)
 
     def cache_stat(self, base_name, input_stat):

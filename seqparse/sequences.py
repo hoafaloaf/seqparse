@@ -271,8 +271,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                 item_pad = len(item)
                 if item.startswith("0"):
                     return item_pad == self.pad
-                else:
-                    return item_pad >= self.pad
+                return item_pad >= self.pad
 
             return True
 
@@ -329,74 +328,61 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
     def pad(self, val):
         self._attrs["pad"] = max(1, int(val or 1))
 
-    def add(self, item):
-        """Defining item addition logic (per standard set)."""
-        if isinstance(item, six.string_types):
-            if self.is_frame_sequence(item):
-                if not item.isdigit():
-                    self._add_frame_sequence(item)
+    def add(self, value):
+        """Defining value addition logic (per standard set)."""
+        if isinstance(value, six.string_types):
+            if self.is_frame_sequence(value):
+                if not value.isdigit():
+                    self._add_frame_sequence(value)
                     return
             else:
-                raise ValueError("Invalid value specified ({!r})".format(item))
+                raise ValueError(
+                    "Invalid value specified ({!r})".format(value))
 
-            item_pad = len(item)
-            if item.startswith("0") and item_pad != self.pad:
+            value_pad = len(value)
+            if value.startswith("0") and value_pad != self.pad:
                 blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
                          "!= {:d})")
                 raise SeqparsePadException(
-                    blurb.format(item, item_pad, self.pad))
+                    blurb.format(value, value_pad, self.pad))
 
-            self._data.add(int(item))
+            self._data.add(int(value))
 
-        elif isinstance(item, (list, set, tuple)):
-            self._add_from_iterable(item)
+        elif isinstance(value, (list, set, tuple)):
+            self._add_from_iterable(value)
 
-        elif isinstance(item, (FrameChunk, FrameSequence)):
-            if item.pad != self.pad:
+        elif isinstance(value, (FrameChunk, FrameSequence)):
+            if value.pad != self.pad:
                 blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
                          "!= {:d})")
                 raise SeqparsePadException(
-                    blurb.format(item, item.pad, self.pad))
-            self._add_from_iterable(item)
+                    blurb.format(value, value.pad, self.pad))
+            self._add_from_iterable(value)
 
         else:
-            self._data.add(int(item))
+            self._data.add(int(value))
 
         self._attrs["dirty"] = True
 
-    def _add_from_iterable(self, iterable):
-        """
-        Add items from supplied iterable to the instance.
-
-        Args:
-            iterable (many types): Iterable (usually a list-list object) from
-                which you'd like to add items to the instance.
-
-        Returns:
-            None
-        """
-        for item in iterable:
-            self.add(item)
-
-    def discard(self, item):
-        """Defining item discard logic (per standard set)."""
-        if isinstance(item, six.string_types):
-            if item.startswith("0"):
-                item_pad = len(item)
-                if item_pad != self.pad:
+    def discard(self, value):
+        """Defining value discard logic (per standard set)."""
+        if isinstance(value, six.string_types):
+            if value.startswith("0"):
+                value_pad = len(value)
+                if value_pad != self.pad:
                     blurb = ("Specified value ({!r}) is incorrectly padded "
                              "({:d} != {:d}))")
                     raise SeqparsePadException(
-                        blurb.format(item, item_pad, self.pad))
+                        blurb.format(value, value_pad, self.pad))
 
-            item = int(item)
+            value = int(value)
 
-        self._data.discard(item)
+        self._data.discard(value)
         self._attrs["dirty"] = True
 
-    def update(self, iterable):
-        """Defining item update logic (per standard set)."""
-        for item in iterable:
+    def update(self, value):
+        """Defining value update logic (per standard set)."""
+        for item in value:
             self.add(item)
 
     def calculate(self, force=False):
@@ -432,19 +418,37 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         else:
             current_frames = set()
             prev_step = 0
-            for index in range(num_frames - 1):
-                frames = all_frames[index:index + 2]
+            for idx in range(num_frames - 1):
+                frames = all_frames[idx:idx + 2]
                 step = frames[1] - frames[0]
 
                 if not prev_step:
                     prev_step = step
 
                 if prev_step != step:
-                    chunk = self._chunk_from_frames(current_frames, prev_step,
-                                                    self.pad)
+                    # A special case that allows frame sequences like
+                    #     [1, 3, 4, 5]
+                    # to be expressed as
+                    #     "1,3-5"
+                    # The typical "easy" login was previously expressing this
+                    # as
+                    #     "1,3,4,5"
+                    if len(current_frames) == 2 \
+                            and max(current_frames) != all_frames[-1]:
+                        min_frame = min(current_frames)
+                        chunk = self._chunk_from_frames([min_frame], 1,
+                                                        self.pad)
+                        current_frames = set(frames)
+                        prev_step = step
+                        idx += 1
+
+                    else:
+                        chunk = self._chunk_from_frames(
+                            current_frames, prev_step, self.pad)
+                        current_frames = set([frames[1]])
+                        prev_step = 0
+
                     self._attrs["chunks"].append(chunk)
-                    prev_step = 0
-                    current_frames = set([frames[1]])
 
                 else:
                     current_frames.update(frames)
@@ -477,14 +481,28 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             inverted.add(self._attrs["chunks"][0].invert())
 
         elif num_chunks:
-            for index in range(num_chunks - 1):
-                current_chunk = self._attrs["chunks"][index]
-                next_chunk = self._attrs["chunks"][index + 1]
+            for idx in range(num_chunks - 1):
+                current_chunk = self._attrs["chunks"][idx]
+                next_chunk = self._attrs["chunks"][idx + 1]
                 inverted.add(current_chunk.invert(last=next_chunk.first - 1))
 
             inverted.add(self._attrs["chunks"][-1].invert())
 
         return inverted
+
+    def _add_from_iterable(self, iterable):
+        """
+        Add items from supplied iterable to the instance.
+
+        Args:
+            iterable (many types): Iterable (usually a list-list object) from
+                which you'd like to add items to the instance.
+
+        Returns:
+            None
+        """
+        for item in iterable:
+            self.add(item)
 
     def _add_frame_sequence(self, frame_seq):
         """
@@ -715,16 +733,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         self.calculate()
         return self._cache["size"]
 
-    def discard(self, item):
-        """Defining item discard logic (per standard set)."""
-        super(FileSequence, self).discard(item)
-        self._stat.pop(item, None)
+    def discard(self, value):
+        """Defining value discard logic (per standard set)."""
+        super(FileSequence, self).discard(value)
+        self._stat.pop(value, None)
 
-    def update(self, other):
-        """Defining item update logic (per standard set)."""
-        if isinstance(other, FileSequence):
+    def update(self, value):
+        """Defining value update logic (per standard set)."""
+        if isinstance(value, FileSequence):
             for attr in ("ext", "full_name"):
-                other_value = getattr(other, attr)
+                other_value = getattr(value, attr)
                 self_value = getattr(self, attr)
                 if other_value != self_value:
                     blurb = ("Attribute mismatch on supplied FileSequence "
@@ -732,10 +750,10 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                     raise ValueError(
                         blurb.format(attr, self_value, other_value))
 
-            self.stat().update(other.stat())
-            other = other.frames
+            self.stat().update(value.stat())
+            value = value.frames
 
-        for item in other:
+        for item in value:
             self.add(item)
 
     def cache_stat(self, frame, input_stat):
