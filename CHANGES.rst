@@ -1,6 +1,15 @@
 CHANGES
 =======
 
+v0.7.1 (2017/12/08)
+-------------------
+
+Changes (from v0.7.0)
+
+* Frame sequences similar to ``[1, 3, 4, 5]`` are now expressed correctly (ie,
+  **1,3-5** instead of **1,3,4,5**).
+
+
 v0.7.0 (2017/04/18)
 -------------------
 

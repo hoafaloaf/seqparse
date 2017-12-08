@@ -39,7 +39,7 @@ __all__ = ("get_parser", "get_sequence", "get_version", "invert",
 ###############################################################################
 # METADATA
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 
 __title__ = "seqparse"
 __description__ = "A nifty way to parse your file sequences."
