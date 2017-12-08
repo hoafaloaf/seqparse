@@ -1,6 +1,18 @@
 CHANGES
 =======
 
+v0.7.3 (2017/12/08)
+-------------------
+
+Changes (from v0.7.2)
+
+* ``FrameSequence.invert()`` and ``FileSequence.invert()`` method now have
+  ``first``, ``last`` frame parameters to limit output reporting; now all
+  sequence classes share a similar interface.
+* ``Seqparse.output()`` now passes ``first``, ``last`` frame arguments to
+  ``FileSequence.invert()``.
+* Added a slight update to ``README.md``.
+
 v0.7.2 (2017/12/08)
 -------------------
 
