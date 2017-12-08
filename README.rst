@@ -25,8 +25,8 @@ Frame Sequences
 ~~~~~~~~~~~~~~~
 
 Frame sequences are broken down into comma-separated chunks of the
-format ``first frame`` **-** ``last frame`` **x** ``step`` where the following rules
-apply:
+format ``first frame`` **-** ``last frame`` **x** ``step`` where the following
+rules apply:
 
 -  Frame numbers can be zero-padded,
 -  Frame step (increment) is always a positive integer,
@@ -68,9 +68,9 @@ seqls
                  [--mindepth MIN_LEVELS] [-m] [-S]
                  [search_path [search_path ...]]
 
-    Command line tool for listing file sequences. Upon installation of the package
-    this script will be accessable via ``seqls`` command on the command line of your
-    choice.
+    Command line tool for listing file sequences. Upon installation of the
+    package this script will be accessable via ``seqls`` command on the command
+    line of your choice.
 
     positional arguments:
       search_path           Paths that you'd like to search for file sequences.
@@ -78,20 +78,20 @@ seqls
     optional arguments:
       -h, --help            show this help message and exit
       -a, --all             Do not ignore entries starting with '.'.
-      -H, --human-readable  with -l/--long, print sizes in human readable format
-                            (e.g., 1K 234M 2G).
+      -H, --human-readable  with -l/--long, print sizes in human readable
+                            format (e.g., 1K 234M 2G).
       -l, --long            Use a long listing format.
       --maxdepth MAX_LEVELS
                             Descend at most levels (a non-negative integer)
-                            MAX_LEVELS of directories below the starting-points.
-                            '--maxdepth 0' means scan the starting-points
-                            themselves.
+                            MAX_LEVELS of directories below the
+                            starting-points. '--maxdepth 0' means scan the
+                            starting-points themselves.
       --mindepth MIN_LEVELS
                             Do not scan at levels less than MIN_LEVELS (a non-
                             negative integer). '--mindepth 1' means scan all
                             levels except the starting-points.
-      -m, --missing         Whether to invert output file sequences to only report
-                            the missing frames.
+      -m, --missing         Whether to invert output file sequences to only
+                            report the missing frames.
       -S, --seqs-only       Whether to filter out all non-sequence files.
       -v, --version         Print the version and exit.
 
@@ -159,16 +159,16 @@ Example (taken from the ``Seqparse`` docstring):
     >>> parser = Seqparse()
     >>> parser.scan_path("test_dir")
     >>> for item in parser.output():
-    ...     print str(item)
+    ...     print(str(item))
     ...
     test_dir/TEST_DIR.0001-0004,0010.tif
     test_dir/SINGLETON.jpg
     >>> for item in parser.output(seqs_only=True):
-    ...     print str(item)
+    ...     print(str(item))
     ...
     test_dir/TEST_DIR.0001-0004,0010.tif
     >>> for item in parser.output(missing=True):
-    ...     print str(item)
+    ...     print(str(item))
     ...
     test_dir/TEST_DIR.0005-0009.tif
 
@@ -181,12 +181,12 @@ Useful Classes
 
     >>> from seqparse import get_sequence
     >>> seq = get_sequence([1, 2, 3, 4, 8])
-    >>> print repr(seq)
+    >>> print(repr(seq))
     FrameSequence(pad=4, frames=set([1, 2, 3, 4, 8]))
-    >>> print seq
+    >>> print(seq)
     0001-0005,0008
     >>> for frame in seq:
-    ...     print frame
+    ...     print(frame)
     ...
     0001
     0002
@@ -194,7 +194,7 @@ Useful Classes
     0004
     0010
     >>> for frame in seq.invert():
-    ...     print frame
+    ...     print(frame)
     ...
     0005
     0006
