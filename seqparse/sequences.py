@@ -19,15 +19,6 @@ __all__ = ("FileSequence", "FrameSequence", "SeqparsePadException")
 class SeqparsePadException(Exception):
     """Exception thrown when unexpected frame padding is encountered."""
 
-    def __init__(self, message):
-        """
-        Initialise the instance.
-
-        Args:
-            message (str): Error message to throw when exception is raised.
-        """
-        super(SeqparsePadException, self).__init__(message)
-
 
 ###############################################################################
 # Class: FrameChunk
@@ -466,9 +457,15 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         self._attrs["dirty"] = False
 
-    def invert(self):
+    def invert(self, first=None, last=None):
         """
         Calculate frames missing from the sequence.
+
+        Args:
+            first (int, optional): First frame of the range that you'd like to
+                invert. Defaults to first frame of the chunk if not specified.
+            last (int, optional): Last frame of the range that you'd like to
+                invert. Defaults to last frame of the chunk if not specified.
 
         Returns:
             FrameSequence containing the missing frames (if any).
@@ -478,13 +475,31 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         num_chunks = len(self._attrs["chunks"])
 
         if num_chunks == 1:
-            inverted.add(self._attrs["chunks"][0].invert())
+            inverted.add(self._attrs["chunks"][0].invert(
+                first=first, last=last))
 
         elif num_chunks:
             for idx in range(num_chunks - 1):
                 current_chunk = self._attrs["chunks"][idx]
+                current_first = current_chunk.first
+                current_last = current_chunk.last
+
                 next_chunk = self._attrs["chunks"][idx + 1]
-                inverted.add(current_chunk.invert(last=next_chunk.first - 1))
+                opts = dict(last=next_chunk.first - 1)
+
+                if first is not None:
+                    if first > current_last:
+                        continue
+                    elif current_first < first:
+                        opts.update(first=first)
+
+                if last is not None:
+                    if last < current_first:
+                        continue
+                    elif current_last > last:
+                        opts.update(last=last)
+
+                inverted.add(current_chunk.invert(**opts))
 
             inverted.add(self._attrs["chunks"][-1].invert())
 
@@ -799,14 +814,20 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         # Cache disk stats for easy/quick access via property ...
         self._aggregate_stats()
 
-    def invert(self):
+    def invert(self, first=None, last=None):
         """
         Calculate file names missing from the sequence.
+
+        Args:
+            first (int, optional): First frame of the range that you'd like to
+                invert. Defaults to first frame of the chunk if not specified.
+            last (int, optional): Last frame of the range that you'd like to
+                invert. Defaults to last frame of the chunk if not specified.
 
         Returns:
             FileSequence containing the missing files (if any).
         """
-        frames = super(FileSequence, self).invert()
+        frames = super(FileSequence, self).invert(first=first, last=last)
         inverted = FileSequence(
             name=self.full_name, frames=frames, ext=self.ext)
         return inverted

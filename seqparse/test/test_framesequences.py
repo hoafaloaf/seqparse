@@ -276,6 +276,51 @@ class TestFrameSequences(unittest.TestCase):
 
         self.assertEqual(str(inverted), str(expected))
 
+        first, last = 5, 18
+        inverted = seq.invert(first=first,last=last)
+        expected = "0006,0008,0011-0014,0016-0018"
+
+        print("\n  SPECIFYING LIMITS 1\n  -------------------")
+        print("  input frames:   ", seq)
+        print("  first frame:    ", first)
+        print("  last frame:     ", last)
+        print("  expected frames:", expected)
+        print("  expected frames:", expected)
+        print("  returned frames:", inverted)
+        print("")
+
+        self.assertEqual(str(inverted), str(expected))
+
+        first, last = 10, 18
+        inverted = seq.invert(first=first,last=last)
+        expected = "0011-0014,0016-0018"
+
+        print("\n  SPECIFYING LIMITS 2\n  -------------------")
+        print("  input frames:   ", seq)
+        print("  first frame:    ", first)
+        print("  last frame:     ", last)
+        print("  expected frames:", expected)
+        print("  expected frames:", expected)
+        print("  returned frames:", inverted)
+        print("")
+
+        self.assertEqual(str(inverted), str(expected))
+
+        first, last = 5, 8
+        inverted = seq.invert(first=first,last=last)
+        expected = "0006,0008"
+
+        print("\n  SPECIFYING LIMITS 3\n  -------------------")
+        print("  input frames:   ", seq)
+        print("  first frame:    ", first)
+        print("  last frame:     ", last)
+        print("  expected frames:", expected)
+        print("  expected frames:", expected)
+        print("  returned frames:", inverted)
+        print("")
+
+        self.assertEqual(str(inverted), str(expected))
+
     def test_equality(self):
         """FrameSequence: Test the equality of instances."""
         seq1 = FrameSequence(lrange(1, 11), pad=4)
