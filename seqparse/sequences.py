@@ -139,18 +139,18 @@ class FrameChunk(object):
         Examples:
             >>> from seqparse.sequences import FrameChunk
             >>> chunk = FrameChunk(first=5, last=11, step=2, pad=3)
-            >>> print chunk
+            >>> print(chunk)
             005-011x2
             >>> inverted = chunk.invert()
-            >>> print inverted
+            >>> print(inverted)
             006-010x2
-            >>> print repr(inverted)
+            >>> print(repr(inverted))
             FrameSequence(pad=3, frames=set([6, 8, 10]))
-            >>> print chunk.invert(first=1)
+            >>> print(chunk.invert(first=1))
             001-004,006-010x2
-            >>> print chunk.invert(last=15)
+            >>> print(chunk.invert(last=15))
             006-012x2,013-015
-            >>> print chunk.invert(first=1, last=15)
+            >>> print(chunk.invert(first=1, last=15))
             001-004,006-012x2,013-015
         """
         if first is None:

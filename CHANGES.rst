@@ -1,6 +1,14 @@
 CHANGES
 =======
 
+v0.7.2 (2017/12/08)
+-------------------
+
+Changes (from v0.7.1)
+
+* No changes in functionality.
+* Changed ``print XXX`` to ``print(XXX)`` in all docstrings.
+
 v0.7.1 (2017/12/08)
 -------------------
 
