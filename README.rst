@@ -206,9 +206,8 @@ documentation for details).
 Final Notes
 -----------
 
-There're still a number of things I'd like to do to make the class
-interfaces a bit more standardized (see my goals for the **v0.7.0**
-release above), but aside from that I'm moderately happy with this code.
+I'm moderately happy with this code -- but there's **always** room for
+improvement (and new/exciting features).
 
 Lemme know if you have any requests/complaints/suggestions!
 

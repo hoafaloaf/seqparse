@@ -170,7 +170,7 @@ class Seqparse(SeqparseRegexMixin):
                     stat = os.stat(file_name)
                 singletons.cache_stat(base_name, stat)
 
-    def output(self, missing=False, seqs_only=False):
+    def output(self, missing=False, seqs_only=False, first=None, last=None):
         """
         Yield a list of contained singletons and file sequences.
 
@@ -180,6 +180,12 @@ class Seqparse(SeqparseRegexMixin):
                 Using this option implies that seqs_only == True.
             seqs_only (bool, optional): Whether to only yield file sequences
                 (if any). Defaults to False.
+            first (int, optional): First frame of the range that you'd like to
+                invert (and has no bearing on non-inverted sequence output).
+                Defaults to first frame of the chunk if not specified.
+            last (int, optional): Last frame of the range that you'd like to
+                invert (and has no bearing on non-inverted sequence output).
+                Defaults to last frame of the chunk if not specified.
 
         Yields:
             File and/or FileSequence instances, depending on input arguments.
@@ -192,7 +198,7 @@ class Seqparse(SeqparseRegexMixin):
             for container in sorted(data["seqs"].values()):
                 for file_seq in container.output():
                     if missing:
-                        yield file_seq.invert()
+                        yield file_seq.invert(first=first, last=last)
                     else:
                         yield file_seq
 
