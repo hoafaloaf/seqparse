@@ -1,17 +1,16 @@
 """Singleton file-related data structures utilized by the Seqparse module."""
 
-# Standard Libraries
 import os
 from functools import total_ordering
 
-__all__ = ("File", )
+__all__ = ("File",)
 
 ###############################################################################
 # Class: File
 
 
 @total_ordering
-class File(object):
+class File:
     """
     Simple representation of files on disk.
 
@@ -97,7 +96,7 @@ class File(object):
         Returns:
             stat_result that was successfully cached.
         """
-        from . import get_stat_result
+        from . import get_stat_result  # pylint: disable=C0415
 
         self._stat = None
         if input_stat:

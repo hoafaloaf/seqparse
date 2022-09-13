@@ -107,19 +107,23 @@ def initialise_mock_scandir_data(search_path):
     level2_path = os.path.join(level1_path, "level2")
     level3_path = os.path.join(level2_path, "level3")
 
-    level0_entries = generate_entries(
-        ext="exr", name="level0_1", root=search_path)
+    level0_entries = generate_entries(ext="exr",
+                                      name="level0_1",
+                                      root=search_path)
     level0_entries.extend(
         generate_entries(ext="exr", name="level0_2", root=search_path))
     level0_entries.append(DirEntry(level1_path, is_file=False))
-    level1_entries = generate_entries(
-        ext="exr", name="level1", root=level1_path)
+    level1_entries = generate_entries(ext="exr",
+                                      name="level1",
+                                      root=level1_path)
     level1_entries.append(DirEntry(level2_path, is_file=False))
-    level2_entries = generate_entries(
-        ext="exr", name="level2", root=level2_path)
+    level2_entries = generate_entries(ext="exr",
+                                      name="level2",
+                                      root=level2_path)
     level2_entries.append(DirEntry(level3_path, is_file=False))
-    level3_entries = generate_entries(
-        ext="exr", name="level3", root=level3_path)
+    level3_entries = generate_entries(ext="exr",
+                                      name="level3",
+                                      root=level3_path)
 
     del MOCK_SCANDIR_DEEP_DATA[:]
     MOCK_SCANDIR_DEEP_DATA.extend(

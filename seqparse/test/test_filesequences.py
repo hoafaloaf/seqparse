@@ -1,16 +1,8 @@
 """Test the FrameSequence class."""
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
 import os
 import unittest
-
-# Third Party Libraries
-import mock
-from builtins import range
-from future.utils import lrange
+import unittest.mock as mock
 
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
@@ -101,8 +93,10 @@ class TestFileSequences(unittest.TestCase):
         frames1 = [str(x) for x in range(1, 12)]
 
         for frames in (frames1, chunk1, seq1):
-            fseq = FileSequence(
-                name=file_path, ext=self._test_ext, frames=frames, pad=1)
+            fseq = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=frames,
+                                pad=1)
 
             for frame in frames:
                 file_name = "{}.{}.{}".format(file_path, frame, self._test_ext)
@@ -116,8 +110,10 @@ class TestFileSequences(unittest.TestCase):
         frames2 = ["{:04d}".format(x) for x in range(1, 12)]
 
         for frames in (frames2, chunk2, seq2):
-            fseq = FileSequence(
-                name=file_path, ext=self._test_ext, frames=frames, pad=4)
+            fseq = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=frames,
+                                pad=4)
 
             for frame in frames:
                 file_name = "{}.{}.{}".format(file_path, frame, self._test_ext)
@@ -129,7 +125,7 @@ class TestFileSequences(unittest.TestCase):
     def test_file_containment(self):
         """FileSequence: Test if files are contained by a sequence."""
         file_path = os.path.join(self._test_root, self._test_name)
-        frames = lrange(1, 12)
+        frames = list(range(1, 12))
 
         seq1 = FrameSequence(frames, pad=1)
         fseq1 = FileSequence(name=file_path, ext=self._test_ext, frames=seq1)
@@ -168,11 +164,14 @@ class TestFileSequences(unittest.TestCase):
         """FileSequence: Test iteration over an instance."""
         file_path = os.path.join(self._test_root, self._test_name)
 
-        data = [(lrange(1, 6), 4), (lrange(1, 21, 2) + lrange(100, 105), 1)]
+        data = [(list(range(1, 6)), 4),
+                (list(range(1, 21, 2)) + list(range(100, 105)), 1)]
 
         for frames, pad in data:
-            fseq = FileSequence(
-                name=file_path, ext=self._test_ext, frames=frames, pad=pad)
+            fseq = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=frames,
+                                pad=pad)
             file_names = list()
             for frame in frames:
                 file_name = "{}.{:0{}d}.{}".format(file_path, frame, pad,
@@ -187,19 +186,21 @@ class TestFileSequences(unittest.TestCase):
             print("  o forward: ")
             print("\n".join("    - {}".format(x) for x in fseq))
             print("  o backward:")
-            print(
-                "\n".join(list("    - {}".format(x) for x in reversed(fseq))))
+            print("\n".join(list(
+                "    - {}".format(x) for x in reversed(fseq))))
 
     def test_inversion(self):
         """FileSequence: Test frame inversion (ie, report missing frames)."""
         file_path = os.path.join(self._test_root, self._test_name)
 
         chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
-        fseq = FileSequence(
-            name=file_path, ext=self._test_ext, frames=chunk_in)
+        fseq = FileSequence(name=file_path,
+                            ext=self._test_ext,
+                            frames=chunk_in)
         chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
-        expected = FileSequence(
-            name=file_path, ext=self._test_ext, frames=chunk_out)
+        expected = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=chunk_out)
         inverted = fseq.invert()
 
         print("\n\n  SEQUENCE\n  --------")
@@ -220,8 +221,9 @@ class TestFileSequences(unittest.TestCase):
         seq_out.add(chunk1.invert())
         seq_out.add(chunk2.invert())
         seq_out.invert()
-        expected = FileSequence(
-            name=file_path, ext=self._test_ext, frames=seq_in.invert())
+        expected = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=seq_in.invert())
         inverted = fseq.invert()
 
         print("\n  COMPLEX FRAME\n  ------------")
@@ -233,8 +235,9 @@ class TestFileSequences(unittest.TestCase):
         self.assertEqual(str(inverted), str(expected))
 
         chunk_in = FrameChunk(first=1, last=10, pad=2)
-        fseq = FileSequence(
-            name=file_path, ext=self._test_ext, frames=chunk_in)
+        fseq = FileSequence(name=file_path,
+                            ext=self._test_ext,
+                            frames=chunk_in)
         expected = ""
         inverted = fseq.invert()
 
@@ -248,18 +251,25 @@ class TestFileSequences(unittest.TestCase):
     def test_equality(self):
         """FileSequence: Test the equality of instances."""
         file_path = os.path.join(self._test_root, self._test_name)
-        fseq0 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
-        fseq1 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
-        fseq2 = FileSequence(
-            name=file_path, ext=self._test_ext, frames="0001-0010")
-        fseq3 = FileSequence(
-            name=file_path, ext=self._test_ext, frames="001-010")
-        fseq4 = FileSequence(
-            name=self._test_name, ext=self._test_ext, frames="0001-0010")
+        fseq0 = FileSequence(name=file_path,
+                             ext=self._test_ext,
+                             frames=list(range(1, 11)),
+                             pad=4)
+        fseq1 = FileSequence(name=file_path,
+                             ext=self._test_ext,
+                             frames=list(range(1, 11)),
+                             pad=4)
+        fseq2 = FileSequence(name=file_path,
+                             ext=self._test_ext,
+                             frames="0001-0010")
+        fseq3 = FileSequence(name=file_path,
+                             ext=self._test_ext,
+                             frames="001-010")
+        fseq4 = FileSequence(name=self._test_name,
+                             ext=self._test_ext,
+                             frames="0001-0010")
 
-        seq0 = FrameSequence(lrange(1, 11), pad=4)
+        seq0 = FrameSequence(list(range(1, 11)), pad=4)
 
         self.assertEqual(fseq0, fseq1)
         self.assertEqual(fseq0, fseq2)
@@ -316,7 +326,7 @@ class TestFileSequences(unittest.TestCase):
 
     def test_frame_properties(self):
         """FileSequence: Test frames, pretty_frames properties."""
-        frames = FrameSequence(lrange(1, 6), pad=4)
+        frames = FrameSequence(list(range(1, 6)), pad=4)
         full_name = os.path.join(self._test_root, self._test_name)
         fseq = FileSequence(name=full_name, frames=frames, ext="exr")
 
@@ -334,12 +344,18 @@ class TestFileSequences(unittest.TestCase):
         frames1 = [1, 2, 3]
         frames2 = [4, 6]
 
-        input_seq1 = FileSequence(
-            ext="py", frames=frames1, name=full_name1, pad=4)
-        input_seq2 = FileSequence(
-            ext="py", frames=frames2, name=full_name1, pad=4)
-        input_seq3 = FileSequence(
-            ext="py", frames=frames2, name=full_name3, pad=4)
+        input_seq1 = FileSequence(ext="py",
+                                  frames=frames1,
+                                  name=full_name1,
+                                  pad=4)
+        input_seq2 = FileSequence(ext="py",
+                                  frames=frames2,
+                                  name=full_name1,
+                                  pad=4)
+        input_seq3 = FileSequence(ext="py",
+                                  frames=frames2,
+                                  name=full_name3,
+                                  pad=4)
 
         # Caching disk stats (because mocking os.stat is hard):
         for seq in (input_seq1, input_seq2):
@@ -365,10 +381,11 @@ class TestFileSequences(unittest.TestCase):
     def test_discard(self):
         """FileSequence: Test the discard method."""
         full_name = os.path.join(self._test_root, self._test_name)
-        frames = lrange(1, 6)
+        frames = list(range(1, 6))
 
-        input_seq = FileSequence(
-            ext=self._test_ext, frames=frames, name=full_name)
+        input_seq = FileSequence(ext=self._test_ext,
+                                 frames=frames,
+                                 name=full_name)
 
         self.assertIn(frames[0], input_seq)
         input_seq.discard(frames[0])

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nosetests -v
+python -m unittest discover
 
 EXIT_STATUS=$?
 

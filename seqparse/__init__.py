@@ -30,7 +30,6 @@ Examples of proper frame sequences:
     * Two-padded sequence (1, 3, 5, 7, 11, 13, 102): 01-07x2,11,13,102
 """
 
-# Standard Libraries
 import os
 
 __all__ = ("get_parser", "get_sequence", "get_version", "invert",
@@ -39,7 +38,7 @@ __all__ = ("get_parser", "get_sequence", "get_version", "invert",
 ###############################################################################
 # METADATA
 
-__version__ = "0.7.2"
+__version__ = "1.0.1"
 
 __title__ = "seqparse"
 __description__ = "A nifty way to parse your file sequences."
@@ -49,7 +48,7 @@ __author__ = "Geoff Harvey"
 __email__ = "hoafaloaf@gmail.com"
 
 __license__ = "MIT"
-__copyright__ = "Copyright (c) 2017 {0}".format(__author__)
+__copyright__ = "Copyright (c) 2022 {0}".format(__author__)
 
 ###############################################################################
 # EXPORTED METHODS

@@ -1,15 +1,7 @@
 """Test the FrameSequence class."""
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
 import os
 import unittest
-
-# Third Party Libraries
-from builtins import range
-from future.utils import lrange
 
 from ..sequences import (FileSequence, FrameChunk, FrameSequence,
                          SeqparsePadException)
@@ -186,8 +178,8 @@ class TestFrameSequences(unittest.TestCase):
             except SeqparsePadException as error:
                 print("    - EXPECTED ERROR: {} --> {}".format(item, error))
 
-        self.assertEqual(
-            str(seq), "0001-0004,0010-0020x2,0030-0040x2,0091-0101x2")
+        self.assertEqual(str(seq),
+                         "0001-0004,0010-0020x2,0030-0040x2,0091-0101x2")
 
     def test_setlike_methods(self):
         """FrameSequence: Test set-like methods."""
@@ -278,10 +270,10 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_equality(self):
         """FrameSequence: Test the equality of instances."""
-        seq1 = FrameSequence(lrange(1, 11), pad=4)
-        seq2 = FrameSequence(lrange(1, 11), pad=4)
-        seq3 = FrameSequence(lrange(1, 11), pad=3)
-        seq4 = FrameSequence(lrange(1, 10), pad=4)
+        seq1 = FrameSequence(list(range(1, 11)), pad=4)
+        seq2 = FrameSequence(list(range(1, 11)), pad=4)
+        seq3 = FrameSequence(list(range(1, 11)), pad=3)
+        seq4 = FrameSequence(list(range(1, 10)), pad=4)
         seq5 = FrameSequence("0001-0010")
         seq6 = FrameSequence("0001-0010")
         seq7 = FrameSequence("001-010")
@@ -298,7 +290,9 @@ class TestFrameSequences(unittest.TestCase):
         self.assertNotEqual(seq5, seq8)
 
         file_path = os.path.join(self._test_path, self._test_name)
-        fseq1 = FileSequence(
-            name=file_path, ext=self._test_ext, frames=lrange(1, 11), pad=4)
+        fseq1 = FileSequence(name=file_path,
+                             ext=self._test_ext,
+                             frames=list(range(1, 11)),
+                             pad=4)
 
         self.assertNotEqual(seq1, fseq1)

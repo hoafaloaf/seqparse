@@ -1,25 +1,18 @@
 """Tests for the seqls script (seqparse.cli.seqls)."""
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
 import copy
 import os
 import shlex
 import time
 import unittest
 
-# Third Party Libraries
-import mock
-from builtins import range
+import unittest.mock as mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
 from .. import get_version
 from ..cli import seqls
 from ..sequences import FileSequence, FrameChunk
-
 
 ###############################################################################
 # class: TestFrameSequences
@@ -39,16 +32,15 @@ class TestSeqls(unittest.TestCase):
 
     def test_parse_args(self):
         """Seqls: Test seqls argument parsing."""
-        defaults = dict(
-            all=False,
-            human_readable=False,
-            long_format=False,
-            max_levels=[-1],
-            min_levels=[-1],
-            missing=False,
-            search_path=["."],
-            seqs_only=False,
-            version=False)
+        defaults = dict(all=False,
+                        human_readable=False,
+                        long_format=False,
+                        max_levels=[-1],
+                        min_levels=[-1],
+                        missing=False,
+                        search_path=["."],
+                        seqs_only=False,
+                        version=False)
         args = vars(seqls.parse_args([]))
         self.assertEqual(args, defaults)
 
@@ -73,7 +65,7 @@ class TestSeqls(unittest.TestCase):
             self.assertEqual(expected_options,
                              vars(seqls.parse_args(input_args)))
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_seqls_with_arguments(self, mock_api_call):
         """Seqls: Test seqls with supplied arguments."""
         mock_api_call.side_effect = mock_scandir_deep
@@ -83,8 +75,8 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(version, get_version(pretty=True))
 
         print("\n  SEQUENCES\n  ---------")
-        initialise_mock_scandir_data(
-            os.path.join(os.getcwd(), self._test_root))
+        initialise_mock_scandir_data(os.path.join(os.getcwd(),
+                                                  self._test_root))
         args = seqls.parse_args(["test_dir"])
         seqs = list(seqls.main(args, _debug=True))
         for seq in seqs:
@@ -130,7 +122,7 @@ class TestSeqls(unittest.TestCase):
 
         print("")
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_singletons(self, mock_api_call):
         """Seqls: Test file singleton discovery from disk location."""
         output = [os.path.join(self._test_root, x) for x in self._singletons]
@@ -150,22 +142,24 @@ class TestSeqls(unittest.TestCase):
         file_names = list(seqls.main(args, _debug=True))
         self.assertEqual(file_names, [])
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_missing_option(self, mock_api_call):
         """Seqls: Test missing option."""
         file_path = os.path.join(self._test_root, self._test_file_name)
 
         chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
-        fseq = FileSequence(
-            name=file_path, ext=self._test_ext, frames=chunk_in)
+        fseq = FileSequence(name=file_path,
+                            ext=self._test_ext,
+                            frames=chunk_in)
 
         input_entries = list(map(DirEntry, fseq))
 
         mock_api_call.return_value = iter(input_entries)
 
         chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
-        expected = FileSequence(
-            name=file_path, ext=self._test_ext, frames=chunk_out)
+        expected = FileSequence(name=file_path,
+                                ext=self._test_ext,
+                                frames=chunk_out)
 
         args = seqls.parse_args(["test_dir", "-m"])
         inverted = seqls.main(args, _debug=True)
@@ -179,17 +173,21 @@ class TestSeqls(unittest.TestCase):
 
         self.assertEqual(inverted[0], str(expected))
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_long_format_option(self, mock_api_call):
         """Seqls: Test the long-format option."""
         frames = {4: (1, 2, 3, 4, 6)}
         root_dir = os.path.join(os.getcwd(), self._test_root)
-        input_entries = generate_entries(
-            name="test", ext="py", frames=frames, root=root_dir)
+        input_entries = generate_entries(name="test",
+                                         ext="py",
+                                         frames=frames,
+                                         root=root_dir)
 
         input_entries.extend(
-            generate_entries(
-                name=".test", ext="py", frames=frames, root=self._test_root))
+            generate_entries(name=".test",
+                             ext="py",
+                             frames=frames,
+                             root=self._test_root))
 
         input_entries.append(DirEntry(os.path.join(root_dir, "pony.py")))
 
@@ -233,18 +231,22 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(len(output), 1)
         self.assertEqual(output, expected)
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_all_option(self, mock_api_call):
         """Seqls: Test the all option."""
         frames = {4: (1, 2, 3, 4, 6)}
         root_dir = os.path.join(os.getcwd(), self._test_root)
 
-        input_entries = generate_entries(
-            name="test", ext="py", frames=frames, root=root_dir)
+        input_entries = generate_entries(name="test",
+                                         ext="py",
+                                         frames=frames,
+                                         root=root_dir)
 
         input_entries.extend(
-            generate_entries(
-                name=".test", ext="py", frames=frames, root=root_dir))
+            generate_entries(name=".test",
+                             ext="py",
+                             frames=frames,
+                             root=root_dir))
 
         mock_api_call.return_value = input_entries
 

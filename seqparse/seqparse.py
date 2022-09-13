@@ -1,24 +1,15 @@
 """The main engine for the seqparse module."""
 
-# Standard Libraries
 import os
 from collections import defaultdict
 
-# Third Party Libraries
 import six
 
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
 from .sequences import FrameSequence
 
-# Use the built-in version of scandir/walk if possible, otherwise use the
-# scandir module version.
-try:
-    from os import scandir  # pylint: disable=W0611,C0412
-except ImportError:  # pragma: no cover
-    from scandir import scandir  # pylint: disable=W0611,C0412
-
-__all__ = ("Seqparse", )
+__all__ = ("Seqparse",)
 
 ###############################################################################
 # Class: Seqparse
@@ -64,12 +55,11 @@ class Seqparse(SeqparseRegexMixin):
 
     def __init__(self):
         """Initialise the instance."""
-        super(Seqparse, self).__init__()
+        super().__init__()
 
         self._locs = defaultdict(
-            lambda: dict(
-                seqs=defaultdict(FileSequenceContainer),
-                files=SingletonContainer()))
+            lambda: dict(seqs=defaultdict(FileSequenceContainer),
+                         files=SingletonContainer()))
 
         self._options = dict(all=False, stat=False)
 
@@ -79,8 +69,9 @@ class Seqparse(SeqparseRegexMixin):
         num_files = len(list(self.output())) - num_seqs
 
         blurb = ("{name}(sequences={seqs}, singletons={files})")
-        return blurb.format(
-            name=type(self).__name__, files=num_files, seqs=num_seqs)
+        return blurb.format(name=type(self).__name__,
+                            files=num_files,
+                            seqs=num_seqs)
 
     @property
     def locations(self):
@@ -118,11 +109,10 @@ class Seqparse(SeqparseRegexMixin):
             entry = file_name
             file_name = file_name.path
 
-        file_seq_bits = self.file_seq_match(str(file_name))
+        sequence_bits = self.file_seq_match(str(file_name))
 
-        if file_seq_bits:
-            base_name, frames, file_ext = file_seq_bits
-            dir_name, base_name = os.path.split(base_name)
+        if sequence_bits:
+            dir_name, base_name = os.path.split(sequence_bits.name)
 
             loc = self.locations[dir_name]
             sequence = loc["seqs"][base_name]
@@ -135,13 +125,13 @@ class Seqparse(SeqparseRegexMixin):
             # We'll assume that a frame sequence is properly formed -- and use
             # the length of the first frame as the padding. The FrameSequence
             # to which we're adding the frames will do the actual validation.
-            for chunk in frames.split(","):
+            for chunk in sequence_bits.frames.split(","):
                 bits = self.bits_match(chunk, as_dict=True)
                 pad = len(bits["first"])
                 break
 
-            ext = sequence[file_ext]
-            ext[pad].add(frames)
+            ext = sequence[sequence_bits.ext]
+            ext[pad].add(sequence_bits.frames)
 
             if self.scan_options["stat"]:
                 # "entry" *should* only ever be defined if it was passed in via
@@ -150,7 +140,7 @@ class Seqparse(SeqparseRegexMixin):
                     stat = entry.stat(follow_symlinks=True)
                 else:
                     stat = os.stat(file_name)
-                ext[pad].cache_stat(int(frames), stat)
+                ext[pad].cache_stat(int(sequence_bits.frames), stat)
 
         else:
             dir_name, base_name = os.path.split(file_name)
@@ -271,7 +261,7 @@ class Seqparse(SeqparseRegexMixin):
             dict of all data of the specified type, indexed by containing
             directory.
         """
-        output = dict()
+        output = {}
         for loc, data in six.iteritems(self.locations):
             if data[typ]:
                 output[loc] = data[typ]
@@ -290,8 +280,8 @@ class Seqparse(SeqparseRegexMixin):
         Yields:
             DirEntry representations of discovered files.
         """
-        root, dir_entries, file_entries = search_path, list(), list()
-        for entry in scandir(search_path):
+        root, dir_entries, file_entries = search_path, [], []
+        for entry in os.scandir(search_path):
             if entry.name.startswith(".") and not self.scan_options["all"]:
                 continue
             if entry.is_dir(follow_symlinks=follow_symlinks):

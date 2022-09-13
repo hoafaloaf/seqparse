@@ -1,15 +1,11 @@
 """Test the File class."""
 
-# Standard Libraries
 import os
 import unittest
-
-# Third Party Libraries
-import mock
+import unittest.mock as mock
 
 from . import mock_os_stat
 from ..files import File
-
 
 ###############################################################################
 # class: TestFiles

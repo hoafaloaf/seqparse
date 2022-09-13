@@ -1,12 +1,9 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
-# Standard Libraries
 import os
-from collections import MutableSet
+from collections.abc import MutableSet
 
-# Third Party Libraries
 import six
-from builtins import range
 
 from .regex import SeqparseRegexMixin
 
@@ -47,8 +44,11 @@ class FrameChunk(object):
 
     def __init__(self, first, last=None, step=1, pad=1):
         """Initialise the instance."""
-        self._data = dict(
-            first=None, last=None, length=None, pad=int(pad), step=None)
+        self._data = dict(first=None,
+                          last=None,
+                          length=None,
+                          pad=int(pad),
+                          step=None)
         self._output = None
 
         # This will calculate the string output as well!
@@ -234,8 +234,11 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """Initialise the instance."""
         super(FrameSequence, self).__init__()
 
-        self._attrs = dict(
-            chunks=list(), dirty=True, is_padded=False, pad=None, stat=dict())
+        self._attrs = dict(chunks=list(),
+                           dirty=True,
+                           is_padded=False,
+                           pad=None,
+                           stat=dict())
 
         self._data = set()
         self._output = None
@@ -623,11 +626,10 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         """Pretty representation of the instance."""
         blurb = ("{cls}(full_name={full!r}, ext={ext!r}, pad={pad}, "
                  "frames=set({fr!r}))")
-        return blurb.format(
-            cls=type(self).__name__,
-            fr=sorted(self._data),
-            pad=self.pad,
-            **self._info)
+        return blurb.format(cls=type(self).__name__,
+                            fr=sorted(self._data),
+                            pad=self.pad,
+                            **self._info)
 
     def __str__(self):
         """String reprentation of the frame sequence."""
@@ -807,8 +809,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             FileSequence containing the missing files (if any).
         """
         frames = super(FileSequence, self).invert()
-        inverted = FileSequence(
-            name=self.full_name, frames=frames, ext=self.ext)
+        inverted = FileSequence(name=self.full_name,
+                                frames=frames,
+                                ext=self.ext)
         return inverted
 
     def stat(self, frame=None, force=False, lazy=False):

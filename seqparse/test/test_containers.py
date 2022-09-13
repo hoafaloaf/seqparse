@@ -1,15 +1,8 @@
 """Test the container classes used by the Seqparse module."""
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
 import os
 import unittest
-
-# Third Party Libraries
-import mock
-from future.utils import lrange
+import unittest.mock as mock
 
 from . import DirEntry
 from .. import get_parser
@@ -94,7 +87,7 @@ class TestSingletonContainer(unittest.TestCase):
         self.assertEqual("\n".join(file_names), str(container))
         self.assertEqual("\n".join(file_names), "\n".join(output))
 
-    @mock.patch("seqparse.seqparse.scandir")
+    @mock.patch("seqparse.seqparse.os.scandir")
     def test_stats(self, mock_api_call):
         """SingletonContainer: Test disk stat functionality."""
         input_entries = [DirEntry(os.path.join(self._test_root, "pony.py"))]
@@ -124,8 +117,8 @@ class TestFileSequenceContainer(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        frames1 = lrange(0, 5)
-        frames2 = lrange(1, 6)
+        frames1 = list(range(0, 5))
+        frames2 = list(range(1, 6))
 
         full_name1 = os.path.join(self._test_root, self._test_file_name1)
         full_name2 = os.path.join(self._test_root, self._test_file_name2)
@@ -153,7 +146,7 @@ class TestFileSequenceContainer(unittest.TestCase):
             parser = get_parser()
 
             # Add in the source FileSequence files one-by-one.
-            parser.scan_path(list(map(str, input_seq)))
+            parser.scan_path([str(x) for x in input_seq])
             containers.append(parser.sequences[input_seq.path][input_seq.name])
 
         self.assertEqual(containers[0], containers[1])
@@ -181,7 +174,7 @@ class TestFileSequenceContainer(unittest.TestCase):
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
-        parser.scan_path(list(map(str, input_seq)))
+        parser.scan_path([str(x) for x in input_seq])
         container = parser.sequences[input_seq.path][input_seq.name]
 
         for value in ([], FileExtension(name="tif")):
@@ -220,7 +213,7 @@ class TestFileSequenceContainer(unittest.TestCase):
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
-        parser.scan_path(list(map(str, input_seq)))
+        parser.scan_path([str(x) for x in input_seq])
         container = parser.sequences[input_seq.path][input_seq.name]
 
         self.assertEqual(container.path, input_seq.path)
@@ -241,8 +234,8 @@ class TestFileExtension(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        frames1 = lrange(0, 5)
-        frames2 = lrange(1, 6)
+        frames1 = list(range(0, 5))
+        frames2 = list(range(1, 6))
 
         full_name1 = os.path.join(self._test_root, self._test_file_name1)
         full_name2 = os.path.join(self._test_root, self._test_file_name2)
@@ -269,7 +262,7 @@ class TestFileExtension(unittest.TestCase):
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
-        parser.scan_path(list(map(str, input_seq)))
+        parser.scan_path([str(x) for x in input_seq])
         container = parser.sequences[input_seq.path][input_seq.name]
 
         file_ext = container[self._test_ext]
@@ -285,17 +278,19 @@ class TestFileExtension(unittest.TestCase):
         parser = get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(
-            ext=self._test_ext, frames=frames1, name=full_name)
-        parser.scan_path(list(map(str, input_seq1)))
+        input_seq1 = FileSequence(ext=self._test_ext,
+                                  frames=frames1,
+                                  name=full_name)
+        parser.scan_path([str(x) for x in input_seq1])
         container = parser.sequences[input_seq1.path][input_seq1.name]
 
         file_ext = container[self._test_ext]
 
         # Test __setitem__, __delitem__ ...
-        frames4 = lrange(1000, 1003)
-        input_seq4 = FileSequence(
-            ext=self._test_ext, frames=frames4, name=full_name)
+        frames4 = list(range(1000, 1003))
+        input_seq4 = FileSequence(ext=self._test_ext,
+                                  frames=frames4,
+                                  name=full_name)
 
         for test_input in (frames4, input_seq4):
             raised = False
@@ -328,12 +323,13 @@ class TestFileExtension(unittest.TestCase):
         parser = get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(
-            ext=self._test_ext, frames=frames1, name=full_name)
-        parser.scan_path(list(map(str, input_seq1)))
+        input_seq1 = FileSequence(ext=self._test_ext,
+                                  frames=frames1,
+                                  name=full_name)
+        parser.scan_path([str(x) for x in input_seq1])
         container = parser.sequences[input_seq1.path][input_seq1.name]
 
         file_ext = container[self._test_ext]
-        output = "\n".join(map(str, file_ext.output()))
+        output = "\n".join(str(x) for x in file_ext.output())
 
         self.assertEqual(output, str(input_seq1))

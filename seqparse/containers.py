@@ -1,8 +1,7 @@
 """Classes utilized by the Seqparse class."""
 
-# Standard Libraries
 import os
-from collections import MutableMapping, MutableSet
+from collections.abc import MutableMapping, MutableSet
 from functools import total_ordering
 
 from .files import File
@@ -29,7 +28,7 @@ class FileExtension(MutableMapping):
 
     def __init__(self, name=None, parent=None):
         """Initialise the instance."""
-        self._data = dict()
+        self._data = {}
         self._name = None
         self._parent = None
 
@@ -43,7 +42,7 @@ class FileExtension(MutableMapping):
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
-            opts = dict(ext=self.name, pad=key)
+            opts = {'ext': self.name, 'pad': key}
             if self.parent:
                 opts.update(name=self.parent.full_name)
             self._data[key] = self._CHILD_CLASS(**opts)
@@ -60,8 +59,9 @@ class FileExtension(MutableMapping):
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "{cls}(name={name!r}, pads={pads})"
-        return blurb.format(
-            cls=type(self).__name__, name=self.name, pads=sorted(self))
+        return blurb.format(cls=type(self).__name__,
+                            name=self.name,
+                            pads=sorted(self))
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
@@ -74,7 +74,8 @@ class FileExtension(MutableMapping):
         if not isinstance(value, self._CHILD_CLASS):
             blurb = 'Container may only hold "{}" instances ("{}" provided)'
             raise ValueError(
-                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
+                blurb.format(self._CHILD_CLASS.__name__,
+                             type(value).__name__))
 
         self._data[key] = value
 
@@ -142,7 +143,7 @@ class FileSequenceContainer(MutableMapping):
 
     def __init__(self, name=None, file_path=None):
         """Initialise the instance."""
-        self._data = dict()
+        self._data = {}
 
         self._full = None
         self._name = None
@@ -194,19 +195,19 @@ class FileSequenceContainer(MutableMapping):
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "{cls}(full_name={full_name!r}, exts={exts})"
-        return blurb.format(
-            cls=type(self).__name__,
-            exts=sorted(self),
-            full_name=self.full_name)
+        return blurb.format(cls=type(self).__name__,
+                            exts=sorted(self),
+                            full_name=self.full_name)
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if not isinstance(value, self._CHILD_CLASS):
             blurb = 'Container may only hold "{}" instances ("{}" provided)'
             raise ValueError(
-                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__))
+                blurb.format(self._CHILD_CLASS.__name__,
+                             type(value).__name__))
 
-        elif key != value.name:
+        if key != value.name:
             blurb = ("Key value must match extension name of provided value "
                      "({!r} != {!r})")
             raise ValueError(blurb.format(key, value.name))
@@ -354,8 +355,8 @@ class SingletonContainer(MutableSet):
             File, sorted alphabetically.
         """
         for file_name in sorted(self):
-            yield File(
-                os.path.join(self.path, file_name), self.stat(file_name))
+            yield File(os.path.join(self.path, file_name),
+                       self.stat(file_name))
 
     def stat(self, base_name=None):
         """

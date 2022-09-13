@@ -1,16 +1,8 @@
 """Test the FrameChunk class."""
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
 import unittest
 
-# Third Party Libraries
-from builtins import range
-
 from ..sequences import FrameChunk
-
 
 ###############################################################################
 # class: TestFrameChunks
@@ -24,7 +16,7 @@ class TestFrameChunks(unittest.TestCase):
     good_bits = (("0001", None, 1, 1, 1), ("0001", "0005", 1, 1, 5),
                  ("0001", "0005", 2, 1, 3), ("0001", "0005", 2, 2, 3),
                  ("0001", "0005", 3, 1, 2), ("0001", "0005", 3, 2, 2))
-    bad_bits = (("0005", "0001", None, 1), )
+    bad_bits = (("0005", "0001", None, 1),)
 
     def setUp(self):
         """Set up the test instance."""
@@ -36,8 +28,8 @@ class TestFrameChunks(unittest.TestCase):
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
             self.assertEqual(len(chunk), bit[-1])
-            print("  o {} -> {} ({!r}, {:d} frames)".format(bit, chunk, chunk,
-                                                            len(chunk)))
+            print("  o {} -> {} ({!r}, {:d} frames)".format(
+                bit, chunk, chunk, len(chunk)))
 
         print("\n  BAD CHUNKS\n  -------------")
         for bit in self.bad_bits:
