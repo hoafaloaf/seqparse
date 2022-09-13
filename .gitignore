@@ -1,6 +1,7 @@
 *.pyc
 *.s?o
 *.sw?
+*.whl
 .svn/
 .project
 .pydevproject
@@ -9,7 +10,6 @@
 /*.xml
 /.coverage
 /.eggs
-/.noseids
 /pylint.out
 /build/
 /cover/

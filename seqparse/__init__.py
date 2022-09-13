@@ -35,20 +35,8 @@ import os
 __all__ = ("get_parser", "get_sequence", "get_version", "invert",
            "validate_frame_sequence")
 
-###############################################################################
-# METADATA
-
 __version__ = "1.0.1"
 
-__title__ = "seqparse"
-__description__ = "A nifty way to parse your file sequences."
-__uri__ = "http://github.com/hoafaloaf/seqparse"
-
-__author__ = "Geoff Harvey"
-__email__ = "hoafaloaf@gmail.com"
-
-__license__ = "MIT"
-__copyright__ = f'Copyright (c) 2022 {__author__}'
 
 ###############################################################################
 # EXPORTED METHODS
