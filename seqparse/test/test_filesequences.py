@@ -2,7 +2,7 @@
 
 import os
 import unittest
-import unittest.mock as mock
+from unittest import mock
 
 from . import mock_os_stat
 from ..sequences import FileSequence, FrameChunk, FrameSequence
@@ -25,11 +25,11 @@ class TestFileSequences(unittest.TestCase):
         """FileSequence: Test initialization of an instance by file name."""
         file_path = os.path.join(self._test_root, self._test_name)
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
-        file_name = "{}.{}.{}".format(file_path, chunk, self._test_ext)
+        file_name = f'{file_path}.{chunk}.{self._test_ext}'
 
         file_names = set()
         for frame in chunk:
-            file_names.add("{}.{}.{}".format(file_path, frame, self._test_ext))
+            file_names.add(f'{file_path}.{frame}.{self._test_ext}')
 
         fseq = FileSequence(file_name)
         self.assertEqual(fseq.path, self._test_root)
@@ -76,7 +76,7 @@ class TestFileSequences(unittest.TestCase):
         chunk = FrameChunk(first=1, last=11, step=2, pad=4)
         fseq = FileSequence(name=file_path, ext=self._test_ext, frames=chunk)
 
-        file_name = "{}.{}.{}".format(file_path, chunk, self._test_ext)
+        file_name = f'{file_path}.{chunk}.{self._test_ext}'
 
         self.assertEqual(file_name, str(fseq))
 
@@ -99,15 +99,15 @@ class TestFileSequences(unittest.TestCase):
                                 pad=1)
 
             for frame in frames:
-                file_name = "{}.{}.{}".format(file_path, frame, self._test_ext)
+                file_name = f'{file_path}.{frame}.{self._test_ext}'
                 self.assertIn(frame, fseq)
                 self.assertIn(int(frame), fseq)
                 self.assertIn(file_name, fseq)
-                self.assertNotIn("{:04d}".format(int(frame)), fseq)
+                self.assertNotIn(f'{int(frame):04d}', fseq)
 
         chunk2 = FrameChunk(first=1, last=11, step=1, pad=4)
         seq2 = FrameSequence(chunk2)
-        frames2 = ["{:04d}".format(x) for x in range(1, 12)]
+        frames2 = [f'{x:04d}' for x in range(1, 12)]
 
         for frames in (frames2, chunk2, seq2):
             fseq = FileSequence(name=file_path,
@@ -116,7 +116,7 @@ class TestFileSequences(unittest.TestCase):
                                 pad=4)
 
             for frame in frames:
-                file_name = "{}.{}.{}".format(file_path, frame, self._test_ext)
+                file_name = f'{file_path}.{frame}.{self._test_ext}'
                 self.assertIn(frame, fseq)
                 self.assertIn(int(frame), fseq)
                 self.assertIn(file_name, fseq)
@@ -129,15 +129,13 @@ class TestFileSequences(unittest.TestCase):
 
         seq1 = FrameSequence(frames, pad=1)
         fseq1 = FileSequence(name=file_path, ext=self._test_ext, frames=seq1)
-        file_names1 = [
-            "{}.{}.{}".format(file_path, x, self._test_ext) for x in frames
-        ]
+        file_names1 = [f'{file_path}.{x}.{self._test_ext}' for x in frames]
 
         for file_name in file_names1:
             self.assertIn(file_name, fseq1)
 
         bad_file_names1 = [
-            "{}.{}.{}".format(file_path, x, self._test_ext) for x in (0, 12)
+            f'{file_path}.{x}.{self._test_ext}' for x in (0, 12)
         ]
 
         for file_name in bad_file_names1:
@@ -145,16 +143,13 @@ class TestFileSequences(unittest.TestCase):
 
         seq2 = FrameSequence(frames, pad=4)
         fseq2 = FileSequence(name=file_path, ext=self._test_ext, frames=seq2)
-        file_names2 = [
-            "{}.{:04d}.{}".format(file_path, x, self._test_ext) for x in frames
-        ]
+        file_names2 = [f'{file_path}.{x:04d}.{self._test_ext}' for x in frames]
 
         for file_name in file_names2:
             self.assertIn(file_name, fseq2)
 
         bad_file_names2 = [
-            "{}.{:04d}.{}".format(file_path, x, self._test_ext)
-            for x in (0, 12)
+            f'{file_path}.{x:04d}.{self._test_ext}' for x in (0, 12)
         ]
 
         for file_name in bad_file_names2:
@@ -172,22 +167,20 @@ class TestFileSequences(unittest.TestCase):
                                 ext=self._test_ext,
                                 frames=frames,
                                 pad=pad)
-            file_names = list()
+            file_names = []
             for frame in frames:
-                file_name = "{}.{:0{}d}.{}".format(file_path, frame, pad,
-                                                   self._test_ext)
-                file_names.append(file_name)
+                file_names.append(
+                    f'{file_path}.{frame:0{pad}d}.{self._test_ext}')
 
             self.assertEqual(set(file_names), set(fseq))
 
             print("\n\n  INPUT FILES\n  -----------")
-            print("\n".join("  {}".format(x) for x in file_names))
+            print("\n".join(f'  {x}' for x in file_names))
             print("\n  ITERATION\n  ---------")
             print("  o forward: ")
-            print("\n".join("    - {}".format(x) for x in fseq))
+            print("\n".join(f'    - {x}' for x in fseq))
             print("  o backward:")
-            print("\n".join(list(
-                "    - {}".format(x) for x in reversed(fseq))))
+            print("\n".join(f'    - {x}' for x in reversed(fseq)))
 
     def test_inversion(self):
         """FileSequence: Test frame inversion (ie, report missing frames)."""
@@ -287,7 +280,7 @@ class TestFileSequences(unittest.TestCase):
 
         fseq = FileSequence(full_name)
 
-        self.assertEqual(fseq.stat(), dict())
+        self.assertEqual(fseq.stat(), {})
         self.assertIsNone(fseq.stat(1))
         self.assertIsNone(fseq.stat("0001"))
 

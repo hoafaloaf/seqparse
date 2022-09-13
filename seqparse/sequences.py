@@ -1,7 +1,7 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
-import os
 from collections.abc import MutableSet
+import os
 
 import six
 
@@ -23,14 +23,14 @@ class SeqparsePadException(Exception):
         Args:
             message (str): Error message to throw when exception is raised.
         """
-        super(SeqparsePadException, self).__init__(message)
+        super().__init__(message)
 
 
 ###############################################################################
 # Class: FrameChunk
 
 
-class FrameChunk(object):
+class FrameChunk:
     """
     Representative for chunks of frames in a FrameSequence.
 
@@ -60,7 +60,8 @@ class FrameChunk(object):
         for frame in range(self.first, self.last + 1, self.step):
             if frame < frame_num:
                 continue
-            elif frame_num == frame:
+
+            if frame_num == frame:
                 if isinstance(item, six.string_types):
                     frame_len = len(item)
                     if item.startswith("0"):
@@ -79,7 +80,7 @@ class FrameChunk(object):
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
         for frame in range(self.first, self.last + 1, self.step):
-            yield "{:0{}d}".format(frame, self.pad)
+            yield f'{frame:0{self.pad}d}'
 
     def __len__(self):
         """Return the length of the frame chunk."""
@@ -191,14 +192,14 @@ class FrameChunk(object):
         step = min(last - first, step)
 
         # Calculate the string representation of the frame chunk.
-        self._output = "{:0{}d}".format(first, self.pad)
+        self._output = f'{first:0{self.pad}d}'
         if bits == 1:
-            self._output += ",{:0{}d}".format(last, self.pad)
+            self._output += f',{last:0{self.pad}d}'
         elif bits > 1:
-            self._output += "-{:0{}d}".format(last, self.pad)
+            self._output += f'-{last:0{self.pad}d}'
 
         if step > 1 and bits > 1:
-            self._output += "x{:d}".format(step)
+            self._output += f'x{step:d}'
 
         self._data.update(first=first, last=last, length=(1 + bits), step=step)
         return self._output
@@ -232,13 +233,13 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def __init__(self, frames=None, pad=1):
         """Initialise the instance."""
-        super(FrameSequence, self).__init__()
+        super().__init__()
 
-        self._attrs = dict(chunks=list(),
+        self._attrs = dict(chunks=[],
                            dirty=True,
                            is_padded=False,
                            pad=None,
-                           stat=dict())
+                           stat={})
 
         self._data = set()
         self._output = None
@@ -249,16 +250,13 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                 raise ValueError(blurb.format(type(frames), frames))
             self._add_frame_sequence(frames)
             return
+
         # NOTE: This could probably be made more efficient by copying a
         # FrameSequence's _data attribute and/or checking to see if _chunks
         # had anything in it. We shouldn't have to count on recalculating if
         # the job's already been done for us.
-        elif isinstance(frames, (FrameChunk, FrameSequence)):
+        if isinstance(frames, (FrameChunk, FrameSequence)):
             pad = frames.pad
-            '''
-            if isinstance(frames, FrameSequence):
-                self.stat().update(copy.deepcopy(frames.stat()))
-            '''
         elif frames and not isinstance(frames, (list, tuple, set)):
             frames = [frames]
 
@@ -339,8 +337,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                     self._add_frame_sequence(value)
                     return
             else:
-                raise ValueError(
-                    "Invalid value specified ({!r})".format(value))
+                raise ValueError(f'Invalid value specified ({value!r})')
 
             value_pad = len(value)
             if value.startswith("0") and value_pad != self.pad:
@@ -368,7 +365,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         self._attrs["dirty"] = True
 
     def discard(self, value):
-        """Defining value discard logic (per standard set)."""
+        """Defining item discard logic (per standard set)."""
         if isinstance(value, six.string_types):
             if value.startswith("0"):
                 value_pad = len(value)
@@ -579,9 +576,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
-        self._cache = dict(ctime=None, mtime=None, size=None)
-        self._info = dict(ext=None, full=None, name=None, path=None)
-        self._stat = dict()
+        self._cache = {'ctime': None, 'mtime': None, 'size': None}
+        self._info = {'ext': None, 'full': None, 'name': None, 'path': None}
+        self._stat = {}
 
         if name:
             if isinstance(name, six.string_types):
@@ -594,9 +591,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                 name, frames, ext, pad = (name.full_name, name.pretty_frames,
                                           name.ext, name.pad)
         if frames is None:
-            frames = list()
+            frames = []
 
-        super(FileSequence, self).__init__(frames, pad=pad)
+        super().__init__(frames, pad=pad)
 
         self.ext = ext
         self.name = name
@@ -604,18 +601,18 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
         if str(item).isdigit():
-            return super(FileSequence, self).__contains__(item)
+            return super().__contains__(item)
         return item in set(self)
 
     def __eq__(self, other):
         """Define equality between instances."""
         if type(other) is type(self):
-            return super(FileSequence, self).__eq__(other)
+            return super().__eq__(other)
         return False
 
     def __iter__(self):
         """Defining item iteration logic (per standard set)."""
-        for frame in super(FileSequence, self).__iter__():
+        for frame in super().__iter__():
             yield self._get_sequence_output(frame)
 
     def __ne__(self, other):
@@ -633,7 +630,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __str__(self):
         """String reprentation of the frame sequence."""
-        frames = super(FileSequence, self).__str__()
+        frames = super().__str__()
         return self._get_sequence_output(frames)
 
     @property
@@ -660,13 +657,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     @property
     def frames(self):
         """iterator(str): the file sequence's padded frames."""
-        for frame in super(FileSequence, self).__iter__():
+        for frame in super().__iter__():
             yield frame
 
     @property
     def pretty_frames(self):
         """str: pretty representation of the file sequence's print frames."""
-        return super(FileSequence, self).__str__()
+        return super().__str__()
 
     @property
     def full_name(self):
@@ -737,25 +734,25 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def discard(self, value):
         """Defining value discard logic (per standard set)."""
-        super(FileSequence, self).discard(value)
+        super().discard(value)
         self._stat.pop(value, None)
 
-    def update(self, value):
-        """Defining value update logic (per standard set)."""
-        if isinstance(value, FileSequence):
+    def update(self, iterable):
+        """Defining item update logic (per standard set)."""
+        if isinstance(iterable, FileSequence):
             for attr in ("ext", "full_name"):
-                other_value = getattr(value, attr)
+                iterable_value = getattr(iterable, attr)
                 self_value = getattr(self, attr)
-                if other_value != self_value:
+                if iterable_value != self_value:
                     blurb = ("Attribute mismatch on supplied FileSequence "
-                             "instance ({}): self:{!r} != other:{!r}")
+                             "instance ({}): self:{!r} != iterable:{!r}")
                     raise ValueError(
-                        blurb.format(attr, self_value, other_value))
+                        blurb.format(attr, self_value, iterable_value))
 
-            self.stat().update(value.stat())
-            value = value.frames
+            self.stat().update(iterable.stat())
+            iterable = iterable.frames
 
-        for item in value:
+        for item in iterable:
             self.add(item)
 
     def cache_stat(self, frame, input_stat):
@@ -773,7 +770,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             stat_result that was successfully cached.
         """
-        from . import get_stat_result
+        from . import get_stat_result  # pylint: disable=C0415
 
         frame = int(frame)
         self._stat[frame] = get_stat_result(input_stat)
@@ -796,7 +793,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         if not (self.is_dirty or force):
             return
 
-        super(FileSequence, self).calculate(force=force)
+        super().calculate(force=force)
 
         # Cache disk stats for easy/quick access via property ...
         self._aggregate_stats()
@@ -808,7 +805,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             FileSequence containing the missing files (if any).
         """
-        frames = super(FileSequence, self).invert()
+        frames = super().invert()
         inverted = FileSequence(name=self.full_name,
                                 frames=frames,
                                 ext=self.ext)
@@ -857,15 +854,15 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             None
         """
-        self._cache = dict(ctime=None, mtime=None, size=None)
-        if not self.stat():
-            return self._cache
+        self._cache = {'ctime': None, 'mtime': None, 'size': None}
 
-        ctime = mtime = size = 0
+        if not self.stat():
+            return
 
         # Disabling pylint here because the stat object will never be a
         # dict at this point ... unless somebody's been messing with the data
         # cache directly.
+        ctime = mtime = size = 0
         for frame in self._data:
             stat = self.stat(frame)
             ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
@@ -886,8 +883,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         """
         if not frames:
             return ""
-        elif str(frames).isdigit():
-            frames = "{:0{}d}".format(int(frames), self.pad)
+
+        if str(frames).isdigit():
+            frames = f"{int(frames):0{self.pad}d}"
         elif not self.ext:
             raise AttributeError(
                 "File sequence extension has not been defined.")

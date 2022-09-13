@@ -1,7 +1,7 @@
 """Container for all regular expressions used by the seqparse module."""
 
-import re
 from collections import namedtuple
+import re
 
 __all__ = ("BITS_EXPR", "FILE_NAME_EXPR", "FRAME_EXPR", "FILE_SEQ_EXPR",
            "SeqparseRegexMixin")

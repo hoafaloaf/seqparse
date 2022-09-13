@@ -48,7 +48,7 @@ __author__ = "Geoff Harvey"
 __email__ = "hoafaloaf@gmail.com"
 
 __license__ = "MIT"
-__copyright__ = "Copyright (c) 2022 {0}".format(__author__)
+__copyright__ = f'Copyright (c) 2022 {__author__}'
 
 ###############################################################################
 # EXPORTED METHODS
@@ -66,7 +66,7 @@ def get_parser():
         >>> get_parser()
         Seqparse(sequences=0, singletons=0)
     """
-    from .seqparse import Seqparse
+    from .seqparse import Seqparse  # pylint: disable=C0415
     return Seqparse()
 
 
@@ -92,7 +92,7 @@ def get_sequence(frames, pad=1):
         >>> get_sequence("0001-0005x2")
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
-    from .sequences import FrameSequence
+    from .sequences import FrameSequence  # pylint: disable=C0415
     return FrameSequence(frames, pad=pad)
 
 
@@ -107,9 +107,9 @@ def get_stat_result(input_stat):
         nt.stat_result or posix.stat_result, dependent on system platform.
     """
     if os.name == "posix":
-        from posix import stat_result  # pylint: disable=E0401
+        from posix import stat_result  # pylint: disable=E0401,C0415
     else:  # pragma: no cover
-        from nt import stat_result  # pylint: disable=E0401
+        from nt import stat_result  # pylint: disable=E0401,C0415
 
     return stat_result(input_stat)
 
@@ -125,7 +125,7 @@ def get_version(pretty=False):
         str seqparse version.
     """
     if pretty:
-        return "seqls (seqparse-v{})".format(__version__)
+        return f'seqls (seqparse-v{__version__})'
     return __version__
 
 
@@ -152,7 +152,7 @@ def invert(iterable):
         >>> print repr(inverted), str(inverted)
         FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
-    from .sequences import FrameChunk, FrameSequence
+    from .sequences import FrameChunk, FrameSequence  # pylint: disable=C0415
 
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
@@ -179,5 +179,5 @@ def validate_frame_sequence(frame_seq):
         >>> print validate_frame_sequence("0001-")
         None
     """
-    from .seqparse import Seqparse
+    from .seqparse import Seqparse  # pylint: disable=C0415
     return Seqparse().validate_frame_sequence(frame_seq)

@@ -1,7 +1,7 @@
 """The main engine for the seqparse module."""
 
-import os
 from collections import defaultdict
+import os
 
 import six
 

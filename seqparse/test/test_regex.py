@@ -37,7 +37,7 @@ class TestSeqparseModule(unittest.TestCase):
         print("\n\n  GOOD CHUNKS\n  -----------")
         for chunk, result in good_chunks:
             bits_dict = self.regex.bits_match(chunk, as_dict=True)
-            print('  o "{}" --> {}'.format(chunk, bits_dict))
+            print(f'  o "{chunk}" --> {bits_dict}')
             self.assertEqual(bits_dict, result)
 
             result_tuple = tuple(
@@ -46,7 +46,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         print("\n  BAD SEQUENCES\n  -------------")
         for chunk in bad_chunks:
-            print('  o "{}"'.format(chunk))
+            print(f'  o "{chunk}"')
             self.assertIsNone(self.regex.bits_match(chunk))
 
         print("")
@@ -66,7 +66,7 @@ class TestSeqparseModule(unittest.TestCase):
         print("\n\n  GOOD NAMES\n  ----------")
         for file_name, result in good_names:
             bits_dict = self.regex.file_name_match(file_name, as_dict=True)
-            print('  o "{}" --> {}'.format(file_name, bits_dict))
+            print(f'  o "{file_name}" --> {bits_dict}')
             self.assertEqual(bits_dict, result)
 
             result_tuple = tuple(
@@ -76,7 +76,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         print("\n  BAD SEQUENCES\n  -------------")
         for file_name in bad_names:
-            print('  o "{}"'.format(file_name))
+            print(f'  o "{file_name}"')
             self.assertIsNone(self.regex.file_name_match(file_name))
 
         print("")
@@ -97,7 +97,7 @@ class TestSeqparseModule(unittest.TestCase):
         print("\n\n  GOOD NAMES\n  ----------")
         for frame_seq, result in good_names:
             bits_dict = self.regex.file_seq_match(frame_seq, as_dict=True)
-            print('  o "{}" --> {}'.format(frame_seq, bits_dict))
+            print(f'  o "{frame_seq}" --> {bits_dict}')
             self.assertEqual(bits_dict, result)
 
             result_tuple = tuple(
@@ -107,7 +107,7 @@ class TestSeqparseModule(unittest.TestCase):
 
         print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_names:
-            print('  o "{}"'.format(frame_seq))
+            print(f'  o "{frame_seq}"')
             bits_dict = self.regex.bits_match(frame_seq, as_dict=True)
             self.assertIsNone(self.regex.file_seq_match(frame_seq))
 
@@ -129,12 +129,12 @@ class TestSeqparseModule(unittest.TestCase):
 
         print("\n\n  GOOD SEQUENCES\n  --------------")
         for frame_seq in good_frame_seqs:
-            print('  o "{}"'.format(frame_seq))
+            print(f'  o "{frame_seq}"')
             self.assertTrue(self.regex.is_frame_sequence(frame_seq))
 
         print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_frame_seqs:
-            print('  o "{}"'.format(frame_seq))
+            print(f'  o "{frame_seq}"')
             self.assertFalse(self.regex.is_frame_sequence(frame_seq))
 
         print("")

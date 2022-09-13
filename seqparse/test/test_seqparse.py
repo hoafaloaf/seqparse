@@ -2,7 +2,7 @@
 
 import os
 import unittest
-import unittest.mock as mock
+from unittest import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
@@ -22,17 +22,13 @@ class TestSeqparseModule(unittest.TestCase):
     _test_root = "test_dir"
     _singletons = ["singleton0.jpg", "singleton1.jpg"]
 
-    def setUp(self):
-        """Set up the test case."""
-        pass
-
     @mock.patch("seqparse.seqparse.os.scandir")
     def test_singletons(self, mock_api_call):
         """Seqparse: Test file singleton discovery from disk location."""
         # Expected outputs ...
         output = [os.path.join(self._test_root, x) for x in self._singletons]
 
-        entries = list()
+        entries = []
         for file_name in output:
             entries.append(DirEntry(file_name))
 
@@ -193,7 +189,7 @@ class TestSeqparseModule(unittest.TestCase):
         parser = get_parser()
         parser.scan_path(self._test_root)
 
-        final_output = list()
+        final_output = []
         for pad, seq_frames in sorted(output_seqs.items()):
             bits = (self._test_file_name, seq_frames, self._test_ext)
             output_seqs[pad] = os.path.join(self._test_root, ".".join(bits))
@@ -291,12 +287,12 @@ class TestSeqparseModule(unittest.TestCase):
         print("\n\n  GOOD SEQUENCES\n  --------------")
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
-            print('  o {!r} --> {!r}'.format(frame_seq, output))
+            print(f'  o {frame_seq!r} --> {output!r}')
             self.assertTrue(output)
 
         print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_frame_seqs:
-            print('  o {!r}'.format(frame_seq))
+            print(f'  o {frame_seq!r}')
             self.assertFalse(validate_frame_sequence(frame_seq))
 
         print("")

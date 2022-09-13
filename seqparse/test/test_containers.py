@@ -2,7 +2,7 @@
 
 import os
 import unittest
-import unittest.mock as mock
+from unittest import mock
 
 from . import DirEntry
 from .. import get_parser
@@ -141,7 +141,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         """FileSequenceContainer: Test equality."""
         fake_isfile.return_value = True
 
-        containers = list()
+        containers = []
         for input_seq in self._input_seqs:
             parser = get_parser()
 
@@ -188,8 +188,8 @@ class TestFileSequenceContainer(unittest.TestCase):
             container["tiff"] = file_ext
         except ValueError:
             raised = False
-        self.assertFalse(
-            raised, "Unable to set specified value: {!r}".format(file_ext))
+        self.assertFalse(raised,
+                         f'Unable to set specified value: {file_ext!r}')
 
         # Test __delitem__
         raised = False
@@ -198,8 +198,7 @@ class TestFileSequenceContainer(unittest.TestCase):
             del container["tiff"]
         except ValueError:
             raised = False
-        self.assertFalse(raised,
-                         "Unable to delete specified value: {!r}".format(ext))
+        self.assertFalse(raised, f'Unable to delete specified value: {ext!r}')
 
         with self.assertRaises(KeyError):
             del container["tiff"]

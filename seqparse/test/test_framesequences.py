@@ -17,36 +17,28 @@ class TestFrameSequences(unittest.TestCase):
     _test_name = "cat"
     _test_path = "/pretty/kitty".replace("/", os.sep)
 
-    def setUp(self):
-        """Set up the test instance."""
-        pass
-
     def test_initialization(self):
         """FrameSequence: Test initialization of an instance."""
         # Tuples indicate "frames" and "pad"; complex data types don't need a
         # specified pad.
         data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1), (FrameChunk(
             first=2, pad=4), "0002", None), (FrameSequence(
-                lrange(30, 41, 2), pad=2), "30-40x2", None)]
+                list(range(30, 41, 2)), pad=2), "30-40x2", None)]
 
         print("\n\n  INPUT ARGUMENTS\n  ---------------")
 
         for datum in data:
             iterable, expected, pad = datum
 
-            print("  o iterable: {!r}".format(iterable), end=' ')
-            if pad is not None:
-                print("pad: {:d}".format(pad))
-            else:
-                print("")
+            print(f'  o iterable: {iterable!r}', end=' ')
+            print('' if pad is None else f'pad: {pad:d}')
 
             try:
                 seq = FrameSequence(frames=iterable, pad=pad)
             except ValueError as error:
-                print("    - EXPECTED ERROR: {} --> {}".format(
-                    iterable, error))
+                print(f'    - EXPECTED ERROR: {iterable} --> {error}')
             else:
-                print("    - GOOD: {}".format(seq))
+                print(f'    - GOOD: {seq}')
                 self.assertEqual(str(seq), expected)
 
     def test_basic_containment(self):
@@ -87,7 +79,7 @@ class TestFrameSequences(unittest.TestCase):
         for frame in range(1, 12):
             self.assertIn(frame, seq)
             self.assertIn(str(frame), seq)
-            self.assertNotIn("{:04d}".format(frame), seq)
+            self.assertNotIn(f'{frame:04d}', seq)
 
         self.assertNotIn(13, seq)
         self.assertNotIn("13", seq)
@@ -109,10 +101,10 @@ class TestFrameSequences(unittest.TestCase):
         frames2 = [1, 2, 4, 5, 6]
         str_frames2 = "1,2,4-6"
         chunk3 = FrameChunk(first=1, last=11, step=1, pad=4)
-        frames3 = ["{:04d}".format(x) for x in range(1, 12)]
+        frames3 = [f'{x:04d}' for x in range(1, 12)]
         str_frames3 = "0001-0011"
         chunk4 = FrameChunk(first=91, last=101, step=2, pad=4)
-        frames4 = ["{:04d}".format(x) for x in range(91, 103, 2)]
+        frames4 = [f'{x:04d}' for x in range(91, 103, 2)]
         str_frames4 = "0091-0101x2"
 
         seq = FrameSequence(frames1)
@@ -148,7 +140,7 @@ class TestFrameSequences(unittest.TestCase):
     def test_frame_add(self):
         """FrameSequence: Test the addition of frames of various types."""
         chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
-        frames3 = ["{:04d}".format(x) for x in range(91, 103, 2)]
+        frames3 = [f'{x:04d}' for x in range(91, 103, 2)]
 
         seq = FrameSequence(frames3, pad=4)
         self.assertEqual(str(chunk3), str(seq))
@@ -162,21 +154,21 @@ class TestFrameSequences(unittest.TestCase):
             FrameChunk(first=10, last=20, step=2, pad=2),
             FrameChunk(first=10, last=20, step=2, pad=4),
             FrameSequence([1], pad=4),
-            FrameSequence([x for x in range(30, 41, 2)], pad=2),
-            FrameSequence([x for x in range(30, 41, 2)], pad=4)
+            FrameSequence(list(range(30, 41, 2)), pad=2),
+            FrameSequence(list(range(30, 41, 2)), pad=4)
         ]
 
         print("")
         for item in data:
-            print("  o Testing {}: {}".format(type(item).__name__, item))
+            print(f'  o Testing {type(item).__name__}: {item}')
 
             try:
                 seq.add(item)
             except ValueError as error:
-                print("    - EXPECTED ERROR: {} --> {}".format(item, error))
+                print(f'    - EXPECTED ERROR: {item} --> {error}')
                 assert True
             except SeqparsePadException as error:
-                print("    - EXPECTED ERROR: {} --> {}".format(item, error))
+                print(f'    - EXPECTED ERROR: {item} --> {error}')
 
         self.assertEqual(str(seq),
                          "0001-0004,0010-0020x2,0030-0040x2,0091-0101x2")
@@ -184,7 +176,7 @@ class TestFrameSequences(unittest.TestCase):
     def test_setlike_methods(self):
         """FrameSequence: Test set-like methods."""
         frames = [1, 2, 3, 4, 11, 12, 13, 14]
-        pad_frames = ["{:04d}".format(x) for x in frames]
+        pad_frames = [f'{x:04d}' for x in frames]
 
         seq = FrameSequence(frames, pad=4)
         self.assertEqual(set(pad_frames), set(seq))
@@ -194,7 +186,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(pad_frames[:-1]), set(seq))
 
         seq = FrameSequence(frames, pad=4)
-        pad_frames2 = ["{:04d}".format(x) for x in [21, 22, 23, 24]]
+        pad_frames2 = [f'{x:04d}' for x in [21, 22, 23, 24]]
         seq.update(pad_frames2)
         self.assertEqual(set(pad_frames + pad_frames2), set(seq))
 
@@ -210,14 +202,14 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_iteration(self):
         """FrameSequence: Test iteration over an instance."""
-        frames = ["{:04d}".format(x) for x in range(1, 6)]
+        frames = [f'{x:04d}' for x in range(1, 6)]
         seq = FrameSequence(frames, pad=4)
 
         print("\n\n  INPUT FRAMES\n  ------------")
         print(" ", frames)
 
         print("\n\n  ITERATION\n  ---------")
-        print("  o forward: ", ", ".join([x for x in seq]))
+        print("  o forward: ", ", ".join(x for x in seq))
         print("  o backward:", ", ".join(list(reversed(seq))))
 
         self.assertEqual(set(frames), set(seq))
@@ -230,7 +222,7 @@ class TestFrameSequences(unittest.TestCase):
         print(" ", frames)
 
         print("\n\n  ITERATION\n  ---------")
-        print("  o forward: ", ", ".join([x for x in seq]))
+        print("  o forward: ", ", ".join(x for x in seq))
         print("  o backward:", ", ".join(list(reversed(seq))))
 
         self.assertEqual(set(frames), set(seq))

@@ -6,14 +6,10 @@ Upon installation of the package this script will be accessable via `seqls`
 command on the command line of your choice.
 """
 
-# "Future" Libraries
-from __future__ import print_function
-
-# Standard Libraries
+from argparse import ArgumentParser
 import os
 import sys
 import time
-from argparse import ArgumentParser
 
 import humanize
 
@@ -31,9 +27,8 @@ def main(args, _debug=False):
         # Print the version and exit.
         if _debug:
             return get_version(pretty=True)
-
-        print(get_version(pretty=True))  # pragma: no cover
-        return  # pragma: no cover
+        print(get_version(pretty=True))
+        return None
 
     if args.max_levels[0] != -1:
         args.max_levels[0] = max(args.max_levels[0], 0)
@@ -50,7 +45,7 @@ def main(args, _debug=False):
         search_path = os.path.abspath(search_path)
         parser.scan_path(search_path, **scan_opts)
 
-    output = list()
+    output = []
 
     items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
     if args.long_format:
@@ -61,16 +56,17 @@ def main(args, _debug=False):
     if _debug:
         return output
 
-    else:  # pragma: no cover
-        print("")
-        for line in output:
-            print(line)
+    print("")
+    for line in output:
+        print(line)
+
+    return None
 
 
 def long_format_output(items, human_readable=False):
     """Generate long format output for the provided items."""
-    bits = list()
-    output = list()
+    bits = []
+    output = []
 
     for item in items:
         size = item.size
@@ -89,7 +85,7 @@ def long_format_output(items, human_readable=False):
     if bits:
         max_len = max(len(str(x[0])) for x in bits)
         for bit in bits:
-            output.append("{:<{:d}}  {}  {}".format(bit[0], max_len, *bit[1:]))
+            output.append(f'{bit[0]:<{max_len:d}}  {bit[1]}  {bit[2]}')
 
     return output
 

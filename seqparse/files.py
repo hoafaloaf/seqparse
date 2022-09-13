@@ -1,7 +1,7 @@
 """Singleton file-related data structures utilized by the Seqparse module."""
 
-import os
 from functools import total_ordering
+import os
 
 __all__ = ("File",)
 

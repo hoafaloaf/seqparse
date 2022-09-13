@@ -5,8 +5,7 @@ import os
 import shlex
 import time
 import unittest
-
-import unittest.mock as mock
+from unittest import mock
 
 from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
                mock_scandir_deep)
@@ -25,10 +24,6 @@ class TestSeqls(unittest.TestCase):
     _test_file_name = "TEST_DIR"
     _test_root = "test_dir"
     _singletons = ["singleton0.jpg", "singleton1.jpg"]
-
-    def setUp(self):
-        """Set up the test instance."""
-        pass
 
     def test_parse_args(self):
         """Seqls: Test seqls argument parsing."""
@@ -87,7 +82,7 @@ class TestSeqls(unittest.TestCase):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
-                shlex.split("test_dir --maxdepth {:d}".format(max_levels)))
+                shlex.split(f'test_dir --maxdepth {max_levels:d}'))
             seqs = list(seqls.main(args, _debug=True))
 
             expected_seqs = max_levels + 2
@@ -106,7 +101,7 @@ class TestSeqls(unittest.TestCase):
             initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root))
             args = seqls.parse_args(
-                shlex.split("test_dir --mindepth {:d}".format(min_levels)))
+                shlex.split(f'test_dir --mindepth {min_levels:d}'))
             seqs = list(seqls.main(args, _debug=True))
 
             expected_seqs = 3 - min_levels
@@ -127,7 +122,7 @@ class TestSeqls(unittest.TestCase):
         """Seqls: Test file singleton discovery from disk location."""
         output = [os.path.join(self._test_root, x) for x in self._singletons]
 
-        entries = list()
+        entries = []
         for file_name in output:
             entries.append(DirEntry(file_name))
 

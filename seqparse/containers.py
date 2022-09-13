@@ -1,8 +1,8 @@
 """Classes utilized by the Seqparse class."""
 
-import os
 from collections.abc import MutableMapping, MutableSet
 from functools import total_ordering
+import os
 
 from .files import File
 from .sequences import FileSequence
@@ -277,7 +277,7 @@ class SingletonContainer(MutableSet):
         """Initialise the instance."""
         self._data = set()
         self._path = None
-        self._stat = dict()
+        self._stat = {}
 
         for item in file_names or []:
             self.add(item)
@@ -315,16 +315,16 @@ class SingletonContainer(MutableSet):
         self._path = str(val or "")
 
     def add(self, value):
-        """Defining value addition logic (per standard set)."""
+        """Defining item addition logic (per standard set)."""
         self._data.add(str(value))
 
     def discard(self, value):
-        """Defining value discard logic (per standard set)."""
+        """Defining item discard logic (per standard set)."""
         self._data.discard(value)
 
-    def update(self, value):
+    def update(self, iterable):
         """Defining update logic (per standard set)."""
-        for item in value:
+        for item in iterable:
             self.add(item)
 
     def cache_stat(self, base_name, input_stat):
@@ -342,7 +342,7 @@ class SingletonContainer(MutableSet):
         Returns:
             stat_result that was successfully cached.
         """
-        from . import get_stat_result
+        from . import get_stat_result  # pylint: disable=C0415
 
         self._stat[base_name] = get_stat_result(input_stat)
         return self._stat[base_name]

@@ -1,9 +1,7 @@
 """Test suite for seqparse."""
 
-# Standard Libraries
 import os
 
-# Third Party Libraries
 import six
 
 from .. import get_stat_result
@@ -11,7 +9,7 @@ from .. import get_stat_result
 __all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
            "mock_os_stat", "mock_scandir_deep")
 
-MOCK_SCANDIR_DEEP_DATA = list()
+MOCK_SCANDIR_DEEP_DATA = []
 
 MOCK_SCANDIR_STAT_DATA = {
     'test.0001.py': [
@@ -44,7 +42,7 @@ MOCK_SCANDIR_STAT_DATA = {
 # EXPORTED CLASSES
 
 
-class DirEntry(object):
+class DirEntry:
     """Mocked DirEntry class."""
 
     def __init__(self, file_path, is_file=True):
@@ -69,7 +67,7 @@ class DirEntry(object):
     def stat(self, follow_symlinks=False):  # pylint: disable=W0613
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
-            raise IOError("Mock'd file not found: {}".format(self.name))
+            raise IOError(f"Mock'd file not found: {self.name}")
         return get_stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
 
 
@@ -90,7 +88,7 @@ def generate_entries(name="dog",
 
     for pad, frame_list in six.iteritems(frames):
         for frame in frame_list:
-            file_name = "{}.{:0{}d}.{}".format(name, frame, pad, ext)
+            file_name = f'{name}.{frame:0{pad}d}.{ext}'
             file_entries.add(
                 DirEntry(os.path.join(root, file_name), is_file=is_file))
 
@@ -140,10 +138,7 @@ def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
     """A mock'd version of scandir.scandir for testing purposes."""
     global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 
-    if MOCK_SCANDIR_DEEP_DATA:
-        return_value = MOCK_SCANDIR_DEEP_DATA.pop(0)
-    else:
-        raise StopIteration
-
-    for entry in return_value:
+    if not MOCK_SCANDIR_DEEP_DATA:
+        yield from []
+    for entry in MOCK_SCANDIR_DEEP_DATA.pop(0):
         yield entry

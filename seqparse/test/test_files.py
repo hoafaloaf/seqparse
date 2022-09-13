@@ -2,7 +2,7 @@
 
 import os
 import unittest
-import unittest.mock as mock
+from unittest import mock
 
 from . import mock_os_stat
 from ..files import File

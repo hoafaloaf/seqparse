@@ -18,18 +18,13 @@ class TestFrameChunks(unittest.TestCase):
                  ("0001", "0005", 3, 1, 2), ("0001", "0005", 3, 2, 2))
     bad_bits = (("0005", "0001", None, 1),)
 
-    def setUp(self):
-        """Set up the test instance."""
-        pass
-
     def test_chunk_length(self):
         """FrameChunk: Test chunk length (number of included frames)."""
         print("\n  GOOD CHUNKS\n  --------------")
         for bit in self.good_bits:
             chunk = FrameChunk(*bit[:-1])
             self.assertEqual(len(chunk), bit[-1])
-            print("  o {} -> {} ({!r}, {:d} frames)".format(
-                bit, chunk, chunk, len(chunk)))
+            print(f'  o {bit} -> {chunk} ({chunk!r}, {len(chunk):d} frames)')
 
         print("\n  BAD CHUNKS\n  -------------")
         for bit in self.bad_bits:
@@ -37,7 +32,7 @@ class TestFrameChunks(unittest.TestCase):
                 chunk = FrameChunk(*bit)
 
             except ValueError as error:
-                print("  o EXPECTED ERROR: {} --> {}".format(bit, error))
+                print(f'  o EXPECTED ERROR: {bit} --> {error}')
                 assert True
 
     def test_containment(self):
@@ -45,22 +40,22 @@ class TestFrameChunks(unittest.TestCase):
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
         for frame in range(1, 6):
             self.assertIn(frame, chunk)
-            self.assertIn("{:04d}".format(frame), chunk)
+            self.assertIn(f'{frame:04d}', chunk)
 
         for frame in (0, 6):
             self.assertNotIn(frame, chunk)
-            self.assertNotIn("{:02d}".format(frame), chunk)
-            self.assertNotIn("{:04d}".format(frame), chunk)
+            self.assertNotIn(f'{frame:02d}', chunk)
+            self.assertNotIn(f'{frame:04d}', chunk)
 
         chunk = FrameChunk(first=1, last=7, step=2, pad=4)
         for frame in range(1, 8, 2):
             self.assertIn(frame, chunk)
-            self.assertIn("{:04d}".format(frame), chunk)
+            self.assertIn(f'{frame:04d}', chunk)
 
         for frame in range(0, 9, 2):
             self.assertNotIn(frame, chunk)
-            self.assertNotIn("{:02d}".format(frame), chunk)
-            self.assertNotIn("{:04d}".format(frame), chunk)
+            self.assertNotIn(f'{frame:02d}', chunk)
+            self.assertNotIn(f'{frame:04d}', chunk)
 
         chunk = FrameChunk(first=1, last=10, step=1, pad=1)
         for frame in range(1, 11):
@@ -68,17 +63,17 @@ class TestFrameChunks(unittest.TestCase):
             self.assertIn(str(frame), chunk)
 
         for frame in range(1, 10):
-            self.assertNotIn("{:02d}".format(frame), chunk)
+            self.assertNotIn(f'{frame:02d}', chunk)
 
         for frame in (0, 11):
             self.assertNotIn(frame, chunk)
             self.assertNotIn(str(frame), chunk)
-            self.assertNotIn("{:02d}".format(frame), chunk)
+            self.assertNotIn(f'{frame:02d}', chunk)
 
     def test_iteration(self):
         """FrameChunk: Test iteration over an instance."""
         chunk = FrameChunk(first=1, last=5, step=1, pad=4)
-        frames = ["{:04d}".format(x) for x in range(1, 6)]
+        frames = [f'{x:04d}' for x in range(1, 6)]
 
         self.assertEqual(set(frames), set(chunk))
 
