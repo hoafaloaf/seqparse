@@ -3,7 +3,7 @@
 from functools import total_ordering
 import os
 
-__all__ = ("File",)
+__all__ = ('File',)
 
 ###############################################################################
 # Class: File
@@ -42,7 +42,7 @@ class File:
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{cls}({full!r})")
+        blurb = ('{cls}({full!r})')
         return blurb.format(cls=type(self).__name__, **self._info)
 
     def __str__(self):
@@ -52,7 +52,7 @@ class File:
     @property
     def full_name(self):
         """str: Full name of the sequence, including containing directory."""
-        return self._info["full"]
+        return self._info['full']
 
     @property
     def mtime(self):
@@ -68,12 +68,12 @@ class File:
     @property
     def name(self):
         """str: Base name of the file sequence (no containing directory)."""
-        return self._info["name"]
+        return self._info['name']
 
     @property
     def path(self):
         """str: Directory in which the contained files are located."""
-        return self._info["path"]
+        return self._info['path']
 
     @property
     def size(self):

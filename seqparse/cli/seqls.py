@@ -56,7 +56,7 @@ def main(args, _debug=False):
     if _debug:
         return output
 
-    print("")
+    print('')
     for line in output:
         print(line)
 
@@ -75,7 +75,7 @@ def long_format_output(items, human_readable=False):
             if human_readable:
                 size = humanize.naturalsize(size, gnu=True)
         else:
-            size = "----"
+            size = '----'
 
         mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
         bits.append((size, mtime, str(item)))
@@ -95,68 +95,68 @@ def parse_args(args):
     parser = ArgumentParser(description=__doc__)
 
     parser.add_argument(
-        "search_path",
-        default=["."],
-        help=("Paths that you'd like to search for file sequences."),
-        nargs="*")
-    parser.add_argument("-a",
-                        "--all",
-                        action="store_true",
-                        help="Do not ignore entries starting with '.'.")
+        'search_path',
+        default=['.'],
+        help=r'Paths that you\'d like to search for file sequences.',
+        nargs='*')
+    parser.add_argument('-a',
+                        '--all',
+                        action='store_true',
+                        help=r'Do not ignore entries starting with \'.\'.')
 
     parser.add_argument(
-        "-H",
-        "--human-readable",
-        action="store_true",
-        dest="human_readable",
-        help=("with -l/--long, print sizes in human readable format (e.g., 1K "
-              "234M 2G)."))
+        '-H',
+        '--human-readable',
+        action='store_true',
+        dest='human_readable',
+        help=('with -l/--long, print sizes in human readable format (e.g., 1K '
+              '234M 2G).'))
 
-    parser.add_argument("-l",
-                        "--long",
-                        action="store_true",
-                        dest="long_format",
-                        help="Use a long listing format.")
+    parser.add_argument('-l',
+                        '--long',
+                        action='store_true',
+                        dest='long_format',
+                        help='Use a long listing format.')
 
     parser.add_argument(
-        "--maxdepth",
+        '--maxdepth',
         default=[-1],
-        dest="max_levels",
-        help=("Descend at most levels (a non-negative integer) MAX_LEVELS of "
-              "directories below the starting-points. '--maxdepth 0' means "
-              "scan the starting-points themselves."),
+        dest='max_levels',
+        help=('Descend at most levels (a non-negative integer) MAX_LEVELS of '
+              r'directories below the starting-points. \'--maxdepth 0\' means '
+              'scan the starting-points themselves.'),
         nargs=1,
         required=False,
         type=int)
 
     parser.add_argument(
-        "--mindepth",
+        '--mindepth',
         default=[-1],
-        dest="min_levels",
-        help=("Do not scan at levels less than MIN_LEVELS (a non-negative "
-              "integer). '--mindepth 1' means scan all levels except the "
-              " starting-points."),
+        dest='min_levels',
+        help=('Do not scan at levels less than MIN_LEVELS (a non-negative '
+              r'integer). \'--mindepth 1\' means scan all levels except the '
+              ' starting-points.'),
         nargs=1,
         required=False,
         type=int)
 
     parser.add_argument(
-        "-m",
-        "--missing",
-        action="store_true",
-        help=("Whether to invert output file sequences to only report the "
-              "missing frames."))
+        '-m',
+        '--missing',
+        action='store_true',
+        help=('Whether to invert output file sequences to only report the '
+              'missing frames.'))
 
-    parser.add_argument("-S",
-                        "--seqs-only",
-                        action="store_true",
-                        dest="seqs_only",
-                        help="Whether to filter out all non-sequence files.")
+    parser.add_argument('-S',
+                        '--seqs-only',
+                        action='store_true',
+                        dest='seqs_only',
+                        help='Whether to filter out all non-sequence files.')
 
-    parser.add_argument("-v",
-                        "--version",
-                        action="store_true",
-                        help="Print the version and exit.")
+    parser.add_argument('-v',
+                        '--version',
+                        action='store_true',
+                        help='Print the version and exit.')
 
     # Parse the arguments.
     parsed_args = parser.parse_args(args)
@@ -169,6 +169,6 @@ def parse_args(args):
     return parsed_args
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     run_main()
     sys.exit(0)

@@ -3,23 +3,23 @@
 from collections import namedtuple
 import re
 
-__all__ = ("BITS_EXPR", "FILE_NAME_EXPR", "FRAME_EXPR", "FILE_SEQ_EXPR",
-           "SeqparseRegexMixin")
+__all__ = ('BITS_EXPR', 'FILE_NAME_EXPR', 'FRAME_EXPR', 'FILE_SEQ_EXPR',
+           'SeqparseRegexMixin')
 
-# BITS_EXPR is used to split a frame "chunk" into three sections: first
+# BITS_EXPR is used to split a frame 'chunk' into three sections: first
 # (frame), last (frame). and step.
-BITS_EXPR = r"(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<step>\d+)?)?)?$"
+BITS_EXPR = r'(?P<first>\d+)(?:-(?P<last>\d+)(?:x(?P<step>\d+)?)?)?$'
 
 # FILE_NAME_EXPR is used to split a file name into three sections: base (name),
 # frame (chunk), and file ext(ension).
-FILE_NAME_EXPR = r"(?:^(?P<name>.+)\.|^)(?P<frame>\d+)\.(?P<ext>[^\.]+)$"
+FILE_NAME_EXPR = r'(?:^(?P<name>.+)\.|^)(?P<frame>\d+)\.(?P<ext>[^\.]+)$'
 
-# FRAME_EXPR is used to validate a "legal" sequence of frames.
-FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
+# FRAME_EXPR is used to validate a 'legal' sequence of frames.
+FRAME_EXPR = r'(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)'
 
-# FILE_SEQ_EXPR is used to validate and split a "legal" sequence of files into
+# FILE_SEQ_EXPR is used to validate and split a 'legal' sequence of files into
 # three sections: base (name), frame (sequence), and file ext(ension).
-FILE_SEQ_EXPR = r"(?:^(?P<name>.+)\.|^)(?P<frames>%s)\.(?P<ext>[^\.]+)$"
+FILE_SEQ_EXPR = r'(?:^(?P<name>.+)\.|^)(?P<frames>%s)\.(?P<ext>[^\.]+)$'
 FILE_SEQ_EXPR = FILE_SEQ_EXPR % FRAME_EXPR
 
 ChunkBits = namedtuple('ChunkBits', 'first last step')
@@ -34,7 +34,7 @@ class SeqparseRegexMixin:
 
     _bits_expr = re.compile(BITS_EXPR)
     _file_expr = re.compile(FILE_NAME_EXPR)
-    _frame_expr = re.compile(rf",*{FRAME_EXPR},*$")
+    _frame_expr = re.compile(rf',*{FRAME_EXPR},*$')
     _fseq_expr = re.compile(FILE_SEQ_EXPR)
 
     def bits_match(self, val, as_dict=False):

@@ -98,7 +98,7 @@ class Seqparse(SeqparseRegexMixin):
         Add a file to the parser instance.
 
         Args:
-            file_name (str): The name of the file you'd like to add to the
+            file_name (str): The name of the file you"d like to add to the
                 parser.
 
         Returns:
@@ -122,9 +122,9 @@ class Seqparse(SeqparseRegexMixin):
                 sequence.name = base_name
                 sequence.path = dir_name
 
-            # We'll assume that a frame sequence is properly formed -- and use
+            # We"ll assume that a frame sequence is properly formed -- and use
             # the length of the first frame as the padding. The FrameSequence
-            # to which we're adding the frames will do the actual validation.
+            # to which we"re adding the frames will do the actual validation.
             for chunk in sequence_bits.frames.split(","):
                 bits = self.bits_match(chunk, as_dict=True)
                 pad = len(bits["first"])
@@ -197,7 +197,7 @@ class Seqparse(SeqparseRegexMixin):
         Scan supplied path, add all discovered files to the instance.
 
         Args:
-            search_paths (str): The location(s) on disk you'd like to scan for
+            search_paths (str): The location(s) on disk you"d like to scan for
                 file sequences and singletons.
             max_levels (int, optional): Descend at most the specified number (a
                 non- negative integer) of directories below the starting point.

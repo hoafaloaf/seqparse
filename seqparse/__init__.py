@@ -3,11 +3,11 @@ seqparse: A nifty way to list your file sequences.
 
 The seqparse module may be used to ...
 
-    * Scan specified paths for file sequences and "singletons,"
+    * Scan specified paths for file sequences and 'singletons,'
     * Construct frame and file sequence from supplied values, and
     * Query disk for overall footprint of tracked files.
 
-The module also comes supplied with a simple command-line tool named "seqls."
+The module also comes supplied with a simple command-line tool named 'seqls.'
 
 Frame sequences are broken down into comma-separated chunks of the format
 
@@ -18,7 +18,7 @@ where the following rules apply:
     * Frame numbers can be zero-padded,
     * Frame step (increment) is always a positive integer,
     * The number of digits in a frame may exceed the padding of a sequence, eg
-      "001,010,100,1000",
+      '001,010,100,1000',
     * Frame chunks with a specified step will *always* consist of three or more
       frames.
 
@@ -32,11 +32,10 @@ Examples of proper frame sequences:
 
 import os
 
-__all__ = ("get_parser", "get_sequence", "get_version", "invert",
-           "validate_frame_sequence")
+__all__ = ('get_parser', 'get_sequence', 'get_version', 'invert',
+           'validate_frame_sequence')
 
-__version__ = "1.0.1"
-
+__version__ = '1.0.2'
 
 ###############################################################################
 # EXPORTED METHODS
@@ -77,7 +76,7 @@ def get_sequence(frames, pad=1):
         FrameSequence(pad=1, frames=set([0, 1, 2, 3, 4]))
         >>> get_sequence([1, 2, 3])
         FrameSequence(pad=1, frames=set([1, 2, 3]))
-        >>> get_sequence("0001-0005x2")
+        >>> get_sequence('0001-0005x2')
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
     from .sequences import FrameSequence  # pylint: disable=C0415
@@ -94,7 +93,7 @@ def get_stat_result(input_stat):
     Returns:
         nt.stat_result or posix.stat_result, dependent on system platform.
     """
-    if os.name == "posix":
+    if os.name == 'posix':
         from posix import stat_result  # pylint: disable=E0401,C0415
     else:  # pragma: no cover
         from nt import stat_result  # pylint: disable=E0401,C0415
@@ -133,7 +132,7 @@ def invert(iterable):
 
     Examples:
         >>> from seqparse import get_sequence, invert
-        >>> seq = get_sequence("0001-0005x2")
+        >>> seq = get_sequence('0001-0005x2')
         >>> print repr(seq), str(seq)
         FrameSequence(pad=4, frames=set([1, 3, 5])) 0001-0005x2
         >>> inverted = invert(seq)
@@ -144,7 +143,7 @@ def invert(iterable):
 
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
-            "Only able to invert FrameChunk and FrameSequence instances.")
+            'Only able to invert FrameChunk and FrameSequence instances.')
 
     return iterable.invert()
 
@@ -162,9 +161,9 @@ def validate_frame_sequence(frame_seq):
 
     Examples:
         >>> from seqparse import validate_frame_sequence
-        >>> print validate_frame_sequence("0001-0001")
+        >>> print validate_frame_sequence('0001-0001')
         0001
-        >>> print validate_frame_sequence("0001-")
+        >>> print validate_frame_sequence('0001-')
         None
     """
     from .seqparse import Seqparse  # pylint: disable=C0415

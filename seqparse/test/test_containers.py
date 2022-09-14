@@ -16,13 +16,13 @@ from ..sequences import FileSequence
 class TestSingletonContainer(unittest.TestCase):
     """Test the SingletonContainer class used by the Seqparse module."""
 
-    _test_root = "/pretty/kitty".replace("/", os.sep)
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
+    _test_root = '/pretty/kitty'.replace('/', os.sep)
+    _singletons = ['singleton0.jpg', 'singleton1.jpg']
 
     def setUp(self):
         """Set up the test case."""
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_properties(self, fake_isfile):
         """SingletonContainer: Test class properties."""
         fake_isfile.return_value = True
@@ -36,7 +36,7 @@ class TestSingletonContainer(unittest.TestCase):
         container = parser.singletons[self._test_root]
         self.assertEqual(self._test_root, container.path)
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_membership(self, fake_isfile):
         """SingletonContainer: Test class properties."""
         fake_isfile.return_value = True
@@ -68,7 +68,7 @@ class TestSingletonContainer(unittest.TestCase):
         """SingletonContainer: Test class initialisation."""
         container = SingletonContainer()
         self.assertEqual(len(container), 0)
-        self.assertEqual(container.path, "")
+        self.assertEqual(container.path, '')
 
         container = SingletonContainer(self._singletons, self._test_root)
         self.assertEqual(len(container), len(self._singletons))
@@ -81,26 +81,26 @@ class TestSingletonContainer(unittest.TestCase):
         ]
 
         container = SingletonContainer(self._singletons, self._test_root)
-        self.assertEqual("\n".join(file_names), str(container))
+        self.assertEqual('\n'.join(file_names), str(container))
 
         output = [str(x) for x in container.output()]
-        self.assertEqual("\n".join(file_names), str(container))
-        self.assertEqual("\n".join(file_names), "\n".join(output))
+        self.assertEqual('\n'.join(file_names), str(container))
+        self.assertEqual('\n'.join(file_names), '\n'.join(output))
 
-    @mock.patch("seqparse.seqparse.os.scandir")
+    @mock.patch('seqparse.seqparse.os.scandir')
     def test_stats(self, mock_api_call):
         """SingletonContainer: Test disk stat functionality."""
-        input_entries = [DirEntry(os.path.join(self._test_root, "pony.py"))]
+        input_entries = [DirEntry(os.path.join(self._test_root, 'pony.py'))]
 
         mock_api_call.return_value = input_entries
 
         parser = get_parser()
-        parser.scan_options["stat"] = True
+        parser.scan_options['stat'] = True
         parser.scan_path(self._test_root)
 
         container = parser.singletons[self._test_root]
-        self.assertEqual(container.stat("pony.py").st_size, 9436)
-        self.assertEqual(container.stat()["pony.py"].st_size, 9436)
+        self.assertEqual(container.stat('pony.py').st_size, 9436)
+        self.assertEqual(container.stat()['pony.py'].st_size, 9436)
 
 
 ###############################################################################
@@ -110,10 +110,10 @@ class TestSingletonContainer(unittest.TestCase):
 class TestFileSequenceContainer(unittest.TestCase):
     """Test the FileSequenceContainer class used by the Seqparse module."""
 
-    _test_ext = "exr"
-    _test_file_name1 = "kitty"
-    _test_file_name2 = "cat"
-    _test_root = "/pretty/kitty".replace("/", os.sep)
+    _test_ext = 'exr'
+    _test_file_name1 = 'kitty'
+    _test_file_name2 = 'cat'
+    _test_root = '/pretty/kitty'.replace('/', os.sep)
 
     def setUp(self):
         """Set up the test case."""
@@ -136,7 +136,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         ]
         # yapf: enable
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_equality(self, fake_isfile):
         """FileSequenceContainer: Test equality."""
         fake_isfile.return_value = True
@@ -161,11 +161,11 @@ class TestFileSequenceContainer(unittest.TestCase):
         self.assertGreater(containers[1], containers[3])
 
         for container in containers:
-            fseq = "\n".join(str(x) for x in container.output())
+            fseq = '\n'.join(str(x) for x in container.output())
             self.assertNotEqual(fseq, container)
             self.assertGreater(fseq, container)
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_membership(self, fake_isfile):
         """FileSequenceContainer: Test membership setting, deletion."""
         fake_isfile.return_value = True
@@ -177,15 +177,15 @@ class TestFileSequenceContainer(unittest.TestCase):
         parser.scan_path([str(x) for x in input_seq])
         container = parser.sequences[input_seq.path][input_seq.name]
 
-        for value in ([], FileExtension(name="tif")):
+        for value in ([], FileExtension(name='tif')):
             with self.assertRaises(ValueError):
-                container["tiff"] = value
+                container['tiff'] = value
 
         # Test __setitem__
         raised = False
-        file_ext = FileExtension(name="tiff")
+        file_ext = FileExtension(name='tiff')
         try:
-            container["tiff"] = file_ext
+            container['tiff'] = file_ext
         except ValueError:
             raised = False
         self.assertFalse(raised,
@@ -193,17 +193,17 @@ class TestFileSequenceContainer(unittest.TestCase):
 
         # Test __delitem__
         raised = False
-        ext = "tiff"
+        ext = 'tiff'
         try:
-            del container["tiff"]
+            del container['tiff']
         except ValueError:
             raised = False
         self.assertFalse(raised, f'Unable to delete specified value: {ext!r}')
 
         with self.assertRaises(KeyError):
-            del container["tiff"]
+            del container['tiff']
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_properties(self, fake_isfile):
         """FileSequenceContainer: Test class properties."""
         fake_isfile.return_value = True
@@ -226,10 +226,10 @@ class TestFileSequenceContainer(unittest.TestCase):
 class TestFileExtension(unittest.TestCase):
     """Test the FileExtension class used by the Seqparse module."""
 
-    _test_ext = "exr"
-    _test_file_name1 = "kitty"
-    _test_file_name2 = "cat"
-    _test_root = "/pretty/kitty".replace("/", os.sep)
+    _test_ext = 'exr'
+    _test_file_name1 = 'kitty'
+    _test_file_name2 = 'cat'
+    _test_root = '/pretty/kitty'.replace('/', os.sep)
 
     def setUp(self):
         """Set up the test case."""
@@ -252,7 +252,7 @@ class TestFileExtension(unittest.TestCase):
         ]
         # yapf: enable
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_properties(self, fake_isfile):
         """FileExtension: Test class properties."""
         fake_isfile.return_value = True
@@ -267,7 +267,7 @@ class TestFileExtension(unittest.TestCase):
         file_ext = container[self._test_ext]
         self.assertEqual(input_seq.ext, file_ext.name)
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_membership(self, fake_isfile):
         """FileExtension: Test membership setting, deletion."""
         fake_isfile.return_value = True
@@ -293,16 +293,16 @@ class TestFileExtension(unittest.TestCase):
 
         for test_input in (frames4, input_seq4):
             raised = False
-            blurb = ""
+            blurb = ''
             try:
                 file_ext[4] = test_input
                 del file_ext[4]
             except KeyError:
                 raised = False
-                blurb = "Unable to delete specified value: {!r}"
+                blurb = 'Unable to delete specified value: {!r}'
             except ValueError:
                 raised = False
-                blurb = "Unable to set specified value: {!r}"
+                blurb = 'Unable to set specified value: {!r}'
 
             self.assertFalse(raised, blurb.format(test_input))
 
@@ -312,7 +312,7 @@ class TestFileExtension(unittest.TestCase):
         with self.assertRaises(ValueError):
             file_ext[4] = str(input_seq4)
 
-    @mock.patch("seqparse.seqparse.os.path.isfile")
+    @mock.patch('seqparse.seqparse.os.path.isfile')
     def test_output(self, fake_isfile):
         """FileExtension: Verify sequence output."""
         fake_isfile.return_value = True
@@ -329,6 +329,6 @@ class TestFileExtension(unittest.TestCase):
         container = parser.sequences[input_seq1.path][input_seq1.name]
 
         file_ext = container[self._test_ext]
-        output = "\n".join(str(x) for x in file_ext.output())
+        output = '\n'.join(str(x) for x in file_ext.output())
 
         self.assertEqual(output, str(input_seq1))

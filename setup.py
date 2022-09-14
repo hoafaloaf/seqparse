@@ -1,4 +1,3 @@
-#!python
 """Set up the seqparse module."""
 
 import codecs
@@ -14,13 +13,13 @@ def read(*parts):
 
     Assume UTF-8 encoding.
     """
-    with codecs.open(os.path.join(HERE, *parts), "rb", "utf-8") as fd:
+    with codecs.open(os.path.join(HERE, *parts), 'rb', 'utf-8') as fd:
         return fd.read()
 
-LONG_DESCRIPTION = read(os.path.join(HERE, "README.rst"))
+LONG_DESCRIPTION = read(os.path.join(HERE, 'README.rst'))
 
 
-if __name__ == "__main__":
-    setup(long_description=read(os.path.join(HERE, "README.rst")),
+if __name__ == '__main__':
+    setup(long_description=read(os.path.join(HERE, 'README.rst')),
           packages=find_packages(exclude=['*test']),
           test_suite='seqparse.test')

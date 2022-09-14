@@ -6,8 +6,8 @@ import six
 
 from .. import get_stat_result
 
-__all__ = ("DirEntry", "generate_entries", "initialise_mock_scandir_data",
-           "mock_os_stat", "mock_scandir_deep")
+__all__ = ('DirEntry', 'generate_entries', 'initialise_mock_scandir_data',
+           'mock_os_stat', 'mock_scandir_deep')
 
 MOCK_SCANDIR_DEEP_DATA = []
 
@@ -53,7 +53,7 @@ class DirEntry:
 
     def __repr__(self):  # pragma: no cover
         """A representation for the instance."""
-        blurb = "{}(path={!r}, is_file={!r})"
+        blurb = '{}(path={!r}, is_file={!r})'
         return blurb.format(type(self).__name__, self.path, self.is_file())
 
     def is_dir(self, follow_symlinks=False):  # pylint: disable=W0613
@@ -67,7 +67,7 @@ class DirEntry:
     def stat(self, follow_symlinks=False):  # pylint: disable=W0613
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
-            raise IOError(f"Mock'd file not found: {self.name}")
+            raise IOError(rf'Mock\'d file not found: {self.name}')
         return get_stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
 
 
@@ -75,10 +75,10 @@ class DirEntry:
 # EXPORTED METHODS
 
 
-def generate_entries(name="dog",
-                     ext="jpg",
+def generate_entries(name='dog',
+                     ext='jpg',
                      frames=None,
-                     root=".",
+                     root='.',
                      is_file=True):
     """Generate some file sequences for seqparse testing."""
     if frames is None:
@@ -101,26 +101,26 @@ def initialise_mock_scandir_data(search_path):
     """Initialise the global variable accessed by mock_scandir_deep."""
     global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 
-    level1_path = os.path.join(search_path, "level1")
-    level2_path = os.path.join(level1_path, "level2")
-    level3_path = os.path.join(level2_path, "level3")
+    level1_path = os.path.join(search_path, 'level1')
+    level2_path = os.path.join(level1_path, 'level2')
+    level3_path = os.path.join(level2_path, 'level3')
 
-    level0_entries = generate_entries(ext="exr",
-                                      name="level0_1",
+    level0_entries = generate_entries(ext='exr',
+                                      name='level0_1',
                                       root=search_path)
     level0_entries.extend(
-        generate_entries(ext="exr", name="level0_2", root=search_path))
+        generate_entries(ext='exr', name='level0_2', root=search_path))
     level0_entries.append(DirEntry(level1_path, is_file=False))
-    level1_entries = generate_entries(ext="exr",
-                                      name="level1",
+    level1_entries = generate_entries(ext='exr',
+                                      name='level1',
                                       root=level1_path)
     level1_entries.append(DirEntry(level2_path, is_file=False))
-    level2_entries = generate_entries(ext="exr",
-                                      name="level2",
+    level2_entries = generate_entries(ext='exr',
+                                      name='level2',
                                       root=level2_path)
     level2_entries.append(DirEntry(level3_path, is_file=False))
-    level3_entries = generate_entries(ext="exr",
-                                      name="level3",
+    level3_entries = generate_entries(ext='exr',
+                                      name='level3',
                                       root=level3_path)
 
     del MOCK_SCANDIR_DEEP_DATA[:]
@@ -134,7 +134,7 @@ def mock_os_stat(file_name):
     return get_stat_result(MOCK_SCANDIR_STAT_DATA[base_name])
 
 
-def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
+def mock_scandir_deep(search_path='.'):  # pylint: disable=W0613
     """A mock'd version of scandir.scandir for testing purposes."""
     global MOCK_SCANDIR_DEEP_DATA  # pylint: disable=W0602
 

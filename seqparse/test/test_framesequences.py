@@ -21,9 +21,10 @@ class TestFrameSequences(unittest.TestCase):
         """FrameSequence: Test initialization of an instance."""
         # Tuples indicate "frames" and "pad"; complex data types don't need a
         # specified pad.
-        data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1), (FrameChunk(
-            first=2, pad=4), "0002", None), (FrameSequence(
-                list(range(30, 41, 2)), pad=2), "30-40x2", None)]
+        data = [("wow", None, 1), ("4", "4", 1), (3, "3", 1),
+                (FrameChunk(first=2, pad=4), "0002", None),
+                (FrameSequence(list(range(30, 41, 2)),
+                               pad=2), "30-40x2", None)]
 
         print("\n\n  INPUT ARGUMENTS\n  ---------------")
 

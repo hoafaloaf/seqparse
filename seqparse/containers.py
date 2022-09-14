@@ -7,7 +7,7 @@ import os
 from .files import File
 from .sequences import FileSequence
 
-__all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
+__all__ = ('FileExtension', 'FileSequenceContainer', 'SingletonContainer')
 
 ###############################################################################
 # Class: FileExtension
@@ -19,7 +19,7 @@ class FileExtension(MutableMapping):
 
     Args:
         name (str, optional): The file extension used by the contents of the
-            container (ie, "exr", "tif").
+            container (ie, 'exr', 'tif').
         parent (FileSequenceContainer, optional): The container from which this
             instance was spawned.
     """
@@ -58,7 +58,7 @@ class FileExtension(MutableMapping):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{cls}(name={name!r}, pads={pads})"
+        blurb = '{cls}(name={name!r}, pads={pads})'
         return blurb.format(cls=type(self).__name__,
                             name=self.name,
                             pads=sorted(self))
@@ -72,7 +72,7 @@ class FileExtension(MutableMapping):
             value = self._CHILD_CLASS(**opts)
 
         if not isinstance(value, self._CHILD_CLASS):
-            blurb = 'Container may only hold "{}" instances ("{}" provided)'
+            blurb = 'Container may only hold {!r} instances ({!r} provided)'
             raise ValueError(
                 blurb.format(self._CHILD_CLASS.__name__,
                              type(value).__name__))
@@ -160,7 +160,7 @@ class FileSequenceContainer(MutableMapping):
         """
         Define equality between instances.
 
-        NOTE: Equality is solely based upon comparison of the "full_name"
+        NOTE: Equality is solely based upon comparison of the 'full_name'
         property and is only used for output sorting.
         """
         if type(other) is type(self):
@@ -185,7 +185,7 @@ class FileSequenceContainer(MutableMapping):
         """
         Define whether one instance may be sorted below another.
 
-        NOTE: Equality is solely based upon comparison of the "full_name"
+        NOTE: Equality is solely based upon comparison of the 'full_name'
         property and is only used for output sorting.
         """
         if type(other) is type(self):
@@ -194,7 +194,7 @@ class FileSequenceContainer(MutableMapping):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{cls}(full_name={full_name!r}, exts={exts})"
+        blurb = '{cls}(full_name={full_name!r}, exts={exts})'
         return blurb.format(cls=type(self).__name__,
                             exts=sorted(self),
                             full_name=self.full_name)
@@ -202,15 +202,14 @@ class FileSequenceContainer(MutableMapping):
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if not isinstance(value, self._CHILD_CLASS):
-            blurb = 'Container may only hold "{}" instances ("{}" provided)'
             raise ValueError(
-                blurb.format(self._CHILD_CLASS.__name__,
-                             type(value).__name__))
+                f'Container may only hold {self._CHILD_CLASS.__name__!r} '
+                f'instances ({type(value).__name__!r} provided)')
 
         if key != value.name:
-            blurb = ("Key value must match extension name of provided value "
-                     "({!r} != {!r})")
-            raise ValueError(blurb.format(key, value.name))
+            raise ValueError(
+                'Key value must match extension name of provided value '
+                f'({key!r} != {value.name!r})')
 
         self._data[key] = value
         # Overriding child container's name to match!
@@ -231,7 +230,7 @@ class FileSequenceContainer(MutableMapping):
         self._name = None
         if val:
             self._name = str(val)
-        self._full = os.path.join(self._path or "", self._name or "")
+        self._full = os.path.join(self._path or '', self._name or '')
 
     @property
     def path(self):
@@ -243,7 +242,7 @@ class FileSequenceContainer(MutableMapping):
         self._path = None
         if val:
             self._path = str(val)
-        self._full = os.path.join(self._path or "", self._name or "")
+        self._full = os.path.join(self._path or '', self._name or '')
 
     def output(self):
         """
@@ -298,12 +297,12 @@ class SingletonContainer(MutableSet):
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "%s(path='%s', files=set(%s))"
-        return blurb % (type(self).__name__, self.path, sorted(self._data))
+        return (f'{type(self).__name__}(path={self.path!r}, '
+                f'files=set({sorted(self._data)}')
 
     def __str__(self):
         """String reprentation of the singleton files."""
-        return "\n".join(list(map(str, self.output())))
+        return '\n'.join(str(x) for x in self.output())
 
     @property
     def path(self):
@@ -312,7 +311,7 @@ class SingletonContainer(MutableSet):
 
     @path.setter
     def path(self, val):
-        self._path = str(val or "")
+        self._path = str(val or '')
 
     def add(self, value):
         """Defining item addition logic (per standard set)."""

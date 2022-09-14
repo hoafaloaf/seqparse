@@ -216,8 +216,6 @@ Lemme know if you have any requests/complaints/suggestions!
    :target: https://travis-ci.org/hoafaloaf/seqparse
 .. |Coverage Status| image:: https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg
    :target: https://coveralls.io/github/hoafaloaf/seqparse
-.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/hoafaloaf/seqparse
 .. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
 .. |PyPi Package| image:: https://badge.fury.io/py/seqparse.svg
    :target: https://badge.fury.io/py/seqparse
