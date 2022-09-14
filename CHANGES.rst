@@ -1,5 +1,15 @@
 CHANGES
 =======
+v1.0.1 (2022/09/13)
+-------------------
+
+Changes (from v0.7.2)
+
+* First update in 5 years -- thanks, Frank Reuter!
+* Heavy refactor for modern Python; Added support for Python 3.7 - 3.10,
+  dropped support for versions < 3.7.
+* Started migration to `pyproject.toml` (mostly there).
+* No changes in functionality.
 
 v0.7.2 (2017/12/08)
 -------------------
