@@ -19,6 +19,11 @@ from seqparse import seqparse as seqparse_module
 from seqparse.cli import seqls
 
 
+def _posix(path):
+    """A path with native separators written with "/", for comparisons."""
+    return path.replace(os.sep, "/")
+
+
 class _TempDirMixin:
     """Provide a temporary directory and a helper for creating files."""
 
@@ -45,8 +50,8 @@ class _TempDirMixin:
         return parser
 
     def rel(self, items):
-        """Strip the temp directory prefix from parser output."""
-        return [os.path.relpath(str(x), self.root) for x in items]
+        """Parser output relative to the temp directory, with "/" separators."""
+        return [_posix(os.path.relpath(str(x), self.root)) for x in items]
 
 
 ###############################################################################
@@ -514,18 +519,17 @@ class TestFrameStorage(unittest.TestCase):
         self.assertEqual(len(seq), 152)
 
 
-# Pickles made by seqparse 1.0.x (master at 6ea1a80), protocol 2.
+# Pickles made by seqparse 1.0.x (master at 6ea1a80), protocol 2. Their
+# os.stat_result values keep only the fields every OS has: one carrying
+# macOS-only fields (st_flags, ...) fails to unpickle on Linux and Windows
+# since Python 3.13.
 LEGACY_PICKLES = {
     "file": (
         "gAJjc2VxcGFyc2UuZmlsZXMKRmlsZQpxACmBcQF9cQIoWAUAAABfaW5mb3EDfXEE"
         "KFgEAAAAZnVsbHEFWAgAAAAvci9hLnR4dHEGWAQAAABuYW1lcQdYBQAAAGEudHh0"
         "cQhYBAAAAHBhdGhxCVgCAAAAL3JxCnVYBQAAAF9zdGF0cQtjb3MKc3RhdF9yZXN1"
         "bHQKcQwoSwFLAUsBSwFLAUsBSwFLAUsBSwF0cQ19cQ4oWAgAAABzdF9hdGltZXEP"
-        "SwFYCAAAAHN0X210aW1lcRBLAVgIAAAAc3RfY3RpbWVxEUsBWAsAAABzdF9hdGlt"
-        "ZV9uc3ESTlgLAAAAc3RfbXRpbWVfbnNxE05YCwAAAHN0X2N0aW1lX25zcRROWAoA"
-        "AABzdF9ibGtzaXplcRVOWAkAAABzdF9ibG9ja3NxFk5YBwAAAHN0X3JkZXZxF05Y"
-        "CAAAAHN0X2ZsYWdzcRhOWAYAAABzdF9nZW5xGU5YDAAAAHN0X2JpcnRodGltZXEa"
-        "TnWGcRtScRx1Yi4="
+        "SwFYCAAAAHN0X210aW1lcRBLAVgIAAAAc3RfY3RpbWVxEUsBdYZxG1JxHHViLg=="
     ),
     "chunk": (
         "gAJjc2VxcGFyc2Uuc2VxdWVuY2VzCkZyYW1lQ2h1bmsKcQApgXEBfXECKFgFAAAA"
@@ -547,14 +551,11 @@ LEGACY_PICKLES = {
         "bGxxDFgIAAAAL3IvcGxhdGVxDVgEAAAAbmFtZXEOWAUAAABwbGF0ZXEPWAQAAABw"
         "YXRocRBYAgAAAC9ycRF1WAUAAABfc3RhdHESfXETSwFjb3MKc3RhdF9yZXN1bHQK"
         "cRQoSwBLAEsASwBLAEsASwBLAEsASwB0cRV9cRYoWAgAAABzdF9hdGltZXEXSwBY"
-        "CAAAAHN0X210aW1lcRhLAFgIAAAAc3RfY3RpbWVxGUsAWAsAAABzdF9hdGltZV9u"
-        "c3EaTlgLAAAAc3RfbXRpbWVfbnNxG05YCwAAAHN0X2N0aW1lX25zcRxOWAoAAABz"
-        "dF9ibGtzaXplcR1OWAkAAABzdF9ibG9ja3NxHk5YBwAAAHN0X3JkZXZxH05YCAAA"
-        "AHN0X2ZsYWdzcSBOWAYAAABzdF9nZW5xIU5YDAAAAHN0X2JpcnRodGltZXEiTnWG"
-        "cSNScSRzWAYAAABfYXR0cnNxJX1xJihYBgAAAGNodW5rc3EnXXEoWAUAAABkaXJ0"
-        "eXEpiFgJAAAAaXNfcGFkZGVkcSqJWAMAAABwYWRxK0sEWAQAAABzdGF0cSx9cS11"
-        "WAUAAABfZGF0YXEuY19fYnVpbHRpbl9fCnNldApxL11xMChLAUsCSwNLBWWFcTFS"
-        "cTJYBwAAAF9vdXRwdXRxM051Yi4="
+        "CAAAAHN0X210aW1lcRhLAFgIAAAAc3RfY3RpbWVxGUsAdYZxI1JxJHNYBgAAAF9h"
+        "dHRyc3ElfXEmKFgGAAAAY2h1bmtzcSddcShYBQAAAGRpcnR5cSmIWAkAAABpc19w"
+        "YWRkZWRxKolYAwAAAHBhZHErSwRYBAAAAHN0YXRxLH1xLXVYBQAAAF9kYXRhcS5j"
+        "X19idWlsdGluX18Kc2V0CnEvXXEwKEsBSwJLA0sFZYVxMVJxMlgHAAAAX291dHB1"
+        "dHEzTnViLg=="
     ),
 }
 
@@ -586,18 +587,26 @@ class TestSlotsCompatibility(unittest.TestCase):
         )
         seq.custom = "x"
         clone = pickle.loads(pickle.dumps(seq))
-        self.assertEqual(str(clone), "/r/plate.0001,0003.exr")
+        self.assertEqual(_posix(str(clone)), "/r/plate.0001,0003.exr")
         self.assertEqual(clone.custom, "x")
         self.assertEqual(
             str(pickle.loads(pickle.dumps(sequences.FrameChunk(1, 9, 2)))),
             "1-9x2",
         )
 
+    def test_legacy_pickles_are_portable(self):
+        """The fixtures carry no OS-specific os.stat_result fields."""
+        for name, data in LEGACY_PICKLES.items():
+            raw = base64.b64decode(data)
+            for field in (b"st_flags", b"st_gen", b"st_birthtime", b"st_rdev"):
+                self.assertNotIn(field, raw, name)
+
     def test_legacy_pickles(self):
         """Pickles made by seqparse 1.0.x still load."""
         file = _legacy("file")
         self.assertEqual(
-            (file.full_name, file.name, file.path), ("/r/a.txt", "a.txt", "/r")
+            tuple(map(_posix, (file.full_name, file.name, file.path))),
+            ("/r/a.txt", "a.txt", "/r"),
         )
         self.assertEqual(file.size, 1)
         chunk = _legacy("chunk")
@@ -609,9 +618,12 @@ class TestSlotsCompatibility(unittest.TestCase):
         frames.add(4)
         self.assertEqual(str(frames), "01-04,07")
         fseq = _legacy("file_seq")
-        self.assertEqual(str(fseq), "/r/plate.0001-0003,0005.exr")
+        self.assertEqual(_posix(str(fseq)), "/r/plate.0001-0003,0005.exr")
         self.assertEqual(fseq.size, 0)
-        self.assertIn("/r/plate.0005.exr", fseq)
+        self.assertIn(5, fseq)
+        # The fixtures were pickled on POSIX, so their paths use "/".
+        if os.sep == "/":
+            self.assertIn("/r/plate.0005.exr", fseq)
 
 
 class TestSequenceEdgeCases(unittest.TestCase):
