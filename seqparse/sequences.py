@@ -13,7 +13,7 @@ from typing import Any, overload, SupportsInt, TypeAlias
 import seqparse
 from seqparse import regex
 
-__all__ = ("FileSequence", "FrameSequence", "SeqparsePadError")
+__all__ = ("FileSequence", "FrameChunk", "FrameSequence", "SeqparsePadError")
 
 # Anything a FrameSequence accepts as frames: a frame number (int or digit
 # string), a frame sequence string, a FrameChunk/FrameSequence, or an iterable

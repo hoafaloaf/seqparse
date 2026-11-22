@@ -14,12 +14,12 @@ three OSes. See `CLAUDE.md` for commands and conventions.
 - [x] **1. Ship a `py.typed` marker.** Without it, users' type checkers ignore
   seqparse's annotations. setuptools (>=77, our floor) includes `py.typed`
   automatically; a CI `package` job asserts it is in the wheel and the sdist.
-- [ ] **2. Clean public namespace.** `dir(seqparse)` exposes `Any`,
-  `Iterable`, `Sequence`, `os`, `TYPE_CHECKING` and `annotations`. Define
-  `__all__` in each public module (and keep imports module-style). Do not
-  remove anything users could already rely on (`get_parser`, `get_sequence`,
-  `invert`, `validate_frame_sequence`, `get_version`, `get_stat_result`,
-  submodules).
+- [x] **2. Accurate `__all__`.** Every module already had `__all__`, but the
+  lists were stale. They now name everything a user can pass to or receive
+  from the API, and `test_public_api.py` fails when they drift. Raw `dir()`
+  still lists imported names: hiding them (module `__dir__`, or underscore
+  import aliases) was rejected, because `py.typed` already makes type checkers
+  hide them and the aliases would break the Windows-simulation tests.
 - [ ] **3. `seqls --json`.** Machine-readable output: one object per item with
   name, path, ext, frames (string form), pad, missing frames, and with `-l`
   the size and mtime. Document the schema in the README.

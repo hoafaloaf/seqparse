@@ -55,6 +55,8 @@ CI (`.github/workflows/ci.yml`) runs on Linux, macOS and Windows with Python
   path rules on any OS.
 - Pickle fixtures must not contain OS-specific `os.stat_result` fields;
   `test_legacy_pickles_are_portable` checks that.
+- `test_public_api.py` keeps every module's `__all__` complete: export a new
+  public name there, or add it to the test's INTERNAL list.
 - `test_readme.py` doctests the Python examples in `README.md`, so README
   examples must be real output.
 

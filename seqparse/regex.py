@@ -10,7 +10,11 @@ __all__ = (
     "FILE_NAME_EXPR",
     "FILE_SEQ_EXPR",
     "FRAME_EXPR",
+    "ChunkBits",
+    "FileNameBits",
+    "GroupDict",
     "SeqparseRegexMixin",
+    "SequenceBits",
 )
 
 # BITS_EXPR is used to split a frame "chunk" into three sections: first

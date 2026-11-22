@@ -19,6 +19,8 @@ import humanize
 import seqparse
 from seqparse import files, sequences
 
+__all__ = ("long_format_output", "main", "parse_args", "run_main")
+
 
 def run_main() -> None:  # pragma: no cover
     """Main entry point into the script."""

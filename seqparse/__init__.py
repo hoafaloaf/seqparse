@@ -43,8 +43,10 @@ if TYPE_CHECKING:
 StatLike = os.stat_result | Sequence[float]
 
 __all__ = (
+    "StatLike",
     "get_parser",
     "get_sequence",
+    "get_stat_result",
     "get_version",
     "invert",
     "validate_frame_sequence",
@@ -167,10 +169,10 @@ def invert(
     Examples:
         >>> from seqparse import get_sequence, invert
         >>> seq = get_sequence("0001-0005x2")
-        >>> print repr(seq), str(seq)
+        >>> print(repr(seq), str(seq))
         FrameSequence(pad=4, frames=set([1, 3, 5])) 0001-0005x2
         >>> inverted = invert(seq)
-        >>> print repr(inverted), str(inverted)
+        >>> print(repr(inverted), str(inverted))
         FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
     from seqparse import sequences
@@ -198,9 +200,9 @@ def validate_frame_sequence(frame_seq: str) -> str | None:
 
     Examples:
         >>> from seqparse import validate_frame_sequence
-        >>> print validate_frame_sequence("0001-0001")
+        >>> print(validate_frame_sequence("0001-0001"))
         0001
-        >>> print validate_frame_sequence("0001-")
+        >>> print(validate_frame_sequence("0001-"))
         None
     """
     from seqparse import seqparse

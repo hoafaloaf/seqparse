@@ -14,7 +14,7 @@ from seqparse import containers, files, regex
 # the class's method annotations.
 from seqparse import sequences as sequences_module
 
-__all__ = ("Seqparse",)
+__all__ = ("Location", "ScanOptions", "Seqparse")
 
 PathLike = str | os.DirEntry[str]
 

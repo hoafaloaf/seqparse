@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* `__all__` is now complete in every module (added `get_stat_result`,
+  `StatLike`, `FrameChunk`, `ScanOptions`, `Location`, the regex result types
+  and the `seqls` functions), and a test keeps it that way.
+* Fixed Python 2 `print` syntax in the `invert()` and
+  `validate_frame_sequence()` docstring examples.
 * Ships a `py.typed` marker (PEP 561), so type checkers now use seqparse's
   annotations.
 
