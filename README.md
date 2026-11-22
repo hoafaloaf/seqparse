@@ -29,6 +29,9 @@ what is and isn't a valid file sequence, take a look at the
 - [humanize](https://pypi.org/project/humanize/) (installed
   automatically), used by `seqls --long --human-readable`.
 
+seqparse is fully type-annotated and ships a `py.typed` marker, so type
+checkers use its hints.
+
 Install with `pip install seqparse`.
 
 ### Frame Sequences

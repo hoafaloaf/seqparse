@@ -1,5 +1,10 @@
 # Changes
 
+## Unreleased
+
+* Ships a `py.typed` marker (PEP 561), so type checkers now use seqparse's
+  annotations.
+
 ## v1.0.1 (2022/09/13)
 
 Changes (from v0.7.2)

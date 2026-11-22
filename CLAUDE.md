@@ -63,5 +63,6 @@ CI (`.github/workflows/ci.yml`) runs on Linux, macOS and Windows with Python
 - Commit and push only when asked. Show the commit message for approval first.
 - Commit message format: a subject of at most 60 characters, then at most 8
   bullets ordered by impact. No Co-Authored-By line.
-- Never change the version (`seqparse/__init__.py`) unless asked. Record
-  user-visible changes in `CHANGES.md` when preparing a release.
+- Never change the version (`seqparse/__init__.py`) unless asked. Add
+  user-visible changes to the `## Unreleased` section of `CHANGES.md` as you
+  make them; it gets renamed when releasing.

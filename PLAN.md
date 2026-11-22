@@ -2,8 +2,8 @@
 
 Work through the items in order, one at a time (or a small batch of the quick
 wins). Plan each item against the current code before starting it: earlier
-items change what later ones touch. Tick an item off (`[x]`, with the commit
-hash) once it is committed with CI green.
+items change what later ones touch. Tick an item off (`[x]`) in the commit
+that completes it; if CI then fails, fix forward.
 
 Every item is done when: tests cover the change, `ci-run_tests` passes, the
 README and `CHANGES.md` mention user-visible changes, and CI is green on all
@@ -11,9 +11,9 @@ three OSes. See `CLAUDE.md` for commands and conventions.
 
 ## Quick wins
 
-- [ ] **1. Ship a `py.typed` marker.** Without it, users' type checkers ignore
-  seqparse's annotations. Add `seqparse/py.typed`, include it as package data,
-  and confirm it is in the built wheel.
+- [x] **1. Ship a `py.typed` marker.** Without it, users' type checkers ignore
+  seqparse's annotations. setuptools (>=77, our floor) includes `py.typed`
+  automatically; a CI `package` job asserts it is in the wheel and the sdist.
 - [ ] **2. Clean public namespace.** `dir(seqparse)` exposes `Any`,
   `Iterable`, `Sequence`, `os`, `TYPE_CHECKING` and `annotations`. Define
   `__all__` in each public module (and keep imports module-style). Do not
