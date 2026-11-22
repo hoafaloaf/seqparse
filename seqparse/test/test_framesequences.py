@@ -3,12 +3,7 @@
 import os
 import unittest
 
-from seqparse.sequences import (
-    FileSequence,
-    FrameChunk,
-    FrameSequence,
-    SeqparsePadError,
-)
+from seqparse import sequences
 
 ###############################################################################
 # class: TestFrameSequences
@@ -29,8 +24,12 @@ class TestFrameSequences(unittest.TestCase):
             ("wow", None, 1),
             ("4", "4", 1),
             (3, "3", 1),
-            (FrameChunk(first=2, pad=4), "0002", None),
-            (FrameSequence(list(range(30, 41, 2)), pad=2), "30-40x2", None),
+            (sequences.FrameChunk(first=2, pad=4), "0002", None),
+            (
+                sequences.FrameSequence(list(range(30, 41, 2)), pad=2),
+                "30-40x2",
+                None,
+            ),
         ]
 
         print("\n\n  INPUT ARGUMENTS\n  ---------------")
@@ -42,7 +41,7 @@ class TestFrameSequences(unittest.TestCase):
             print("" if pad is None else f"pad: {pad:d}")
 
             try:
-                seq = FrameSequence(frames=iterable, pad=pad)
+                seq = sequences.FrameSequence(frames=iterable, pad=pad)
             except ValueError as error:
                 print(f"    - EXPECTED ERROR: {iterable} --> {error}")
             else:
@@ -51,17 +50,17 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_basic_containment(self):
         """FrameSequence: Test basic containment of sequences."""
-        chunk1 = FrameChunk(first=1, last=11, step=1, pad=1)
+        chunk1 = sequences.FrameChunk(first=1, last=11, step=1, pad=1)
         frames1 = [str(x) for x in range(1, 12)]
         str_frames1 = "1-11"
 
-        seq = FrameSequence(frames1, pad=1)
+        seq = sequences.FrameSequence(frames1, pad=1)
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
         self.assertEqual(str_frames1, str(seq))
 
-        seq = FrameSequence()
+        seq = sequences.FrameSequence()
         seq.pad = 1
         seq.add(frames1)
         self.assertEqual(str(chunk1), str(seq))
@@ -69,7 +68,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(frames1), set(seq))
         self.assertEqual(str_frames1, str(seq))
 
-        seq = FrameSequence()
+        seq = sequences.FrameSequence()
         seq.pad = 1
         for frame in frames1:
             seq.add(frame)
@@ -78,7 +77,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(frames1), set(seq))
         self.assertEqual(str_frames1, str(seq))
 
-        seq = FrameSequence(str_frames1)
+        seq = sequences.FrameSequence(str_frames1)
         self.assertEqual(str(chunk1), str(seq))
         self.assertEqual(set(chunk1), set(seq))
         self.assertEqual(set(frames1), set(seq))
@@ -93,14 +92,14 @@ class TestFrameSequences(unittest.TestCase):
         self.assertNotIn("13", seq)
         self.assertNotIn("0013", seq)
 
-        seq1 = FrameSequence(chunk1)
+        seq1 = sequences.FrameSequence(chunk1)
         self.assertEqual(str(chunk1), str(seq1))
 
-        seq2 = FrameSequence(seq1)
+        seq2 = sequences.FrameSequence(seq1)
         self.assertEqual(str(seq1), str(seq2))
 
         # Empty FrameSequence ...
-        self.assertEqual(str(FrameSequence()), "")
+        self.assertEqual(str(sequences.FrameSequence()), "")
 
     def test_complex_containment(self):
         """FrameSequence: Test containment of complex sequences."""
@@ -108,38 +107,38 @@ class TestFrameSequences(unittest.TestCase):
         str_frames1 = "1,3-5"
         frames2 = [1, 2, 4, 5, 6]
         str_frames2 = "1,2,4-6"
-        chunk3 = FrameChunk(first=1, last=11, step=1, pad=4)
+        chunk3 = sequences.FrameChunk(first=1, last=11, step=1, pad=4)
         frames3 = [f"{x:04d}" for x in range(1, 12)]
         str_frames3 = "0001-0011"
-        chunk4 = FrameChunk(first=91, last=101, step=2, pad=4)
+        chunk4 = sequences.FrameChunk(first=91, last=101, step=2, pad=4)
         frames4 = [f"{x:04d}" for x in range(91, 103, 2)]
         str_frames4 = "0091-0101x2"
 
-        seq = FrameSequence(frames1)
+        seq = sequences.FrameSequence(frames1)
         self.assertEqual(str(seq), str_frames1)
 
-        seq = FrameSequence(frames2)
+        seq = sequences.FrameSequence(frames2)
         self.assertEqual(str(seq), str_frames2)
 
-        seq = FrameSequence(frames3, pad=4)
+        seq = sequences.FrameSequence(frames3, pad=4)
         self.assertEqual(str(chunk3), str(seq))
         self.assertEqual(set(chunk3), set(seq))
         self.assertEqual(set(frames3), set(seq))
         self.assertEqual(str_frames3, str(seq))
 
-        seq = FrameSequence(str_frames3)
+        seq = sequences.FrameSequence(str_frames3)
         self.assertEqual(str(chunk3), str(seq))
         self.assertEqual(set(chunk3), set(seq))
         self.assertEqual(set(frames3), set(seq))
         self.assertEqual(str_frames3, str(seq))
 
-        seq = FrameSequence(frames4, pad=4)
+        seq = sequences.FrameSequence(frames4, pad=4)
         self.assertEqual(str(chunk4), str(seq))
         self.assertEqual(set(chunk4), set(seq))
         self.assertEqual(set(frames4), set(seq))
         self.assertEqual(str_frames4, str(seq))
 
-        seq = FrameSequence(str_frames4)
+        seq = sequences.FrameSequence(str_frames4)
         self.assertEqual(str(chunk4), str(seq))
         self.assertEqual(set(chunk4), set(seq))
         self.assertEqual(set(frames4), set(seq))
@@ -147,10 +146,10 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_frame_add(self):
         """FrameSequence: Test the addition of frames of various types."""
-        chunk3 = FrameChunk(first=91, last=102, step=2, pad=4)
+        chunk3 = sequences.FrameChunk(first=91, last=102, step=2, pad=4)
         frames3 = [f"{x:04d}" for x in range(91, 103, 2)]
 
-        seq = FrameSequence(frames3, pad=4)
+        seq = sequences.FrameSequence(frames3, pad=4)
         self.assertEqual(str(chunk3), str(seq))
         self.assertEqual(set(chunk3), set(seq))
         self.assertEqual(set(frames3), set(seq))
@@ -164,12 +163,12 @@ class TestFrameSequences(unittest.TestCase):
             "010-020x2",
             "010,,020",
             "0010,,0020",
-            FrameChunk(first=2, pad=4),
-            FrameChunk(first=10, last=20, step=2, pad=2),
-            FrameChunk(first=10, last=20, step=2, pad=4),
-            FrameSequence([1], pad=4),
-            FrameSequence(list(range(30, 41, 2)), pad=2),
-            FrameSequence(list(range(30, 41, 2)), pad=4),
+            sequences.FrameChunk(first=2, pad=4),
+            sequences.FrameChunk(first=10, last=20, step=2, pad=2),
+            sequences.FrameChunk(first=10, last=20, step=2, pad=4),
+            sequences.FrameSequence([1], pad=4),
+            sequences.FrameSequence(list(range(30, 41, 2)), pad=2),
+            sequences.FrameSequence(list(range(30, 41, 2)), pad=4),
         ]
 
         print("")
@@ -181,7 +180,7 @@ class TestFrameSequences(unittest.TestCase):
             except ValueError as error:
                 print(f"    - EXPECTED ERROR: {item} --> {error}")
                 assert True
-            except SeqparsePadError as error:
+            except sequences.SeqparsePadError as error:
                 print(f"    - EXPECTED ERROR: {item} --> {error}")
 
         self.assertEqual(
@@ -193,32 +192,32 @@ class TestFrameSequences(unittest.TestCase):
         frames = [1, 2, 3, 4, 11, 12, 13, 14]
         pad_frames = [f"{x:04d}" for x in frames]
 
-        seq = FrameSequence(frames, pad=4)
+        seq = sequences.FrameSequence(frames, pad=4)
         self.assertEqual(set(pad_frames), set(seq))
 
-        seq = FrameSequence(frames, pad=4)
+        seq = sequences.FrameSequence(frames, pad=4)
         seq.discard(pad_frames[-1])
         self.assertEqual(set(pad_frames[:-1]), set(seq))
 
-        seq = FrameSequence(frames, pad=4)
+        seq = sequences.FrameSequence(frames, pad=4)
         pad_frames2 = [f"{x:04d}" for x in [21, 22, 23, 24]]
         seq.update(pad_frames2)
         self.assertEqual(set(pad_frames + pad_frames2), set(seq))
 
-        seq = FrameSequence(frames, pad=4)
-        with self.assertRaises(SeqparsePadError):
+        seq = sequences.FrameSequence(frames, pad=4)
+        with self.assertRaises(sequences.SeqparsePadError):
             seq.discard("014")
 
         # Not really a set-like method, but I need to test it ...
-        seq = FrameSequence(frames, pad=1)
+        seq = sequences.FrameSequence(frames, pad=1)
         self.assertFalse(seq.is_padded)
-        seq = FrameSequence(frames, pad=4)
+        seq = sequences.FrameSequence(frames, pad=4)
         self.assertTrue(seq.is_padded)
 
     def test_iteration(self):
         """FrameSequence: Test iteration over an instance."""
         frames = [f"{x:04d}" for x in range(1, 6)]
-        seq = FrameSequence(frames, pad=4)
+        seq = sequences.FrameSequence(frames, pad=4)
 
         print("\n\n  INPUT FRAMES\n  ------------")
         print(" ", frames)
@@ -231,7 +230,7 @@ class TestFrameSequences(unittest.TestCase):
 
         frames = [str(x) for x in range(1, 21, 2)]
         frames += [str(x) for x in range(100, 105)]
-        seq = FrameSequence(frames, pad=1)
+        seq = sequences.FrameSequence(frames, pad=1)
 
         print("\n\n  INPUT FRAMES\n  ------------")
         print(" ", frames)
@@ -244,9 +243,9 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_inversion(self):
         """FrameSequence: Test frame inversion (ie, report missing frames)."""
-        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
-        seq = FrameSequence(chunk)
-        expected = FrameChunk(first=2, last=10, step=2, pad=4)
+        chunk = sequences.FrameChunk(first=1, last=11, step=2, pad=4)
+        seq = sequences.FrameSequence(chunk)
+        expected = sequences.FrameChunk(first=2, last=10, step=2, pad=4)
         inverted = seq.invert()
 
         print("\n\n  SEQUENCE\n  --------")
@@ -256,13 +255,13 @@ class TestFrameSequences(unittest.TestCase):
 
         self.assertEqual(str(inverted), str(expected))
 
-        chunk1 = FrameChunk(first=1, last=9, step=2, pad=4)
-        chunk2 = FrameChunk(first=10, last=20, step=5, pad=4)
-        seq = FrameSequence(chunk1)
+        chunk1 = sequences.FrameChunk(first=1, last=9, step=2, pad=4)
+        chunk2 = sequences.FrameChunk(first=10, last=20, step=5, pad=4)
+        seq = sequences.FrameSequence(chunk1)
         seq.add(chunk2)
         seq.add("0021")
 
-        expected = FrameSequence(pad=4)
+        expected = sequences.FrameSequence(pad=4)
         expected.add(chunk1.invert())
         expected.add(chunk2.invert())
         inverted = seq.invert()
@@ -277,14 +276,14 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_equality(self):
         """FrameSequence: Test the equality of instances."""
-        seq1 = FrameSequence(list(range(1, 11)), pad=4)
-        seq2 = FrameSequence(list(range(1, 11)), pad=4)
-        seq3 = FrameSequence(list(range(1, 11)), pad=3)
-        seq4 = FrameSequence(list(range(1, 10)), pad=4)
-        seq5 = FrameSequence("0001-0010")
-        seq6 = FrameSequence("0001-0010")
-        seq7 = FrameSequence("001-010")
-        seq8 = FrameSequence("0001-0009")
+        seq1 = sequences.FrameSequence(list(range(1, 11)), pad=4)
+        seq2 = sequences.FrameSequence(list(range(1, 11)), pad=4)
+        seq3 = sequences.FrameSequence(list(range(1, 11)), pad=3)
+        seq4 = sequences.FrameSequence(list(range(1, 10)), pad=4)
+        seq5 = sequences.FrameSequence("0001-0010")
+        seq6 = sequences.FrameSequence("0001-0010")
+        seq7 = sequences.FrameSequence("001-010")
+        seq8 = sequences.FrameSequence("0001-0009")
 
         self.assertEqual(seq1, seq2)
         self.assertNotEqual(seq1, seq3)
@@ -297,7 +296,7 @@ class TestFrameSequences(unittest.TestCase):
         self.assertNotEqual(seq5, seq8)
 
         file_path = os.path.join(self._test_path, self._test_name)
-        fseq1 = FileSequence(
+        fseq1 = sequences.FileSequence(
             name=file_path, ext=self._test_ext, frames=list(range(1, 11)), pad=4
         )
 

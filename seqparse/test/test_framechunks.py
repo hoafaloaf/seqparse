@@ -2,7 +2,7 @@
 
 import unittest
 
-from seqparse.sequences import FrameChunk
+from seqparse import sequences
 
 ###############################################################################
 # class: TestFrameChunks
@@ -27,14 +27,14 @@ class TestFrameChunks(unittest.TestCase):
         """FrameChunk: Test chunk length (number of included frames)."""
         print("\n  GOOD CHUNKS\n  --------------")
         for bit in self.good_bits:
-            chunk = FrameChunk(*bit[:-1])
+            chunk = sequences.FrameChunk(*bit[:-1])
             self.assertEqual(len(chunk), bit[-1])
             print(f"  o {bit} -> {chunk} ({chunk!r}, {len(chunk):d} frames)")
 
         print("\n  BAD CHUNKS\n  -------------")
         for bit in self.bad_bits:
             try:
-                chunk = FrameChunk(*bit)
+                chunk = sequences.FrameChunk(*bit)
 
             except ValueError as error:
                 print(f"  o EXPECTED ERROR: {bit} --> {error}")
@@ -42,7 +42,7 @@ class TestFrameChunks(unittest.TestCase):
 
     def test_containment(self):
         """FrameChunk: Test if a frame is contained by a chunk."""
-        chunk = FrameChunk(first=1, last=5, step=1, pad=4)
+        chunk = sequences.FrameChunk(first=1, last=5, step=1, pad=4)
         for frame in range(1, 6):
             self.assertIn(frame, chunk)
             self.assertIn(f"{frame:04d}", chunk)
@@ -52,7 +52,7 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn(f"{frame:02d}", chunk)
             self.assertNotIn(f"{frame:04d}", chunk)
 
-        chunk = FrameChunk(first=1, last=7, step=2, pad=4)
+        chunk = sequences.FrameChunk(first=1, last=7, step=2, pad=4)
         for frame in range(1, 8, 2):
             self.assertIn(frame, chunk)
             self.assertIn(f"{frame:04d}", chunk)
@@ -62,7 +62,7 @@ class TestFrameChunks(unittest.TestCase):
             self.assertNotIn(f"{frame:02d}", chunk)
             self.assertNotIn(f"{frame:04d}", chunk)
 
-        chunk = FrameChunk(first=1, last=10, step=1, pad=1)
+        chunk = sequences.FrameChunk(first=1, last=10, step=1, pad=1)
         for frame in range(1, 11):
             self.assertIn(frame, chunk)
             self.assertIn(str(frame), chunk)
@@ -77,7 +77,7 @@ class TestFrameChunks(unittest.TestCase):
 
     def test_iteration(self):
         """FrameChunk: Test iteration over an instance."""
-        chunk = FrameChunk(first=1, last=5, step=1, pad=4)
+        chunk = sequences.FrameChunk(first=1, last=5, step=1, pad=4)
         frames = [f"{x:04d}" for x in range(1, 6)]
 
         self.assertEqual(set(frames), set(chunk))
@@ -89,7 +89,7 @@ class TestFrameChunks(unittest.TestCase):
         print("  o forward: ", ", ".join(x for x in chunk))
         print("  o backward:", ", ".join(x for x in reversed(chunk)))
 
-        chunk = FrameChunk(first=1, last=20, step=2, pad=1)
+        chunk = sequences.FrameChunk(first=1, last=20, step=2, pad=1)
         frames = [str(x) for x in range(1, 21, 2)]
 
         self.assertEqual(set(frames), set(chunk))
@@ -103,8 +103,8 @@ class TestFrameChunks(unittest.TestCase):
 
     def test_inversion(self):
         """FrameChunk: Test frame inversion (ie, report missing frames)."""
-        chunk = FrameChunk(first=1, last=11, step=2, pad=4)
-        expected = FrameChunk(first=2, last=10, step=2, pad=4)
+        chunk = sequences.FrameChunk(first=1, last=11, step=2, pad=4)
+        expected = sequences.FrameChunk(first=2, last=10, step=2, pad=4)
 
         print("\n\n  SEQUENCE\n  --------")
         print("  input frames:   ", chunk)
@@ -114,7 +114,7 @@ class TestFrameChunks(unittest.TestCase):
 
         self.assertEqual(str(inverted), str(expected))
 
-        chunk = FrameChunk(first=10, pad=4)
+        chunk = sequences.FrameChunk(first=10, pad=4)
         expected = ""
 
         print("\n  SINGLE FRAME\n  -----------")
@@ -128,11 +128,11 @@ class TestFrameChunks(unittest.TestCase):
 
     def test_equality(self):
         """FrameChunk: Test the equality of instances."""
-        chunk1 = FrameChunk(first=1, last=10, pad=4)
-        chunk2 = FrameChunk(first="1", last="10", pad=4)
-        chunk3 = FrameChunk(first=1, last=10, pad=4)
-        chunk4 = FrameChunk(first=1, last=10, pad=3)
-        chunk5 = FrameChunk(first="1", last="10", pad=3)
+        chunk1 = sequences.FrameChunk(first=1, last=10, pad=4)
+        chunk2 = sequences.FrameChunk(first="1", last="10", pad=4)
+        chunk3 = sequences.FrameChunk(first=1, last=10, pad=4)
+        chunk4 = sequences.FrameChunk(first=1, last=10, pad=3)
+        chunk5 = sequences.FrameChunk(first="1", last="10", pad=3)
         self.assertEqual(chunk1, chunk2)
         self.assertEqual(chunk1, chunk3)
         self.assertNotEqual(chunk1, chunk4)

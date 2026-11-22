@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from functools import total_ordering
+import functools
 import os
 from typing import Any
 
-from seqparse import get_stat_result, restore_slots, StatLike
+import seqparse
 
 __all__ = ("File",)
 
@@ -14,7 +14,7 @@ __all__ = ("File",)
 # Class: File
 
 
-@total_ordering
+@functools.total_ordering
 class File:
     """
     Simple representation of files on disk.
@@ -34,7 +34,9 @@ class File:
     _path: str
     _stat: os.stat_result | None
 
-    def __init__(self, file_name: str, stat: StatLike | None = None) -> None:
+    def __init__(
+        self, file_name: str, stat: seqparse.StatLike | None = None
+    ) -> None:
         """Initialise the instance."""
         self._stat = None
         self._cache_stat(stat)
@@ -43,7 +45,7 @@ class File:
     def __setstate__(self, state: Any) -> None:
         """Unpickle, including pickles made by seqparse 1.0.x."""
         if isinstance(state, tuple):
-            restore_slots(self, state)
+            seqparse.restore_slots(self, state)
             return
         info = state["_info"]  # 1.0.x kept its state in plain dicts
         self._full, self._name, self._path = (
@@ -116,7 +118,9 @@ class File:
             return None
         return self._stat.st_size
 
-    def _cache_stat(self, input_stat: StatLike | None) -> os.stat_result | None:
+    def _cache_stat(
+        self, input_stat: seqparse.StatLike | None
+    ) -> os.stat_result | None:
         """
         Cache file system stat data.
 
@@ -128,7 +132,7 @@ class File:
         """
         self._stat = None
         if input_stat:
-            self._stat = get_stat_result(input_stat)
+            self._stat = seqparse.get_stat_result(input_stat)
         return self._stat
 
     def _set_name(self, full_name: str) -> None:

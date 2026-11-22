@@ -4,8 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-from seqparse.files import File
-from seqparse.test import mock_os_stat
+from seqparse import files, test
 
 ###############################################################################
 # class: TestFiles
@@ -26,7 +25,7 @@ class TestFiles(unittest.TestCase):
         file_name = "test.0001.py"
         full_name = os.path.join(self._test_path, file_name)
 
-        entry = File(full_name)
+        entry = files.File(full_name)
 
         self.assertEqual(entry.full_name, full_name)
         self.assertEqual(entry.name, file_name)
@@ -40,12 +39,12 @@ class TestFiles(unittest.TestCase):
     @mock.patch("seqparse.sequences.os.stat")
     def test_stat_queries(self, mock_api_call):
         """File: Test stat setting and queries."""
-        mock_api_call.side_effect = mock_os_stat
+        mock_api_call.side_effect = test.mock_os_stat
 
         file_name = "test.0001.py"
         full_name = os.path.join(self._test_path, file_name)
 
-        entry = File(full_name)
+        entry = files.File(full_name)
 
         stat = entry.stat()
         self.assertIsNone(stat)
@@ -56,14 +55,14 @@ class TestFiles(unittest.TestCase):
         self.assertEqual(entry.size, 7975)
         self.assertEqual(entry.mtime, 1490908305)
 
-        entry = File(full_name)
+        entry = files.File(full_name)
         stat = entry.stat(force=True)
         self.assertEqual(entry.stat().st_size, 7975)
         self.assertEqual(entry.stat().st_mtime, 1490908305)
         self.assertEqual(entry.size, 7975)
         self.assertEqual(entry.mtime, 1490908305)
 
-        entry = File(full_name, stat=stat)
+        entry = files.File(full_name, stat=stat)
         self.assertEqual(entry.stat().st_size, 7975)
         self.assertEqual(entry.stat().st_mtime, 1490908305)
         self.assertEqual(entry.size, 7975)
@@ -71,9 +70,9 @@ class TestFiles(unittest.TestCase):
 
     def test_sorting(self):
         """File: Test instance sorting."""
-        file1 = File("/golly/gosh/geewhiz.txt")
-        file2 = File("/golly/gosh/geewhiz.txt")
-        file3 = File("/golly/gosh/geewhillickers.txt")
+        file1 = files.File("/golly/gosh/geewhiz.txt")
+        file2 = files.File("/golly/gosh/geewhiz.txt")
+        file3 = files.File("/golly/gosh/geewhillickers.txt")
 
         str3 = "/golly/gosh/geewhillickers.txt"
 
@@ -86,9 +85,9 @@ class TestFiles(unittest.TestCase):
 
     def test_hashing(self):
         """File: Equal instances hash equally (usable in sets and dicts)."""
-        file1 = File("/golly/gosh/geewhiz.txt")
-        file2 = File("/golly/gosh/geewhiz.txt")
-        file3 = File("/golly/gosh/geewhillickers.txt")
+        file1 = files.File("/golly/gosh/geewhiz.txt")
+        file2 = files.File("/golly/gosh/geewhiz.txt")
+        file3 = files.File("/golly/gosh/geewhillickers.txt")
 
         self.assertEqual(hash(file1), hash(file2))
         self.assertEqual(len({file1, file2, file3}), 2)

@@ -13,21 +13,10 @@ import unittest
 from unittest import mock
 import weakref
 
-from seqparse import get_parser, get_sequence, validate_frame_sequence
+import seqparse
+from seqparse import containers, files, sequences
 from seqparse import seqparse as seqparse_module
 from seqparse.cli import seqls
-from seqparse.containers import (
-    FileExtension,
-    FileSequenceContainer,
-    SingletonContainer,
-)
-from seqparse.files import File
-from seqparse.sequences import (
-    FileSequence,
-    FrameChunk,
-    FrameSequence,
-    SeqparsePadError,
-)
 
 
 class _TempDirMixin:
@@ -50,7 +39,7 @@ class _TempDirMixin:
 
     def scan(self, path=None, stat=False, **kwargs):
         """Scan a path and return the string output of the parser."""
-        parser = get_parser()
+        parser = seqparse.get_parser()
         parser.scan_options["stat"] = stat
         parser.scan_path(self.root if path is None else path, **kwargs)
         return parser
@@ -154,7 +143,7 @@ class TestFileNames(_TempDirMixin, unittest.TestCase):
 
     def test_frame_only_file_name_via_add_file(self):
         """add_file("0001.exr") crashed with a TypeError."""
-        parser = get_parser()
+        parser = seqparse.get_parser()
         parser.add_file("0001.exr")
         parser.add_file("0002.exr")
         self.assertEqual([str(x) for x in parser.output()], ["0001,0002.exr"])
@@ -185,7 +174,7 @@ class TestFileNames(_TempDirMixin, unittest.TestCase):
 
     def test_sequence_string_via_add_file_still_supported(self):
         """add_file() with a whole sequence string remains a feature."""
-        parser = get_parser()
+        parser = seqparse.get_parser()
         parser.add_file("shot.0001-0003.exr")
         self.assertEqual(
             [str(x) for x in parser.output()], ["shot.0001-0003.exr"]
@@ -217,7 +206,9 @@ class TestOutput(_TempDirMixin, unittest.TestCase):
 
     def test_long_format_without_stats_has_no_date(self):
         """Entries without stats were shown with the current time."""
-        fseq = FileSequence(name="missing", ext="exr", frames=[1], pad=4)
+        fseq = sequences.FileSequence(
+            name="missing", ext="exr", frames=[1], pad=4
+        )
         self.assertEqual(
             seqls.long_format_output([fseq]), ["----  ----  missing.0001.exr"]
         )
@@ -232,19 +223,21 @@ class TestFrameSequences(unittest.TestCase):
 
     def test_range_and_generator_input(self):
         """range() and generators raised TypeError (docstring example)."""
-        self.assertEqual(str(get_sequence(range(5))), "0-4")
-        self.assertEqual(str(FrameSequence(x for x in (1, 2, 3))), "1-3")
-        seq = FrameSequence(pad=2)
+        self.assertEqual(str(seqparse.get_sequence(range(5))), "0-4")
+        self.assertEqual(
+            str(sequences.FrameSequence(x for x in (1, 2, 3))), "1-3"
+        )
+        seq = sequences.FrameSequence(pad=2)
         seq.add(range(3))
         self.assertEqual(str(seq), "00-02")
 
     def test_frame_zero(self):
         """FrameSequence(0) silently produced an empty sequence."""
-        self.assertEqual(list(FrameSequence(0)), ["0"])
+        self.assertEqual(list(sequences.FrameSequence(0)), ["0"])
 
     def test_frames_may_exceed_padding_in_strings(self):
         """'001,010,100,1000' raised SeqparsePadError."""
-        seq = FrameSequence("001,010,100,1000")
+        seq = sequences.FrameSequence("001,010,100,1000")
         self.assertEqual(seq.pad, 3)
         self.assertEqual(sorted(map(int, seq)), [1, 10, 100, 1000])
         self.assertEqual(str(seq), "001,010,100,1000")
@@ -252,18 +245,21 @@ class TestFrameSequences(unittest.TestCase):
     def test_incorrectly_padded_strings_still_rejected(self):
         """Loosening the rule above must not accept genuinely bad padding."""
         for bad in ("001,0010", "001,5", "001-0010"):
-            with self.subTest(bad=bad), self.assertRaises(SeqparsePadError):
-                FrameSequence(bad)
+            with (
+                self.subTest(bad=bad),
+                self.assertRaises(sequences.SeqparsePadError),
+            ):
+                sequences.FrameSequence(bad)
 
     def test_bad_padding_is_a_value_error(self):
         """SeqparsePadError didn't subclass ValueError."""
         with self.assertRaises(ValueError):
-            FrameSequence("001,0010")
+            sequences.FrameSequence("001,0010")
 
     def test_validate_rejects_bad_padding(self):
         """validate_frame_sequence() raised instead of returning None."""
-        self.assertIsNone(validate_frame_sequence("001,0010"))
-        self.assertEqual(validate_frame_sequence("001,010"), "001,010")
+        self.assertIsNone(seqparse.validate_frame_sequence("001,0010"))
+        self.assertEqual(seqparse.validate_frame_sequence("001,010"), "001,010")
 
 
 ###############################################################################
@@ -275,7 +271,7 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
 
     def test_explicit_name_is_not_reparsed(self):
         """Base names that look like sequences ("comp.1.final") got mangled."""
-        fseq = FileSequence(
+        fseq = sequences.FileSequence(
             name=os.path.join("d", "comp.1.final"),
             ext="exr",
             frames=[1, 2],
@@ -289,48 +285,52 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
 
     def test_sole_name_argument_is_still_parsed(self):
         """A full sequence string as the only argument is still parsed."""
-        fseq = FileSequence("shot.0001-0003.exr")
+        fseq = sequences.FileSequence("shot.0001-0003.exr")
         self.assertEqual((fseq.name, fseq.ext, fseq.pad), ("shot", "exr", 4))
 
     def test_full_name_with_matching_ext_is_parsed(self):
         """A full sequence string plus a redundant ext wasn't parsed."""
-        fseq = FileSequence("foo.0001-0003.exr", ext="exr")
+        fseq = sequences.FileSequence("foo.0001-0003.exr", ext="exr")
         self.assertEqual((fseq.name, fseq.ext, len(fseq)), ("foo", "exr", 3))
 
         # A conflicting ext means the name is just a base name.
-        fseq = FileSequence("comp.1.final", ext="exr")
+        fseq = sequences.FileSequence("comp.1.final", ext="exr")
         self.assertEqual(
             (fseq.name, fseq.ext, len(fseq)), ("comp.1.final", "exr", 0)
         )
 
     def test_clone_keeps_pad_with_overflowing_frame(self):
         """Cloning re-derived the pad from the frames ("10000" -> pad 5)."""
-        parent = FileSequence(name="a", ext="exr", frames=[1, 10000], pad=4)
-        clone = FileSequence(parent)
+        parent = sequences.FileSequence(
+            name="a", ext="exr", frames=[1, 10000], pad=4
+        )
+        clone = sequences.FileSequence(parent)
         self.assertEqual(clone.pad, 4)
         self.assertEqual(str(clone), str(parent))
 
     def test_clone_of_empty_sequence(self):
         """Cloning an empty FileSequence raised ValueError."""
-        clone = FileSequence(FileSequence(name="a", ext="exr", pad=4))
+        clone = sequences.FileSequence(
+            sequences.FileSequence(name="a", ext="exr", pad=4)
+        )
         self.assertEqual((clone.name, clone.ext, clone.pad), ("a", "exr", 4))
         self.assertEqual(len(clone), 0)
 
     def test_clone_copies_stats_and_path(self):
         """Cloning dropped cached disk stats."""
         self.make_files("a.0001.exr", content="12345")
-        parent = FileSequence(
+        parent = sequences.FileSequence(
             name=os.path.join(self.root, "a"), ext="exr", frames=[1], pad=4
         )
         parent.stat(1, lazy=True)
-        clone = FileSequence(parent)
+        clone = sequences.FileSequence(parent)
         self.assertEqual(clone.path, parent.path)
         self.assertEqual(clone.size, 5)
 
     def test_partially_statted_sequence(self):
         """str() crashed when only some frames had cached stats."""
         self.make_files("a.0001.exr", content="123")
-        fseq = FileSequence(
+        fseq = sequences.FileSequence(
             name=os.path.join(self.root, "a"), ext="exr", frames=[1, 2], pad=4
         )
         fseq.stat(1, lazy=True)
@@ -340,7 +340,7 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
     def test_discard_string_frame_drops_stat(self):
         """discard("0001") left the frame's stats behind."""
         self.make_files("a.0001.exr", "a.0002.exr")
-        fseq = FileSequence(
+        fseq = sequences.FileSequence(
             name=os.path.join(self.root, "a"), ext="exr", frames=[1, 2], pad=4
         )
         fseq.stat(1, lazy=True)
@@ -351,7 +351,7 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
     def test_stat_frame_zero(self):
         """Frame 0 produced an empty file name, so stat(0) failed."""
         self.make_files("a.0000.exr", content="xy")
-        fseq = FileSequence(
+        fseq = sequences.FileSequence(
             name=os.path.join(self.root, "a"), ext="exr", frames=[0], pad=4
         )
         self.assertEqual(fseq.stat(0, lazy=True).st_size, 2)
@@ -359,7 +359,7 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
 
     def test_invert_keeps_dotted_name(self):
         """invert() re-parsed full_name, mangling sequence-like base names."""
-        fseq = FileSequence(
+        fseq = sequences.FileSequence(
             name="comp.1.final", ext="exr", frames=[1, 3], pad=4
         )
         inverted = fseq.invert()
@@ -375,7 +375,7 @@ class TestContainers(unittest.TestCase):
 
     def test_multiple_extensions_can_be_output(self):
         """Sorting FileExtension instances raised TypeError."""
-        container = FileSequenceContainer(name="foo", file_path="d")
+        container = containers.FileSequenceContainer(name="foo", file_path="d")
         container["tif"][4].add(1)
         container["exr"][4].add(1)
         self.assertEqual(
@@ -388,8 +388,8 @@ class TestContainers(unittest.TestCase):
 
     def test_setitem_keeps_extension_name(self):
         """__setitem__ overwrote the extension's name with the base name."""
-        container = FileSequenceContainer(name="foo", file_path="d")
-        container["exr"] = FileExtension(name="exr")
+        container = containers.FileSequenceContainer(name="foo", file_path="d")
+        container["exr"] = containers.FileExtension(name="exr")
         self.assertEqual(container["exr"].name, "exr")
         self.assertIs(container["exr"].parent, container)
 
@@ -401,7 +401,7 @@ class TestContainers(unittest.TestCase):
 
     def test_singleton_discard_drops_stat(self):
         """SingletonContainer.discard() left the file's stats behind."""
-        singletons = SingletonContainer(["pony.py"], file_path="d")
+        singletons = containers.SingletonContainer(["pony.py"], file_path="d")
         singletons.cache_stat("pony.py", os.stat(__file__))
         singletons.discard("pony.py")
         self.assertNotIn("pony.py", singletons)
@@ -409,12 +409,12 @@ class TestContainers(unittest.TestCase):
 
     def test_membership_does_not_create_entries(self):
         """`in` and .get() on containers were always truthy and added keys."""
-        container = FileSequenceContainer(name="foo", file_path="d")
+        container = containers.FileSequenceContainer(name="foo", file_path="d")
         self.assertNotIn("exr", container)
         self.assertIsNone(container.get("exr"))
         self.assertEqual(list(container), [])
 
-        extension = FileExtension(name="exr")
+        extension = containers.FileExtension(name="exr")
         self.assertNotIn(4, extension)
         self.assertEqual(extension.get(4, "missing"), "missing")
         self.assertEqual(list(extension), [])
@@ -427,15 +427,15 @@ class TestContainers(unittest.TestCase):
     def test_wrong_value_type_is_a_type_error(self):
         """Containers raised ValueError (not TypeError) for wrong types."""
         with self.assertRaises(TypeError):
-            FileSequenceContainer(name="foo")["exr"] = []
+            containers.FileSequenceContainer(name="foo")["exr"] = []
         with self.assertRaises(TypeError):
-            FileExtension(name="exr")[4] = "foo.0001.exr"
+            containers.FileExtension(name="exr")[4] = "foo.0001.exr"
 
     def test_assigned_extension_adopts_existing_sequences(self):
         """Sequences already in an assigned FileExtension lost their names."""
-        extension = FileExtension(name="exr")
+        extension = containers.FileExtension(name="exr")
         extension[4] = [1, 2, 3]
-        container = FileSequenceContainer(name="foo", file_path="d")
+        container = containers.FileSequenceContainer(name="foo", file_path="d")
         container["exr"] = extension
         self.assertEqual(
             [str(x) for x in container.output()],
@@ -444,8 +444,8 @@ class TestContainers(unittest.TestCase):
 
     def test_empty_parent_still_names_new_sequences(self):
         """An empty (falsy) parent container was ignored when naming."""
-        parent = FileSequenceContainer(name="foo", file_path="d")
-        extension = FileExtension(name="exr", parent=parent)
+        parent = containers.FileSequenceContainer(name="foo", file_path="d")
+        extension = containers.FileExtension(name="exr", parent=parent)
         extension[4].add(1)
         self.assertEqual(
             [str(x) for x in extension.output()],
@@ -454,18 +454,22 @@ class TestContainers(unittest.TestCase):
 
     def test_pop_and_setdefault_do_not_autocreate(self):
         """pop()/setdefault() went through the auto-creating __getitem__."""
-        extension = FileExtension(name="exr")
+        extension = containers.FileExtension(name="exr")
         self.assertIsNone(extension.pop(4, None))
         with self.assertRaises(KeyError):
             extension.pop(4)
         self.assertEqual(list(extension), [])
 
-        container = FileSequenceContainer(name="foo")
-        mine = FileExtension(name="tif")
+        container = containers.FileSequenceContainer(name="foo")
+        mine = containers.FileExtension(name="tif")
         self.assertIs(container.setdefault("tif", mine), mine)
-        self.assertIs(container.setdefault("tif", FileExtension("tif")), mine)
+        self.assertIs(
+            container.setdefault("tif", containers.FileExtension("tif")), mine
+        )
         # No default: behaves like indexing and creates an empty child.
-        self.assertIsInstance(container.setdefault("exr"), FileExtension)
+        self.assertIsInstance(
+            container.setdefault("exr"), containers.FileExtension
+        )
         self.assertCountEqual(container, ["exr", "tif"])
 
 
@@ -474,7 +478,7 @@ class TestFileSequenceErrors(unittest.TestCase):
 
     def test_missing_extension_is_a_value_error(self):
         """A missing extension raised AttributeError, fooling hasattr()."""
-        fseq = FileSequence(frames="0001-0003")
+        fseq = sequences.FileSequence(frames="0001-0003")
         with self.assertRaises(ValueError):
             str(fseq)
 
@@ -485,19 +489,19 @@ class TestFrameStorage(unittest.TestCase):
     def test_frames_beyond_64_bits(self):
         """Frame numbers too big for a 64-bit array still work."""
         big = 2**70
-        seq = FrameSequence([3, 1, big, 2])
+        seq = sequences.FrameSequence([3, 1, big, 2])
         seq.add(big + 2)
         self.assertEqual(str(seq), f"1-3,{big},{big + 2}")
         self.assertIn(big, seq)
         self.assertNotIn(big + 1, seq)
         seq.discard(big)
         self.assertEqual(len(seq), 4)
-        inverted = FrameSequence([big, big + 3]).invert()
+        inverted = sequences.FrameSequence([big, big + 3]).invert()
         self.assertEqual(str(inverted), f"{big + 1},{big + 2}")
 
     def test_interleaved_adds_and_reads(self):
         """Small and large merges, in and out of order, dedupe correctly."""
-        seq = FrameSequence(range(0, 100, 2))
+        seq = sequences.FrameSequence(range(0, 100, 2))
         for frame in (5, 3, 5, 98, 101, 0):
             seq.add(frame)
             self.assertIn(frame, seq)
@@ -566,10 +570,10 @@ class TestSlotsCompatibility(unittest.TestCase):
     def test_weakrefs_and_custom_attributes(self):
         """Weak references and ad-hoc attributes still work."""
         for obj in (
-            File("/r/a.txt"),
-            FrameChunk(1, 5),
-            FrameSequence([1, 2]),
-            FileSequence(name="a", ext="exr", frames=[1]),
+            files.File("/r/a.txt"),
+            sequences.FrameChunk(1, 5),
+            sequences.FrameSequence([1, 2]),
+            sequences.FileSequence(name="a", ext="exr", frames=[1]),
         ):
             self.assertIs(weakref.ref(obj)(), obj)
             obj.custom = 1
@@ -577,13 +581,16 @@ class TestSlotsCompatibility(unittest.TestCase):
 
     def test_round_trip_pickle(self):
         """Current pickles round-trip, including custom attributes."""
-        seq = FileSequence(name="/r/plate", ext="exr", frames=[1, 3], pad=4)
+        seq = sequences.FileSequence(
+            name="/r/plate", ext="exr", frames=[1, 3], pad=4
+        )
         seq.custom = "x"
         clone = pickle.loads(pickle.dumps(seq))
         self.assertEqual(str(clone), "/r/plate.0001,0003.exr")
         self.assertEqual(clone.custom, "x")
         self.assertEqual(
-            str(pickle.loads(pickle.dumps(FrameChunk(1, 9, 2)))), "1-9x2"
+            str(pickle.loads(pickle.dumps(sequences.FrameChunk(1, 9, 2)))),
+            "1-9x2",
         )
 
     def test_legacy_pickles(self):
@@ -612,12 +619,12 @@ class TestSequenceEdgeCases(unittest.TestCase):
 
     def test_mutating_while_iterating(self):
         """Iteration works on a snapshot, like the old chunk list."""
-        seq = FrameSequence(range(1, 11))
+        seq = sequences.FrameSequence(range(1, 11))
         for frame in seq:
             if int(frame) % 3:
                 seq.discard(frame)
         self.assertEqual(str(seq), "3-9x3")
-        seq = FrameSequence([1, 5])
+        seq = sequences.FrameSequence([1, 5])
         seen = []
         for frame in seq:
             seen.append(frame)
@@ -627,7 +634,7 @@ class TestSequenceEdgeCases(unittest.TestCase):
 
     def test_discard_inexact_numbers(self):
         """discard() of a non-integral number removes nothing."""
-        seq = FrameSequence([1, 2, 3])
+        seq = sequences.FrameSequence([1, 2, 3])
         seq.discard(1.5)
         self.assertEqual(str(seq), "1-3")
         seq.discard(2.0)
@@ -637,14 +644,16 @@ class TestSequenceEdgeCases(unittest.TestCase):
 
     def test_negative_frame_file_names(self):
         """Negative frames are members by file name too."""
-        seq = FileSequence(name="foo", frames=[-5, 1], ext="exr", pad=4)
+        seq = sequences.FileSequence(
+            name="foo", frames=[-5, 1], ext="exr", pad=4
+        )
         self.assertIn("foo.-005.exr", list(seq))
         self.assertIn("foo.-005.exr", seq)
         self.assertNotIn("foo.-05.exr", seq)
 
     def test_pad_change_refreshes_output(self):
         """Changing pad after output was calculated updates str()."""
-        seq = FrameSequence([1, 2])
+        seq = sequences.FrameSequence([1, 2])
         self.assertEqual(str(seq), "1,2")
         seq.pad = 4
         self.assertEqual(str(seq), "0001,0002")
@@ -664,7 +673,7 @@ class TestScanLoopDetection(unittest.TestCase):
             with mock.patch.object(
                 seqparse_module, "_dir_key", return_value=(1, 1)
             ):
-                parser = get_parser()
+                parser = seqparse.get_parser()
                 parser.scan_path(root)
             self.assertEqual(
                 [str(x) for x in parser.output()],

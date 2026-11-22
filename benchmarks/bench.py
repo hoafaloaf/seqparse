@@ -23,12 +23,12 @@ import tracemalloc
 # Benchmark the checkout this script lives in, not an installed copy.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from seqparse import get_parser
-from seqparse.sequences import FileSequence, FrameSequence
+import seqparse
+from seqparse import sequences
 
 RNG = random.Random(1234)
 GAPPY = sorted(RNG.sample(range(200_000), 100_000))
-GAPPY_STR = str(FrameSequence(GAPPY, pad=6))
+GAPPY_STR = str(sequences.FrameSequence(GAPPY, pad=6))
 DENSE = list(range(1, 100_001))
 FSEQ_FRAMES = sorted(RNG.sample(range(20_000), 5_000))
 FILE_NAMES = [
@@ -41,34 +41,36 @@ RNG.shuffle(FILE_NAMES)
 
 def w_parse_string():
     """Parse a ~45k-chunk frame sequence string and render it."""
-    return str(FrameSequence(GAPPY_STR))
+    return str(sequences.FrameSequence(GAPPY_STR))
 
 
 def w_build_gappy():
     """Build from 100k gappy integer frames and render."""
-    return str(FrameSequence(GAPPY, pad=6))
+    return str(sequences.FrameSequence(GAPPY, pad=6))
 
 
 def w_build_dense():
     """Build from 100k contiguous integer frames and render."""
-    return str(FrameSequence(DENSE, pad=6))
+    return str(sequences.FrameSequence(DENSE, pad=6))
 
 
 def w_iterate():
     """Iterate the padded frames of a 100k-frame sequence."""
-    seq = FrameSequence(GAPPY, pad=6)
+    seq = sequences.FrameSequence(GAPPY, pad=6)
     str(seq)
     return sum(1 for _ in seq)
 
 
 def w_invert():
     """Invert a 100k-frame gappy sequence."""
-    return str(FrameSequence(GAPPY, pad=6).invert())
+    return str(sequences.FrameSequence(GAPPY, pad=6).invert())
 
 
 def w_membership():
     """2k membership checks (ints, padded strings, file names)."""
-    seq = FileSequence(name="/r/plate", ext="exr", frames=FSEQ_FRAMES, pad=4)
+    seq = sequences.FileSequence(
+        name="/r/plate", ext="exr", frames=FSEQ_FRAMES, pad=4
+    )
     probes = FSEQ_FRAMES[::10]
     hits = sum(f in seq for f in probes)
     hits += sum(f"{f:04d}" in seq for f in probes)
@@ -78,7 +80,7 @@ def w_membership():
 
 def w_seqparse_add():
     """Add 50k file names (10 sequences) to a parser and render output."""
-    parser = get_parser()
+    parser = seqparse.get_parser()
     for name in FILE_NAMES:
         parser.add_file(name)
     return [str(x) for x in parser.output()]
@@ -86,7 +88,7 @@ def w_seqparse_add():
 
 def w_seqparse_missing():
     """Render the missing frames of 10 x 5k-frame sequences."""
-    parser = get_parser()
+    parser = seqparse.get_parser()
     for name in FILE_NAMES:
         parser.add_file(name)
     return [str(x) for x in parser.output(missing=True)]
@@ -97,7 +99,7 @@ SCAN_DIR = None
 
 def w_scan_stat():
     """Scan a directory of 3k files with disk stats (I/O bound)."""
-    parser = get_parser()
+    parser = seqparse.get_parser()
     parser.scan_options["stat"] = True
     parser.scan_path(SCAN_DIR)
     return [(str(x), x.size) for x in parser.output()]

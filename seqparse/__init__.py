@@ -37,8 +37,7 @@ import os
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from seqparse.seqparse import Seqparse
-    from seqparse.sequences import FrameChunk, FrameSequence
+    from seqparse import seqparse, sequences
 
 # Anything os.stat_result accepts: another stat_result or a sequence of values.
 StatLike = os.stat_result | Sequence[float]
@@ -58,7 +57,7 @@ __version__ = "1.0.1"
 # EXPORTED METHODS
 
 
-def get_parser() -> Seqparse:
+def get_parser() -> seqparse.Seqparse:
     """
     Create a new Seqparse instance.
 
@@ -70,14 +69,14 @@ def get_parser() -> Seqparse:
         >>> get_parser()
         Seqparse(sequences=0, singletons=0)
     """
-    from seqparse.seqparse import Seqparse
+    from seqparse import seqparse
 
-    return Seqparse()
+    return seqparse.Seqparse()
 
 
 def get_sequence(
     frames: str | Iterable[int | str] | int, pad: int = 1
-) -> FrameSequence:
+) -> sequences.FrameSequence:
     """
     Create a new FrameSequence instance.
 
@@ -99,9 +98,9 @@ def get_sequence(
         >>> get_sequence("0001-0005x2")
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
-    from seqparse.sequences import FrameSequence
+    from seqparse import sequences
 
-    return FrameSequence(frames, pad=pad)
+    return sequences.FrameSequence(frames, pad=pad)
 
 
 def get_stat_result(input_stat: StatLike) -> os.stat_result:
@@ -149,7 +148,9 @@ def get_version(pretty: bool = False) -> str:
     return __version__
 
 
-def invert(iterable: FrameChunk | FrameSequence) -> FrameSequence:
+def invert(
+    iterable: sequences.FrameChunk | sequences.FrameSequence,
+) -> sequences.FrameSequence:
     """
     Create an iterator representing a sequence's missing frames or files.
 
@@ -172,9 +173,11 @@ def invert(iterable: FrameChunk | FrameSequence) -> FrameSequence:
         >>> print repr(inverted), str(inverted)
         FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
-    from seqparse.sequences import FrameChunk, FrameSequence
+    from seqparse import sequences
 
-    if not isinstance(iterable, (FrameChunk, FrameSequence)):
+    if not isinstance(
+        iterable, (sequences.FrameChunk, sequences.FrameSequence)
+    ):
         raise TypeError(
             "Only able to invert FrameChunk and FrameSequence instances."
         )
@@ -200,6 +203,6 @@ def validate_frame_sequence(frame_seq: str) -> str | None:
         >>> print validate_frame_sequence("0001-")
         None
     """
-    from seqparse.seqparse import Seqparse
+    from seqparse import seqparse
 
-    return Seqparse().validate_frame_sequence(frame_seq)
+    return seqparse.Seqparse().validate_frame_sequence(frame_seq)

@@ -4,6 +4,12 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or PR cancels the older run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
@@ -13,6 +19,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: python -m pip install ruff==0.17.6 mypy==2.4.1 -e .
       - run: ruff check seqparse benchmarks
       - run: ruff format --check seqparse benchmarks
@@ -30,6 +38,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - run: python -m pip install ".[tests]"
+      # Coverage settings live in pyproject.toml.
       - run: python -m coverage run -m pytest -q
-      - run: python -m coverage report --include="seqparse/*" --omit="seqparse/test/*"
+      - run: python -m coverage report

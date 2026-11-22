@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, MutableMapping, MutableSet
-from functools import total_ordering
-from itertools import pairwise
-from operator import itemgetter
+import functools
+import itertools
+import operator
 import os
 from typing import Any, Final, overload, TypeVar
 
-from seqparse import get_stat_result, StatLike
-from seqparse.files import File
-from seqparse.sequences import FileSequence
+import seqparse
+from seqparse import files, sequences
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
@@ -104,7 +103,7 @@ class _AutoMapping(MutableMapping[_K, _V]):
 # Class: FileExtension
 
 
-class FileExtension(_AutoMapping[int, FileSequence]):
+class FileExtension(_AutoMapping[int, sequences.FileSequence]):
     """
     Container for frame sequences, indexed by zero-padding.
 
@@ -115,7 +114,7 @@ class FileExtension(_AutoMapping[int, FileSequence]):
             instance was spawned.
     """
 
-    _CHILD_CLASS = FileSequence
+    _CHILD_CLASS = sequences.FileSequence
 
     def __init__(
         self,
@@ -130,7 +129,7 @@ class FileExtension(_AutoMapping[int, FileSequence]):
         self.name = name
         self.parent = parent
 
-    def _create(self, key: int) -> FileSequence:
+    def _create(self, key: int) -> sequences.FileSequence:
         """Create an empty sequence for a missing pad."""
         return self._adopt(self._CHILD_CLASS(ext=self.name, pad=key))
 
@@ -176,7 +175,7 @@ class FileExtension(_AutoMapping[int, FileSequence]):
             for child in self._data.values():
                 self._adopt(child)
 
-    def _adopt(self, child: FileSequence) -> FileSequence:
+    def _adopt(self, child: sequences.FileSequence) -> sequences.FileSequence:
         """Give a child sequence the parent container's path and name."""
         # An empty container is falsy (it's a mapping): test identity.
         if self.parent is not None:
@@ -184,7 +183,7 @@ class FileExtension(_AutoMapping[int, FileSequence]):
             child.name = self.parent.name
         return child
 
-    def output(self) -> Iterator[FileSequence]:
+    def output(self) -> Iterator[sequences.FileSequence]:
         """
         Calculate a sorted list of all contained file extentions.
 
@@ -194,8 +193,10 @@ class FileExtension(_AutoMapping[int, FileSequence]):
         # First, check to see if we need to consolidate our file sequences.
         # Walk the pads from largest to smallest: an unpadded sequence merges
         # into the sequence with the next smaller pad.
-        data = sorted(self._data.items(), key=itemgetter(0), reverse=True)
-        for (pad, fseq), (_, next_fseq) in pairwise(data):
+        data = sorted(
+            self._data.items(), key=operator.itemgetter(0), reverse=True
+        )
+        for (pad, fseq), (_, next_fseq) in itertools.pairwise(data):
             # NOTE: the is_padded() method will force recalculation if the
             # object is dirty.
             if not fseq.is_padded:
@@ -210,7 +211,7 @@ class FileExtension(_AutoMapping[int, FileSequence]):
 # Class: FileSequenceContainer
 
 
-@total_ordering
+@functools.total_ordering
 class FileSequenceContainer(_AutoMapping[str, FileExtension]):
     """
     Container for file sequences, indexed by file extension.
@@ -318,7 +319,7 @@ class FileSequenceContainer(_AutoMapping[str, FileExtension]):
         self._path = str(val) if val else None
         self._full = os.path.join(self._path or "", self._name or "")
 
-    def output(self) -> Iterator[FileSequence]:
+    def output(self) -> Iterator[sequences.FileSequence]:
         """
         Calculate a sorted list of all contained file sequences.
 
@@ -408,7 +409,7 @@ class SingletonContainer(MutableSet[str]):
             self.add(item)
 
     def cache_stat(
-        self, base_name: str, input_stat: StatLike
+        self, base_name: str, input_stat: seqparse.StatLike
     ) -> os.stat_result:
         """
         Cache file system stat data for the specified file base name.
@@ -424,10 +425,10 @@ class SingletonContainer(MutableSet[str]):
         Returns:
             stat_result that was successfully cached.
         """
-        self._stat[base_name] = get_stat_result(input_stat)
+        self._stat[base_name] = seqparse.get_stat_result(input_stat)
         return self._stat[base_name]
 
-    def output(self) -> Iterator[File]:
+    def output(self) -> Iterator[files.File]:
         """
         Calculate formatted list of all contained file sequences.
 
@@ -435,7 +436,9 @@ class SingletonContainer(MutableSet[str]):
             File, sorted alphabetically.
         """
         for file_name in sorted(self):
-            yield File(os.path.join(self.path, file_name), self.stat(file_name))
+            yield files.File(
+                os.path.join(self.path, file_name), self.stat(file_name)
+            )
 
     @overload
     def stat(self) -> dict[str, os.stat_result]: ...

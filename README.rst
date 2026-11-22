@@ -2,7 +2,7 @@
 seqparse: A nifty way to list your file sequences.
 ==================================================
 
-|Pypi Package| |Build Status| |Coverage Status| |Code Health| |License|
+|PyPI Package| |CI Status| |License|
 
 Overview
 --------
@@ -20,6 +20,15 @@ singletons from the command line.
 If you're curious about the **regular expressions** used to determine
 what is and isn't a valid file sequence, take a look at the
 ``seqparse.regex`` module.
+
+Requirements
+~~~~~~~~~~~~
+
+-  Python 3.11 or later, on Linux, macOS or Windows.
+-  `humanize <https://pypi.org/project/humanize/>`_ (installed
+   automatically), used by ``seqls --long --human-readable``.
+
+Install with ``pip install seqparse``.
 
 Frame Sequences
 ~~~~~~~~~~~~~~~
@@ -65,33 +74,32 @@ seqls
 ::
 
     usage: seqls [-h] [-a] [-H] [-l] [--maxdepth MAX_LEVELS]
-                 [--mindepth MIN_LEVELS] [-m] [-S]
-                 [search_path [search_path ...]]
+                 [--mindepth MIN_LEVELS] [-m] [-S] [-v]
+                 [search_path ...]
 
-    Command line tool for listing file sequences. Upon installation of the
-    package this script will be accessable via ``seqls`` command on the command
-    line of your choice.
+    Command line tool for listing file sequences. Upon installation of the package
+    this script will be accessible via `seqls` command on the command line of your
+    choice.
 
     positional arguments:
       search_path           Paths that you'd like to search for file sequences.
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
       -a, --all             Do not ignore entries starting with '.'.
-      -H, --human-readable  with -l/--long, print sizes in human readable
-                            format (e.g., 1K 234M 2G).
+      -H, --human-readable  with -l/--long, print sizes in human readable format
+                            (e.g., 1K 234M 2G).
       -l, --long            Use a long listing format.
       --maxdepth MAX_LEVELS
-                            Descend at most levels (a non-negative integer)
-                            MAX_LEVELS of directories below the
-                            starting-points. '--maxdepth 0' means scan the
-                            starting-points themselves.
+                            Descend at most MAX_LEVELS (a non-negative integer)
+                            levels of directories below the starting points; 0
+                            scans only the starting points themselves.
       --mindepth MIN_LEVELS
                             Do not scan at levels less than MIN_LEVELS (a non-
-                            negative integer). '--mindepth 1' means scan all
-                            levels except the starting-points.
-      -m, --missing         Whether to invert output file sequences to only
-                            report the missing frames.
+                            negative integer); 1 scans every level except the
+                            starting points.
+      -m, --missing         Whether to invert output file sequences to only report
+                            the missing frames.
       -S, --seqs-only       Whether to filter out all non-sequence files.
       -v, --version         Print the version and exit.
 
@@ -180,11 +188,11 @@ Useful Classes
 ::
 
     >>> from seqparse import get_sequence
-    >>> seq = get_sequence([1, 2, 3, 4, 8])
+    >>> seq = get_sequence([1, 2, 3, 4, 8], pad=4)
     >>> print(repr(seq))
     FrameSequence(pad=4, frames=set([1, 2, 3, 4, 8]))
     >>> print(seq)
-    0001-0005,0008
+    0001-0004,0008
     >>> for frame in seq:
     ...     print(frame)
     ...
@@ -192,7 +200,7 @@ Useful Classes
     0002
     0003
     0004
-    0010
+    0008
     >>> for frame in seq.invert():
     ...     print(frame)
     ...
@@ -203,21 +211,15 @@ Useful Classes
 As are ``FileSequence`` instances (which behave similarly; check class
 documentation for details).
 
-Final Notes
------------
+Feedback
+--------
 
-There're still a number of things I'd like to do to make the class
-interfaces a bit more standardized (see my goals for the **v0.7.0**
-release above), but aside from that I'm moderately happy with this code.
+Lemme know if you have any requests/complaints/suggestions: open an issue at
+https://github.com/hoafaloaf/seqparse/issues.
 
-Lemme know if you have any requests/complaints/suggestions!
-
-.. |Build Status| image:: https://travis-ci.org/hoafaloaf/seqparse.svg?branch=master
-   :target: https://travis-ci.org/hoafaloaf/seqparse
-.. |Coverage Status| image:: https://coveralls.io/repos/github/hoafaloaf/seqparse/badge.svg
-   :target: https://coveralls.io/github/hoafaloaf/seqparse
-.. |Code Health| image:: https://landscape.io/github/hoafaloaf/seqparse/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/hoafaloaf/seqparse
-.. |License| image:: https://img.shields.io/github/license/mashape/apistatus.svg
-.. |PyPi Package| image:: https://badge.fury.io/py/seqparse.svg
+.. |CI Status| image:: https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml/badge.svg?branch=master
+   :target: https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml
+.. |License| image:: https://img.shields.io/github/license/hoafaloaf/seqparse.svg
+   :target: https://github.com/hoafaloaf/seqparse/blob/master/LICENSE.txt
+.. |PyPI Package| image:: https://badge.fury.io/py/seqparse.svg
    :target: https://badge.fury.io/py/seqparse

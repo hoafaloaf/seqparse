@@ -2,7 +2,7 @@
 
 import os
 
-from seqparse import get_stat_result
+import seqparse
 
 __all__ = (
     "DirEntry",
@@ -119,7 +119,7 @@ class DirEntry:
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
             raise OSError(f"Mock'd file not found: {self.name}")
-        return get_stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
+        return seqparse.get_stat_result(MOCK_SCANDIR_STAT_DATA[self.name])
 
 
 ###############################################################################
@@ -182,7 +182,7 @@ def initialise_mock_scandir_data(search_path):
 def mock_os_stat(file_name):
     """A mock'd version of os.stat for testing purposes."""
     base_name = os.path.basename(file_name)
-    return get_stat_result(MOCK_SCANDIR_STAT_DATA[base_name])
+    return seqparse.get_stat_result(MOCK_SCANDIR_STAT_DATA[base_name])
 
 
 def mock_scandir_deep(search_path="."):

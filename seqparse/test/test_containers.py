@@ -4,10 +4,8 @@ import os
 import unittest
 from unittest import mock
 
-from seqparse import get_parser
-from seqparse.containers import FileExtension, SingletonContainer
-from seqparse.sequences import FileSequence
-from seqparse.test import DirEntry
+import seqparse
+from seqparse import containers, sequences, test
 
 ###############################################################################
 # class: TestSingletonContainer
@@ -27,7 +25,7 @@ class TestSingletonContainer(unittest.TestCase):
         """SingletonContainer: Test class properties."""
         fake_isfile.return_value = True
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source files one-by-one.
         for file_name in self._singletons:
@@ -41,7 +39,7 @@ class TestSingletonContainer(unittest.TestCase):
         """SingletonContainer: Test class properties."""
         fake_isfile.return_value = True
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source files one-by-one.
         for file_name in self._singletons:
@@ -66,11 +64,13 @@ class TestSingletonContainer(unittest.TestCase):
 
     def test_initialisation(self):
         """SingletonContainer: Test class initialisation."""
-        container = SingletonContainer()
+        container = containers.SingletonContainer()
         self.assertEqual(len(container), 0)
         self.assertEqual(container.path, "")
 
-        container = SingletonContainer(self._singletons, self._test_root)
+        container = containers.SingletonContainer(
+            self._singletons, self._test_root
+        )
         self.assertEqual(len(container), len(self._singletons))
         self.assertEqual(container.path, self._test_root)
 
@@ -80,7 +80,9 @@ class TestSingletonContainer(unittest.TestCase):
             os.path.join(self._test_root, x) for x in sorted(self._singletons)
         ]
 
-        container = SingletonContainer(self._singletons, self._test_root)
+        container = containers.SingletonContainer(
+            self._singletons, self._test_root
+        )
         self.assertEqual("\n".join(file_names), str(container))
 
         output = [str(x) for x in container.output()]
@@ -90,11 +92,13 @@ class TestSingletonContainer(unittest.TestCase):
     @mock.patch("seqparse.seqparse.os.scandir")
     def test_stats(self, mock_api_call):
         """SingletonContainer: Test disk stat functionality."""
-        input_entries = [DirEntry(os.path.join(self._test_root, "pony.py"))]
+        input_entries = [
+            test.DirEntry(os.path.join(self._test_root, "pony.py"))
+        ]
 
         mock_api_call.return_value = input_entries
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
         parser.scan_options["stat"] = True
         parser.scan_path(self._test_root)
 
@@ -125,13 +129,13 @@ class TestFileSequenceContainer(unittest.TestCase):
 
         # fmt: off
         self._input_seqs = [
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name1, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name1, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name2, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name2, pad=4)
         ]
         # fmt: on
@@ -141,26 +145,28 @@ class TestFileSequenceContainer(unittest.TestCase):
         """FileSequenceContainer: Test equality."""
         fake_isfile.return_value = True
 
-        containers = []
+        seq_containers = []
         for input_seq in self._input_seqs:
-            parser = get_parser()
+            parser = seqparse.get_parser()
 
             # Add in the source FileSequence files one-by-one.
             parser.scan_path([str(x) for x in input_seq])
-            containers.append(parser.sequences[input_seq.path][input_seq.name])
+            seq_containers.append(
+                parser.sequences[input_seq.path][input_seq.name]
+            )
 
-        self.assertEqual(containers[0], containers[1])
-        self.assertEqual(containers[2], containers[3])
+        self.assertEqual(seq_containers[0], seq_containers[1])
+        self.assertEqual(seq_containers[2], seq_containers[3])
 
-        self.assertNotEqual(containers[0], containers[2])
-        self.assertNotEqual(containers[0], containers[3])
-        self.assertNotEqual(containers[1], containers[2])
-        self.assertNotEqual(containers[1], containers[3])
+        self.assertNotEqual(seq_containers[0], seq_containers[2])
+        self.assertNotEqual(seq_containers[0], seq_containers[3])
+        self.assertNotEqual(seq_containers[1], seq_containers[2])
+        self.assertNotEqual(seq_containers[1], seq_containers[3])
 
-        self.assertGreater(containers[0], containers[2])
-        self.assertGreater(containers[1], containers[3])
+        self.assertGreater(seq_containers[0], seq_containers[2])
+        self.assertGreater(seq_containers[1], seq_containers[3])
 
-        for container in containers:
+        for container in seq_containers:
             fseq = "\n".join(str(x) for x in container.output())
             self.assertNotEqual(fseq, container)
             self.assertGreater(fseq, container)
@@ -170,7 +176,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         """FileSequenceContainer: Test membership setting, deletion."""
         fake_isfile.return_value = True
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
@@ -183,10 +189,10 @@ class TestFileSequenceContainer(unittest.TestCase):
 
         # Right type, but the key doesn't match the extension name.
         with self.assertRaises(ValueError):
-            container["tiff"] = FileExtension(name="tif")
+            container["tiff"] = containers.FileExtension(name="tif")
 
         # Test __setitem__ (any exception fails the test).
-        file_ext = FileExtension(name="tiff")
+        file_ext = containers.FileExtension(name="tiff")
         container["tiff"] = file_ext
         self.assertIs(container["tiff"], file_ext)
 
@@ -202,7 +208,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         """FileSequenceContainer: Test class properties."""
         fake_isfile.return_value = True
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
@@ -235,13 +241,13 @@ class TestFileExtension(unittest.TestCase):
 
         # fmt: off
         self._input_seqs = [
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name1, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name1, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name2, pad=4),
-            FileSequence(
+            sequences.FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name2, pad=4)
         ]
         # fmt: on
@@ -251,7 +257,7 @@ class TestFileExtension(unittest.TestCase):
         """FileExtension: Test class properties."""
         fake_isfile.return_value = True
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
@@ -268,10 +274,10 @@ class TestFileExtension(unittest.TestCase):
         frames1 = [1, 2, 3, 10, 11, 12, 100, 101, 102]
         full_name = os.path.join(self._test_root, self._test_file_name1)
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(
+        input_seq1 = sequences.FileSequence(
             ext=self._test_ext, frames=frames1, name=full_name
         )
         parser.scan_path([str(x) for x in input_seq1])
@@ -281,7 +287,7 @@ class TestFileExtension(unittest.TestCase):
 
         # Test __setitem__, __delitem__ ...
         frames4 = list(range(1000, 1003))
-        input_seq4 = FileSequence(
+        input_seq4 = sequences.FileSequence(
             ext=self._test_ext, frames=frames4, name=full_name
         )
 
@@ -307,10 +313,10 @@ class TestFileExtension(unittest.TestCase):
         frames1 = [1, 2, 3, 10, 11, 12, 100, 101, 102]
         full_name = os.path.join(self._test_root, self._test_file_name1)
 
-        parser = get_parser()
+        parser = seqparse.get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(
+        input_seq1 = sequences.FileSequence(
             ext=self._test_ext, frames=frames1, name=full_name
         )
         parser.scan_path([str(x) for x in input_seq1])

@@ -2,13 +2,13 @@
 """
 Command line tool for listing file sequences.
 
-Upon installation of the package this script will be accessable via `seqls`
+Upon installation of the package this script will be accessible via `seqls`
 command on the command line of your choice.
 """
 
 from __future__ import annotations
 
-from argparse import ArgumentParser, Namespace
+import argparse
 from collections.abc import Iterable, Sequence
 import os
 import sys
@@ -16,9 +16,8 @@ import time
 
 import humanize
 
-from seqparse import get_parser, get_version
-from seqparse.files import File
-from seqparse.sequences import FileSequence
+import seqparse
+from seqparse import files, sequences
 
 
 def run_main() -> None:  # pragma: no cover
@@ -26,13 +25,15 @@ def run_main() -> None:  # pragma: no cover
     main(parse_args(sys.argv[1:]))
 
 
-def main(args: Namespace, _debug: bool = False) -> str | list[str] | None:
+def main(
+    args: argparse.Namespace, _debug: bool = False
+) -> str | list[str] | None:
     """Wrap and initialise the Seqparse class."""
     if args.version:
         # Print the version and exit.
         if _debug:
-            return get_version(pretty=True)
-        print(get_version(pretty=True))
+            return seqparse.get_version(pretty=True)
+        print(seqparse.get_version(pretty=True))
         return None
 
     if args.max_levels[0] != -1:
@@ -45,7 +46,7 @@ def main(args: Namespace, _debug: bool = False) -> str | list[str] | None:
         "min_levels": args.min_levels[0],
     }
 
-    parser = get_parser()
+    parser = seqparse.get_parser()
     parser.scan_options.update({"all": args.all, "stat": args.long_format})
 
     for search_path in sorted(args.search_path):
@@ -70,7 +71,8 @@ def main(args: Namespace, _debug: bool = False) -> str | list[str] | None:
 
 
 def long_format_output(
-    items: Iterable[File | FileSequence], human_readable: bool = False
+    items: Iterable[files.File | sequences.FileSequence],
+    human_readable: bool = False,
 ) -> list[str]:
     """Generate long format output for the provided items."""
     bits = []
@@ -98,9 +100,9 @@ def long_format_output(
     return output
 
 
-def parse_args(args: Sequence[str]) -> Namespace:
+def parse_args(args: Sequence[str]) -> argparse.Namespace:
     """Parse any input arguments."""
-    parser = ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument(
         "search_path",
@@ -139,9 +141,9 @@ def parse_args(args: Sequence[str]) -> Namespace:
         default=[-1],
         dest="max_levels",
         help=(
-            "Descend at most levels (a non-negative integer) MAX_LEVELS of "
-            "directories below the starting-points. '--maxdepth 0' means "
-            "scan the starting-points themselves."
+            "Descend at most MAX_LEVELS (a non-negative integer) levels of "
+            "directories below the starting points; 0 scans only the "
+            "starting points themselves."
         ),
         nargs=1,
         required=False,
@@ -154,8 +156,7 @@ def parse_args(args: Sequence[str]) -> Namespace:
         dest="min_levels",
         help=(
             "Do not scan at levels less than MIN_LEVELS (a non-negative "
-            "integer). '--mindepth 1' means scan all levels except the "
-            " starting-points."
+            "integer); 1 scans every level except the starting points."
         ),
         nargs=1,
         required=False,

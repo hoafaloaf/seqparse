@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
+import collections
 from collections.abc import Iterable, Iterator
-from operator import attrgetter
+import operator
 import os
 from typing import Any, Literal, overload, TypedDict, TypeGuard
 
-from seqparse.containers import FileSequenceContainer, SingletonContainer
-from seqparse.files import File
-from seqparse.regex import SeqparseRegexMixin
-from seqparse.sequences import FileSequence, FrameSequence
+from seqparse import containers, files, regex
+
+# Aliased: Seqparse.sequences (a property) would shadow the module name in
+# the class's method annotations.
+from seqparse import sequences as sequences_module
 
 __all__ = ("Seqparse",)
 
@@ -21,8 +22,8 @@ PathLike = str | os.DirEntry[str]
 class Location(TypedDict):
     """Everything tracked in one directory."""
 
-    seqs: defaultdict[str, FileSequenceContainer]
-    files: SingletonContainer
+    seqs: collections.defaultdict[str, containers.FileSequenceContainer]
+    files: containers.SingletonContainer
 
 
 class ScanOptions(TypedDict):
@@ -35,8 +36,8 @@ class ScanOptions(TypedDict):
 def _new_location() -> Location:
     """An empty Location (the default for Seqparse.locations)."""
     return {
-        "seqs": defaultdict(FileSequenceContainer),
-        "files": SingletonContainer(),
+        "seqs": collections.defaultdict(containers.FileSequenceContainer),
+        "files": containers.SingletonContainer(),
     }
 
 
@@ -130,7 +131,7 @@ def _stat(
 # Class: Seqparse
 
 
-class Seqparse(SeqparseRegexMixin):
+class Seqparse(regex.SeqparseRegexMixin):
     """
     Storage and parsing engine for file sequences.
 
@@ -172,7 +173,9 @@ class Seqparse(SeqparseRegexMixin):
         """Initialise the instance."""
         super().__init__()
 
-        self._locs: defaultdict[str, Location] = defaultdict(_new_location)
+        self._locs: collections.defaultdict[str, Location] = (
+            collections.defaultdict(_new_location)
+        )
         self._options: ScanOptions = {"all": False, "stat": False}
 
     def __repr__(self) -> str:  # pragma: no cover
@@ -185,7 +188,7 @@ class Seqparse(SeqparseRegexMixin):
         )
 
     @property
-    def locations(self) -> defaultdict[str, Location]:
+    def locations(self) -> collections.defaultdict[str, Location]:
         """A dictionary of tracked singletons and file sequences."""
         return self._locs
 
@@ -195,12 +198,16 @@ class Seqparse(SeqparseRegexMixin):
         return self._options
 
     @property
-    def sequences(self) -> dict[str, defaultdict[str, FileSequenceContainer]]:
+    def sequences(
+        self,
+    ) -> dict[
+        str, collections.defaultdict[str, containers.FileSequenceContainer]
+    ]:
         """A dictionary of tracked file sequences."""
         return self._get_data("seqs")
 
     @property
-    def singletons(self) -> dict[str, SingletonContainer]:
+    def singletons(self) -> dict[str, containers.SingletonContainer]:
         """A dictionary of tracked singleton files."""
         return self._get_data("files")
 
@@ -220,28 +227,11 @@ class Seqparse(SeqparseRegexMixin):
         else:
             self._add_path(str(file_name), False, None)
 
-    def _add_file(self, file_name: PathLike, on_disk: bool = False) -> None:
-        """
-        Add a file (or, for strings, a whole file sequence) to the instance.
-
-        Args:
-            file_name (str or DirEntry): The file to add.
-            on_disk (bool, optional): Whether file_name is a single file that
-                exists on disk (a DirEntry or a path found by scanning).
-
-        Returns:
-            None
-        """
-        if _is_dir_entry(file_name):
-            self._add_path(file_name.path, on_disk, file_name)
-        else:
-            self._add_path(str(file_name), on_disk, None)
-
     def _add_path(
         self, path: str, on_disk: bool, entry: os.DirEntry[str] | None
     ) -> None:
         """
-        Add a file (or a whole file sequence) by name; see _add_file.
+        Add a file (or, unless on_disk, a whole file sequence) by name.
 
         Args:
             path (str): The file (or file sequence) name.
@@ -304,18 +294,18 @@ class Seqparse(SeqparseRegexMixin):
     @overload
     def output(
         self, missing: Literal[True], seqs_only: bool = ...
-    ) -> Iterator[FileSequence]: ...
+    ) -> Iterator[sequences_module.FileSequence]: ...
     @overload
     def output(
         self, missing: bool = ..., *, seqs_only: Literal[True]
-    ) -> Iterator[FileSequence]: ...
+    ) -> Iterator[sequences_module.FileSequence]: ...
     @overload
     def output(
         self, missing: bool = False, seqs_only: bool = False
-    ) -> Iterator[File | FileSequence]: ...
+    ) -> Iterator[files.File | sequences_module.FileSequence]: ...
     def output(
         self, missing: bool = False, seqs_only: bool = False
-    ) -> Iterator[File | FileSequence]:
+    ) -> Iterator[files.File | sequences_module.FileSequence]:
         """
         Yield a list of contained singletons and file sequences.
 
@@ -335,7 +325,7 @@ class Seqparse(SeqparseRegexMixin):
         for root_dir in sorted(self.locations):
             data = self.locations[root_dir]
             for container in sorted(
-                data["seqs"].values(), key=attrgetter("full_name")
+                data["seqs"].values(), key=operator.attrgetter("full_name")
             ):
                 for file_seq in container.output():
                     if not missing:
@@ -382,7 +372,7 @@ class Seqparse(SeqparseRegexMixin):
             return
         if os.path.isfile(search_paths):
             # Treat it exactly as a directory scan would treat the same file.
-            self._add_file(search_paths, on_disk=True)
+            self._add_path(search_paths, True, None)
             return
 
         search_path = _strip_trailing_sep(search_paths)
@@ -418,16 +408,20 @@ class Seqparse(SeqparseRegexMixin):
     @overload
     def _get_data(
         self, typ: Literal["seqs"]
-    ) -> dict[str, defaultdict[str, FileSequenceContainer]]: ...
+    ) -> dict[
+        str, collections.defaultdict[str, containers.FileSequenceContainer]
+    ]: ...
     @overload
     def _get_data(
         self, typ: Literal["files"]
-    ) -> dict[str, SingletonContainer]: ...
+    ) -> dict[str, containers.SingletonContainer]: ...
     def _get_data(
         self, typ: Literal["seqs", "files"]
     ) -> (
-        dict[str, defaultdict[str, FileSequenceContainer]]
-        | dict[str, SingletonContainer]
+        dict[
+            str, collections.defaultdict[str, containers.FileSequenceContainer]
+        ]
+        | dict[str, containers.SingletonContainer]
     ):
         """
         Return dictionary of the specified data type from the instance.
@@ -531,7 +525,7 @@ class Seqparse(SeqparseRegexMixin):
             1-7x2
         """
         try:
-            seq = FrameSequence(frame_seq)
+            seq = sequences_module.FrameSequence(frame_seq)
         except ValueError:
             return None
 

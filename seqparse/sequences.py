@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from array import array
-from bisect import bisect_left
+import array
+import bisect
 from collections.abc import Iterable, Iterator, MutableSequence, MutableSet
-from itertools import islice, pairwise
-from operator import lt, sub
+import itertools
+import operator
 import os
 from typing import Any, overload, SupportsInt, TypeAlias
 
-from seqparse import get_stat_result, restore_slots, StatLike
-from seqparse.regex import SeqparseRegexMixin
+import seqparse
+from seqparse import regex
 
 __all__ = ("FileSequence", "FrameSequence", "SeqparsePadError")
 
@@ -49,7 +49,7 @@ _SMALL_MERGE = 32
 def _compact(values: list[int]) -> FrameStore:
     """Store sorted, unique frames as compactly as their size allows."""
     try:
-        return array("q", values)
+        return array.array("q", values)
     except OverflowError:
         return values
 
@@ -143,7 +143,7 @@ class FrameChunk:
     def __setstate__(self, state: Any) -> None:
         """Unpickle, including pickles made by seqparse 1.0.x."""
         if isinstance(state, tuple):
-            restore_slots(self, state)
+            seqparse.restore_slots(self, state)
             return
         data = state["_data"]  # 1.0.x kept its state in plain dicts
         self._first, self._last = data["first"], data["last"]
@@ -320,7 +320,7 @@ class FrameChunk:
 # Class: FrameSequence
 
 
-class FrameSequence(MutableSet[str], SeqparseRegexMixin):
+class FrameSequence(MutableSet[str], regex.SeqparseRegexMixin):
     """
     Representative for zero-padded frame sequences.
 
@@ -364,8 +364,8 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
 
         # Sorted, unique frames, plus frames added since the last _sync()
         # (unsorted, possibly duplicated or already present).
-        self._frames: FrameStore = array("q")
-        self._pending: FrameStore = array("q")
+        self._frames: FrameStore = array.array("q")
+        self._pending: FrameStore = array.array("q")
         # Whether _pending is strictly increasing.
         self._ordered = True
         self._dirty = True
@@ -396,14 +396,14 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
     def __setstate__(self, state: Any) -> None:
         """Unpickle, including pickles made by seqparse 1.0.x."""
         if isinstance(state, tuple):
-            restore_slots(self, state)
+            seqparse.restore_slots(self, state)
         else:
             self._set_legacy_state(state)
 
     def _set_legacy_state(self, state: dict[str, Any]) -> None:
         """Restore the plain-dict state that seqparse 1.0.x pickled."""
         self._frames = _compact(sorted(state["_data"]))
-        self._pending = array("q")
+        self._pending = array.array("q")
         self._ordered = True
         self._dirty = True
         self._is_padded = False
@@ -531,7 +531,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
 
         self._sync()
         frames = self._frames
-        idx = bisect_left(frames, number)
+        idx = bisect.bisect_left(frames, number)
         if idx < len(frames) and frames[idx] == number:
             del frames[idx]
 
@@ -585,7 +585,9 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
         # frame to the next run, so [1, 3, 4, 5] renders as "1,3-5" rather
         # than "1,3,4,5".
         start, step = 0, 0
-        for idx, gap in enumerate(map(sub, islice(frames, 1, None), frames)):
+        for idx, gap in enumerate(
+            map(operator.sub, itertools.islice(frames, 1, None), frames)
+        ):
             if not step:
                 step = gap
             elif gap != step:
@@ -616,7 +618,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
         # unique, so they go straight into the store (same kind as ours, so
         # anything that fits ours fits it).
         missing = self._frames[:0]
-        for low, high in pairwise(self._frames):
+        for low, high in itertools.pairwise(self._frames):
             if high - low > 1:
                 missing.extend(range(low + 1, high))
         inverted._frames = missing
@@ -626,7 +628,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
         """Whether the frame number is in the sequence."""
         self._sync()
         frames = self._frames
-        idx = bisect_left(frames, number)
+        idx = bisect.bisect_left(frames, number)
         return idx < len(frames) and frames[idx] == number
 
     def _sorted_frames(self) -> list[int]:
@@ -675,7 +677,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
             return
         frames = self._frames
         ordered = self._ordered
-        self._pending = array("q")
+        self._pending = array.array("q")
         self._ordered = True
         try:
             if ordered and (not frames or frames[-1] < pending[0]):
@@ -683,7 +685,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
                 return
             if len(pending) <= _SMALL_MERGE:
                 for number in pending:
-                    idx = bisect_left(frames, number)
+                    idx = bisect.bisect_left(frames, number)
                     if idx == len(frames) or frames[idx] != number:
                         frames.insert(idx, number)
                 return
@@ -711,7 +713,7 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
         ):
             self.add(iterable)  # integer fast path, no string round trip
             return
-        if isinstance(iterable, array) and iterable.typecode == "q":
+        if isinstance(iterable, array.array) and iterable.typecode == "q":
             self._extend(iterable)
             return
         if isinstance(iterable, range):
@@ -722,13 +724,15 @@ class FrameSequence(MutableSet[str], SeqparseRegexMixin):
             # integer (strings need pad checks; floats, huge ints, ...),
             # which then takes the general path below.
             try:
-                numbers = array("q", iterable)
+                numbers = array.array("q", iterable)
             except (TypeError, OverflowError):
                 pass
             else:
                 # Sorted input (common) skips the merge's temporary set.
                 ordered = not isinstance(iterable, (set, frozenset)) and all(
-                    map(lt, numbers, islice(numbers, 1, None))
+                    map(
+                        operator.lt, numbers, itertools.islice(numbers, 1, None)
+                    )
                 )
                 self._extend(numbers, ordered)
                 return
@@ -1089,7 +1093,7 @@ class FileSequence(FrameSequence):
             self.add(item)
 
     def cache_stat(
-        self, frame: SupportsInt | str, input_stat: StatLike
+        self, frame: SupportsInt | str, input_stat: seqparse.StatLike
     ) -> os.stat_result:
         """
         Cache file system stat data for the specified frame.
@@ -1106,7 +1110,7 @@ class FileSequence(FrameSequence):
             stat_result that was successfully cached.
         """
         number = int(frame)
-        self._stat[number] = get_stat_result(input_stat)
+        self._stat[number] = seqparse.get_stat_result(input_stat)
         return self._stat[number]
 
     def calculate(self, force: bool = False) -> None:

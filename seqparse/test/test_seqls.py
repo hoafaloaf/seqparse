@@ -7,15 +7,9 @@ import time
 import unittest
 from unittest import mock
 
-from seqparse import get_version
+import seqparse
+from seqparse import sequences, test
 from seqparse.cli import seqls
-from seqparse.sequences import FileSequence, FrameChunk
-from seqparse.test import (
-    DirEntry,
-    generate_entries,
-    initialise_mock_scandir_data,
-    mock_scandir_deep,
-)
 
 ###############################################################################
 # class: TestFrameSequences
@@ -72,14 +66,16 @@ class TestSeqls(unittest.TestCase):
     @mock.patch("seqparse.seqparse.os.scandir")
     def test_seqls_with_arguments(self, mock_api_call):
         """Seqls: Test seqls with supplied arguments."""
-        mock_api_call.side_effect = mock_scandir_deep
+        mock_api_call.side_effect = test.mock_scandir_deep
 
         args = seqls.parse_args(["--version"])
         version = seqls.main(args, _debug=True)
-        self.assertEqual(version, get_version(pretty=True))
+        self.assertEqual(version, seqparse.get_version(pretty=True))
 
         print("\n  SEQUENCES\n  ---------")
-        initialise_mock_scandir_data(os.path.join(os.getcwd(), self._test_root))
+        test.initialise_mock_scandir_data(
+            os.path.join(os.getcwd(), self._test_root)
+        )
         args = seqls.parse_args(["test_dir"])
         seqs = list(seqls.main(args, _debug=True))
         for seq in seqs:
@@ -87,7 +83,7 @@ class TestSeqls(unittest.TestCase):
 
         print("\n  MAX LEVELS\n  ----------")
         for max_levels in range(-1, 4):
-            initialise_mock_scandir_data(
+            test.initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root)
             )
             args = seqls.parse_args(
@@ -108,7 +104,7 @@ class TestSeqls(unittest.TestCase):
 
         print("\n  MIN LEVELS\n  ----------")
         for min_levels in range(-1, 4):
-            initialise_mock_scandir_data(
+            test.initialise_mock_scandir_data(
                 os.path.join(os.getcwd(), self._test_root)
             )
             args = seqls.parse_args(
@@ -137,7 +133,7 @@ class TestSeqls(unittest.TestCase):
 
         entries = []
         for file_name in output:
-            entries.append(DirEntry(file_name))
+            entries.append(test.DirEntry(file_name))
 
         mock_api_call.return_value = iter(entries)
 
@@ -155,15 +151,17 @@ class TestSeqls(unittest.TestCase):
         """Seqls: Test missing option."""
         file_path = os.path.join(self._test_root, self._test_file_name)
 
-        chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
-        fseq = FileSequence(name=file_path, ext=self._test_ext, frames=chunk_in)
+        chunk_in = sequences.FrameChunk(first=1, last=11, step=2, pad=4)
+        fseq = sequences.FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_in
+        )
 
-        input_entries = list(map(DirEntry, fseq))
+        input_entries = list(map(test.DirEntry, fseq))
 
         mock_api_call.return_value = iter(input_entries)
 
-        chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
-        expected = FileSequence(
+        chunk_out = sequences.FrameChunk(first=2, last=10, step=2, pad=4)
+        expected = sequences.FileSequence(
             name=file_path, ext=self._test_ext, frames=chunk_out
         )
 
@@ -184,17 +182,17 @@ class TestSeqls(unittest.TestCase):
         """Seqls: Test the long-format option."""
         frames = {4: (1, 2, 3, 4, 6)}
         root_dir = os.path.join(os.getcwd(), self._test_root)
-        input_entries = generate_entries(
+        input_entries = test.generate_entries(
             name="test", ext="py", frames=frames, root=root_dir
         )
 
         input_entries.extend(
-            generate_entries(
+            test.generate_entries(
                 name=".test", ext="py", frames=frames, root=self._test_root
             )
         )
 
-        input_entries.append(DirEntry(os.path.join(root_dir, "pony.py")))
+        input_entries.append(test.DirEntry(os.path.join(root_dir, "pony.py")))
 
         file_date = time.strftime("%Y/%m/%d %H:%M", time.localtime(1490997828))
         fseq_date = time.strftime("%Y/%m/%d %H:%M", time.localtime(1490908305))
@@ -246,12 +244,12 @@ class TestSeqls(unittest.TestCase):
         frames = {4: (1, 2, 3, 4, 6)}
         root_dir = os.path.join(os.getcwd(), self._test_root)
 
-        input_entries = generate_entries(
+        input_entries = test.generate_entries(
             name="test", ext="py", frames=frames, root=root_dir
         )
 
         input_entries.extend(
-            generate_entries(
+            test.generate_entries(
                 name=".test", ext="py", frames=frames, root=root_dir
             )
         )

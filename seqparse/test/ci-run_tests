@@ -7,6 +7,6 @@ ruff check seqparse benchmarks || status=1
 ruff format --check seqparse benchmarks || status=1
 mypy || status=1
 python -m coverage run -m pytest -q || status=1
-python -m coverage report --include="seqparse/*" --omit="seqparse/test/*"
+python -m coverage report
 
 exit ${status}

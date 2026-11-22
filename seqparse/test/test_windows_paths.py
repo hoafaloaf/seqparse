@@ -15,13 +15,12 @@ import types
 import unittest
 from unittest import mock
 
-from seqparse import get_parser
+import seqparse
+from seqparse import files, sequences
 from seqparse import seqparse as seqparse_module
 import seqparse.containers
 import seqparse.files
-from seqparse.files import File
 import seqparse.sequences
-from seqparse.sequences import FileSequence
 
 _MODULES = (
     seqparse.containers,
@@ -54,7 +53,7 @@ class TestWindowsFileSequence(unittest.TestCase):
     def test_drive_path_in_name(self):
         """A name with a drive and backslashes splits into path and name."""
         with windows_paths():
-            fseq = FileSequence(
+            fseq = sequences.FileSequence(
                 name="C:\\renders\\plate", ext="exr", frames=[1, 2], pad=4
             )
             self.assertEqual(fseq.path, "C:\\renders")
@@ -64,14 +63,16 @@ class TestWindowsFileSequence(unittest.TestCase):
     def test_forward_slashes_in_name(self):
         """Forward slashes are separators on Windows too."""
         with windows_paths():
-            fseq = FileSequence(name="renders/plate", ext="exr", frames=[1])
+            fseq = sequences.FileSequence(
+                name="renders/plate", ext="exr", frames=[1]
+            )
             self.assertEqual((fseq.path, fseq.name), ("renders", "plate"))
             self.assertEqual(fseq.full_name, "renders\\plate")
 
     def test_unc_path(self):
         """UNC shares keep their leading double backslash."""
         with windows_paths():
-            fseq = FileSequence(
+            fseq = sequences.FileSequence(
                 name="\\\\server\\share\\shots\\plate", ext="exr", frames=[7]
             )
             self.assertEqual(fseq.path, "\\\\server\\share\\shots")
@@ -80,7 +81,7 @@ class TestWindowsFileSequence(unittest.TestCase):
     def test_membership_with_either_separator(self):
         """File names match whichever separator they use."""
         with windows_paths():
-            fseq = FileSequence(
+            fseq = sequences.FileSequence(
                 name="C:\\r\\plate", ext="exr", frames=[1, 2], pad=4
             )
             self.assertIn("C:\\r\\plate.0001.exr", fseq)
@@ -91,7 +92,7 @@ class TestWindowsFileSequence(unittest.TestCase):
     def test_file(self):
         """File splits Windows paths."""
         with windows_paths():
-            file = File("C:\\r\\notes.txt")
+            file = files.File("C:\\r\\notes.txt")
             self.assertEqual((file.path, file.name), ("C:\\r", "notes.txt"))
 
 
@@ -101,7 +102,7 @@ class TestWindowsSeqparse(unittest.TestCase):
     def test_mixed_separators_share_a_directory(self):
         """'C:/r' and 'C:\\r' are one directory: one sequence, one group."""
         with windows_paths():
-            parser = get_parser()
+            parser = seqparse.get_parser()
             parser.add_file("C:/r/plate.0001.exr")
             parser.add_file("C:\\r\\plate.0002.exr")
             parser.add_file("C:/r/readme.txt")

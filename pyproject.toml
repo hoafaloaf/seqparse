@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,9 +8,12 @@ dynamic = ["version"]
 description = "A nifty way to parse your file sequences."
 readme = "README.rst"
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE.txt"]
+authors = [{ name = "Geoff Harvey" }]
 
 classifiers = [
-    'Development Status :: 4 - Beta', 'License :: OSI Approved :: MIT License',
+    'Development Status :: 4 - Beta',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
     'Programming Language :: Python :: 3.11',
@@ -29,6 +32,11 @@ tests = ["coverage", "pytest"]
 
 [project.scripts]
 seqls = "seqparse.cli.seqls:run_main"
+
+[project.urls]
+Homepage = "https://github.com/hoafaloaf/seqparse"
+Issues = "https://github.com/hoafaloaf/seqparse/issues"
+Changelog = "https://github.com/hoafaloaf/seqparse/blob/master/CHANGES.rst"
 
 [tool.setuptools.packages.find]
 include = ["seqparse*"]
@@ -82,3 +90,17 @@ python_version = "3.11"
 strict = true
 files = ["seqparse"]
 exclude = ['^seqparse/test/']
+
+[tool.coverage.run]
+source = ["seqparse"]
+omit = ["seqparse/test/*"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "@overload",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

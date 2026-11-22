@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from seqparse.regex import SeqparseRegexMixin
+from seqparse import regex
 
 ###############################################################################
 # class: TestRegex
@@ -19,7 +19,7 @@ class TestSeqparseModule(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        self.regex = SeqparseRegexMixin()
+        self.regex = regex.SeqparseRegexMixin()
 
     def test_bits_match(self):
         """SeqparseRegexMixin: Test the bits_match method."""
