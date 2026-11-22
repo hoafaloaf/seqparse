@@ -32,7 +32,15 @@ what is and isn't a valid file sequence, take a look at the
 seqparse is fully type-annotated and ships a `py.typed` marker, so type
 checkers use its hints.
 
-Install with `pip install seqparse`.
+Install the current version from GitHub:
+
+```console
+pip install git+https://github.com/hoafaloaf/seqparse
+```
+
+(The release on PyPI, 0.7.3 from 2017, is much older and predates support for
+current Python versions, so a plain `pip install seqparse` is not recommended
+yet.)
 
 ### Frame Sequences
 

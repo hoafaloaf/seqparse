@@ -61,3 +61,5 @@ three OSes. See `CLAUDE.md` for commands and conventions.
 
 - Renew the Coveralls GitHub connection and revoke the old leaked repo token.
 - Decide when to bump the version and release (never without being asked).
+  When a release is on PyPI, change the README's install section back to
+  `pip install seqparse` and drop the note about the old PyPI version.
