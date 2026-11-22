@@ -15,7 +15,7 @@ class TestSeqparseModule(unittest.TestCase):
     _test_ext = "exr"
     _test_file_name = "TEST_DIR"
     _test_root = "test_dir"
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
+    _singletons = ("singleton0.jpg", "singleton1.jpg")
 
     def setUp(self):
         """Set up the test case."""
@@ -23,15 +23,15 @@ class TestSeqparseModule(unittest.TestCase):
 
     def test_bits_match(self):
         """SeqparseRegexMixin: Test the bits_match method."""
-        good_chunks = [("0001", dict(first="0001", last=None, step=None)),
-                       ("001-002", dict(first="001", last="002", step=None)),
-                       ("1-2", dict(first="1", last="2", step=None)),
-                       ("1-10", dict(first="1", last="10", step=None)),
-                       ("0001-0010x2", dict(first="0001",
-                                            last="0010",
-                                            step="2")),
-                       ("001-101x2", dict(first="001", last="101", step="2")),
-                       ("1-11x2", dict(first="1", last="11", step="2"))]
+        good_chunks = [
+            ("0001", {"first": "0001", "last": None, "step": None}),
+            ("001-002", {"first": "001", "last": "002", "step": None}),
+            ("1-2", {"first": "1", "last": "2", "step": None}),
+            ("1-10", {"first": "1", "last": "10", "step": None}),
+            ("0001-0010x2", {"first": "0001", "last": "0010", "step": "2"}),
+            ("001-101x2", {"first": "001", "last": "101", "step": "2"}),
+            ("1-11x2", {"first": "1", "last": "11", "step": "2"}),
+        ]
         bad_chunks = ["-0001", "0001-", "0001x2", "x2"]
 
         print("\n\n  GOOD CHUNKS\n  -----------")
@@ -41,7 +41,8 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(bits_dict, result)
 
             result_tuple = tuple(
-                bits_dict[x] for x in ("first", "last", "step"))
+                bits_dict[x] for x in ("first", "last", "step")
+            )
             self.assertEqual(self.regex.bits_match(chunk), result_tuple)
 
         print("\n  BAD SEQUENCES\n  -------------")
@@ -53,13 +54,18 @@ class TestSeqparseModule(unittest.TestCase):
 
     def test_file_name_match(self):
         """SeqparseRegexMixin: Test the file_name_match method."""
-        good_names = [("0001.exr", dict(name=None, frame="0001", ext="exr")),
-                      ("kitty.1.jpg", dict(name="kitty", frame="1",
-                                           ext="jpg")),
-                      ("/i/like/cats/kitty.0001.tif".replace("/", os.sep),
-                       dict(name="/i/like/cats/kitty".replace("/", os.sep),
-                            frame="0001",
-                            ext="tif"))]
+        good_names = [
+            ("0001.exr", {"name": None, "frame": "0001", "ext": "exr"}),
+            ("kitty.1.jpg", {"name": "kitty", "frame": "1", "ext": "jpg"}),
+            (
+                "/i/like/cats/kitty.0001.tif".replace("/", os.sep),
+                {
+                    "name": "/i/like/cats/kitty".replace("/", os.sep),
+                    "frame": "0001",
+                    "ext": "tif",
+                },
+            ),
+        ]
         bad_names = ["kitty.0001", "1", ".111", "111.", ".22.tif"]
         bad_names.extend(self._singletons)
 
@@ -69,10 +75,10 @@ class TestSeqparseModule(unittest.TestCase):
             print(f'  o "{file_name}" --> {bits_dict}')
             self.assertEqual(bits_dict, result)
 
-            result_tuple = tuple(
-                bits_dict[x] for x in ("name", "frame", "ext"))
-            self.assertEqual(self.regex.file_name_match(file_name),
-                             result_tuple)
+            result_tuple = tuple(bits_dict[x] for x in ("name", "frame", "ext"))
+            self.assertEqual(
+                self.regex.file_name_match(file_name), result_tuple
+            )
 
         print("\n  BAD SEQUENCES\n  -------------")
         for file_name in bad_names:
@@ -84,12 +90,22 @@ class TestSeqparseModule(unittest.TestCase):
     def test_file_seq_match(self):
         """SeqparseRegexMixin: Test the file_seq_match method."""
         good_names = [
-            ("0001-0011.exr", dict(name=None, frames="0001-0011", ext="exr")),
-            ("kitty.1,3,9.jpg", dict(name="kitty", frames="1,3,9", ext="jpg")),
-            ("/i/like/cats/kitty.11,22-33.tif".replace("/", os.sep),
-             dict(name="/i/like/cats/kitty".replace("/", os.sep),
-                  frames="11,22-33",
-                  ext="tif"))
+            (
+                "0001-0011.exr",
+                {"name": None, "frames": "0001-0011", "ext": "exr"},
+            ),
+            (
+                "kitty.1,3,9.jpg",
+                {"name": "kitty", "frames": "1,3,9", "ext": "jpg"},
+            ),
+            (
+                "/i/like/cats/kitty.11,22-33.tif".replace("/", os.sep),
+                {
+                    "name": "/i/like/cats/kitty".replace("/", os.sep),
+                    "frames": "11,22-33",
+                    "ext": "tif",
+                },
+            ),
         ]
         bad_names = ["kitty.0001-0011", "1,3,9", ".111", "111.", ".22.tif"]
         bad_names.extend(self._singletons)
@@ -101,9 +117,9 @@ class TestSeqparseModule(unittest.TestCase):
             self.assertEqual(bits_dict, result)
 
             result_tuple = tuple(
-                bits_dict[x] for x in ("name", "frames", "ext"))
-            self.assertEqual(self.regex.file_seq_match(frame_seq),
-                             result_tuple)
+                bits_dict[x] for x in ("name", "frames", "ext")
+            )
+            self.assertEqual(self.regex.file_seq_match(frame_seq), result_tuple)
 
         print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_names:
@@ -116,15 +132,35 @@ class TestSeqparseModule(unittest.TestCase):
     def test_is_frame_sequence(self):
         """SeqparseRegexMixin: Test the is_file_sequence method."""
         good_frame_seqs = [
-            "0001", ",0001", "0001,", "0001-0001", "0001-0001x0",
-            "0001-0003x3", "0001,0003", "0001,,0003", "0001-0010",
-            "0001-0010x0", "0001-0011x2", "0001-0012x2", "0001-0005,0007-0010",
-            "0001-0005x2,0007-0010", "0001-0005,0007-0011x2",
-            "0001-0005,0006,0008-0012x2", "0001,0003-0007,0009-0015x2"
+            "0001",
+            ",0001",
+            "0001,",
+            "0001-0001",
+            "0001-0001x0",
+            "0001-0003x3",
+            "0001,0003",
+            "0001,,0003",
+            "0001-0010",
+            "0001-0010x0",
+            "0001-0011x2",
+            "0001-0012x2",
+            "0001-0005,0007-0010",
+            "0001-0005x2,0007-0010",
+            "0001-0005,0007-0011x2",
+            "0001-0005,0006,0008-0012x2",
+            "0001,0003-0007,0009-0015x2",
         ]
         bad_frame_seqs = [
-            "-0001", "0001-", "0001x2", "x2", "0001,0003x2", "0001-0005x", "x",
-            ",", ",,", ""
+            "-0001",
+            "0001-",
+            "0001x2",
+            "x2",
+            "0001,0003x2",
+            "0001-0005x",
+            "x",
+            ",",
+            ",,",
+            "",
         ]
 
         print("\n\n  GOOD SEQUENCES\n  --------------")

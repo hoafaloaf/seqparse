@@ -32,8 +32,13 @@ Examples of proper frame sequences:
 
 import os
 
-__all__ = ("get_parser", "get_sequence", "get_version", "invert",
-           "validate_frame_sequence")
+__all__ = (
+    "get_parser",
+    "get_sequence",
+    "get_version",
+    "invert",
+    "validate_frame_sequence",
+)
 
 __version__ = "1.0.1"
 
@@ -55,6 +60,7 @@ def get_parser():
         Seqparse(sequences=0, singletons=0)
     """
     from .seqparse import Seqparse  # pylint: disable=C0415
+
     return Seqparse()
 
 
@@ -81,6 +87,7 @@ def get_sequence(frames, pad=1):
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
     from .sequences import FrameSequence  # pylint: disable=C0415
+
     return FrameSequence(frames, pad=pad)
 
 
@@ -113,7 +120,7 @@ def get_version(pretty=False):
         str seqparse version.
     """
     if pretty:
-        return f'seqls (seqparse-v{__version__})'
+        return f"seqls (seqparse-v{__version__})"
     return __version__
 
 
@@ -144,7 +151,8 @@ def invert(iterable):
 
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
-            "Only able to invert FrameChunk and FrameSequence instances.")
+            "Only able to invert FrameChunk and FrameSequence instances."
+        )
 
     return iterable.invert()
 
@@ -168,4 +176,5 @@ def validate_frame_sequence(frame_seq):
         None
     """
     from .seqparse import Seqparse  # pylint: disable=C0415
+
     return Seqparse().validate_frame_sequence(frame_seq)

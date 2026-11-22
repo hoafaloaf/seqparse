@@ -22,7 +22,7 @@ class File:
 
     def __init__(self, file_name, stat=None):
         """Initialise the instance."""
-        self._info = dict(full=None, name=None, path=None)
+        self._info = {"full": None, "name": None, "path": None}
         self._stat = None
 
         self._cache_stat(stat)
@@ -34,6 +34,10 @@ class File:
             return self.full_name == other.full_name
         return False
 
+    def __hash__(self):
+        """Hash consistently with __eq__ (the name is fixed at creation)."""
+        return hash((type(self), self.full_name))
+
     def __lt__(self, other):
         """Define equality between instances."""
         if type(other) is type(self):
@@ -42,7 +46,7 @@ class File:
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{cls}({full!r})")
+        blurb = "{cls}({full!r})"
         return blurb.format(cls=type(self).__name__, **self._info)
 
     def __str__(self):

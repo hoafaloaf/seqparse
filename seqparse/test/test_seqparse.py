@@ -4,11 +4,21 @@ import os
 import unittest
 from unittest import mock
 
-from . import (DirEntry, generate_entries, initialise_mock_scandir_data,
-               mock_scandir_deep)
-from .. import (__version__, get_parser, get_sequence, get_version, invert,
-                validate_frame_sequence)
+from .. import (
+    __version__,
+    get_parser,
+    get_sequence,
+    get_version,
+    invert,
+    validate_frame_sequence,
+)
 from ..sequences import FileSequence, FrameChunk, FrameSequence
+from . import (
+    DirEntry,
+    generate_entries,
+    initialise_mock_scandir_data,
+    mock_scandir_deep,
+)
 
 ###############################################################################
 # class: TestSeqparseModule
@@ -20,7 +30,7 @@ class TestSeqparseModule(unittest.TestCase):
     _test_ext = "exr"
     _test_file_name = "TEST_DIR"
     _test_root = "test_dir"
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
+    _singletons = ("singleton0.jpg", "singleton1.jpg")
 
     @mock.patch("seqparse.seqparse.os.scandir")
     def test_singletons(self, mock_api_call):
@@ -42,10 +52,12 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertIn(self._test_root, file_names)
         self.assertEqual(self._test_root, file_names[self._test_root].path)
         self.assertEqual(len(file_names), 1)
-        self.assertEqual(len(file_names[self._test_root]),
-                         len(self._singletons))
-        self.assertEqual(sorted(self._singletons),
-                         sorted(file_names[self._test_root]))
+        self.assertEqual(
+            len(file_names[self._test_root]), len(self._singletons)
+        )
+        self.assertEqual(
+            sorted(self._singletons), sorted(file_names[self._test_root])
+        )
 
         # Check parser output ...
         self.assertEqual(sorted(map(str, parser.output())), output)
@@ -61,13 +73,16 @@ class TestSeqparseModule(unittest.TestCase):
         # Expected outputs ...
         frame_seq_output = "0001"
         file_seq_output = ".".join(
-            (self._test_file_name, frame_seq_output, self._test_ext))
+            (self._test_file_name, frame_seq_output, self._test_ext)
+        )
         final_output = os.path.join(self._test_root, file_seq_output)
 
-        input_entries = generate_entries(ext=self._test_ext,
-                                         frames=frames,
-                                         name=self._test_file_name,
-                                         root=self._test_root)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root,
+        )
 
         mock_api_call.return_value = iter(input_entries)
 
@@ -113,13 +128,16 @@ class TestSeqparseModule(unittest.TestCase):
         # Expected outputs ...
         frame_seq_output = "0000-0004"
         file_seq_output = ".".join(
-            (self._test_file_name, frame_seq_output, self._test_ext))
+            (self._test_file_name, frame_seq_output, self._test_ext)
+        )
         final_output = os.path.join(self._test_root, file_seq_output)
 
-        input_entries = generate_entries(ext=self._test_ext,
-                                         frames=frames,
-                                         name=self._test_file_name,
-                                         root=self._test_root)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root,
+        )
 
         mock_api_call.return_value = iter(input_entries)
 
@@ -163,20 +181,22 @@ class TestSeqparseModule(unittest.TestCase):
         frames = {
             1: [5, 6, 7, 8, 114, 199, 2000],
             3: [8, 9, 10, 12],
-            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101]
+            4: [0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 101],
         }
 
-        input_entries = generate_entries(ext=self._test_ext,
-                                         frames=frames,
-                                         name=self._test_file_name,
-                                         root=self._test_root)
+        input_entries = generate_entries(
+            ext=self._test_ext,
+            frames=frames,
+            name=self._test_file_name,
+            root=self._test_root,
+        )
 
         # Expected output frame sequences. Note how frames 114, 199 move to the
         # "pad 3" group and 2000 moves to the "pad 4" group!
         output_seqs = {
             1: "5-8",
             3: "008-010,012,114,199",
-            4: "0000-0006,0008-0012x2,0101,2000"
+            4: "0000-0006,0008-0012x2,0101,2000",
         }
 
         # Expected final output (where "/" is os.sep):
@@ -216,8 +236,9 @@ class TestSeqparseModule(unittest.TestCase):
 
         # And finally, the file sequences.
         for pad in sorted(output_seqs):
-            self.assertEqual(output_seqs[pad],
-                             str(file_seq[self._test_ext][pad]))
+            self.assertEqual(
+                output_seqs[pad], str(file_seq[self._test_ext][pad])
+            )
 
     @mock.patch("seqparse.seqparse.os.scandir")
     def test_nested_sequences(self, mock_api_call):
@@ -255,8 +276,9 @@ class TestSeqparseModule(unittest.TestCase):
             parser = get_parser()
             parser.scan_path(self._test_root, min_levels=min_levels)
 
-            expected_seqs = 3 - min_levels
-            if min_levels == -1:
+            # Level 0 holds two sequences, each deeper level holds one.
+            expected_seqs = 4 - min_levels
+            if min_levels < 1:
                 expected_seqs = 5
 
             seqs = list(parser.output())
@@ -272,27 +294,49 @@ class TestSeqparseModule(unittest.TestCase):
     def test_valid_frame_sequences(self):
         """Seqparse: Test validity of simple frame ranges."""
         good_frame_seqs = [
-            "0001", ",0001", "0001,", "0001-0001", "0001-0001x0",
-            "0001-0003x3", "0001,0003", "0001,,0003", "0001-0010",
-            "0001-0010x0", "0001-0011x2", "0001-0012x2", "0001-0005,0007-0010",
-            "0001-0005x2,0007-0010", "0001-0005,0007-0011x2",
-            "0001-0005,0006,0008-0012x2", "0001,0003-0007,0009-0015x2",
-            "3,1,5,7", "01-05,03-07"
+            "0001",
+            ",0001",
+            "0001,",
+            "0001-0001",
+            "0001-0001x0",
+            "0001-0003x3",
+            "0001,0003",
+            "0001,,0003",
+            "0001-0010",
+            "0001-0010x0",
+            "0001-0011x2",
+            "0001-0012x2",
+            "0001-0005,0007-0010",
+            "0001-0005x2,0007-0010",
+            "0001-0005,0007-0011x2",
+            "0001-0005,0006,0008-0012x2",
+            "0001,0003-0007,0009-0015x2",
+            "3,1,5,7",
+            "01-05,03-07",
         ]
         bad_frame_seqs = [
-            "-0001", "0001-", "0001x2", "x2", "0001,0003x2", "0001-0005x",
-            "0010-0001", "x", ",", ",,", ""
+            "-0001",
+            "0001-",
+            "0001x2",
+            "x2",
+            "0001,0003x2",
+            "0001-0005x",
+            "0010-0001",
+            "x",
+            ",",
+            ",,",
+            "",
         ]
 
         print("\n\n  GOOD SEQUENCES\n  --------------")
         for frame_seq in good_frame_seqs:
             output = validate_frame_sequence(frame_seq)
-            print(f'  o {frame_seq!r} --> {output!r}')
+            print(f"  o {frame_seq!r} --> {output!r}")
             self.assertTrue(output)
 
         print("\n  BAD SEQUENCES\n  -------------")
         for frame_seq in bad_frame_seqs:
-            print(f'  o {frame_seq!r}')
+            print(f"  o {frame_seq!r}")
             self.assertFalse(validate_frame_sequence(frame_seq))
 
         print("")
@@ -306,10 +350,12 @@ class TestSeqparseModule(unittest.TestCase):
         input_frame_seq = "0000-0004"
         output_frame_seq = "0000-0005"
         input_file_seq = ".".join(
-            (self._test_file_name, input_frame_seq, self._test_ext))
+            (self._test_file_name, input_frame_seq, self._test_ext)
+        )
         input_file_seq = os.path.join(self._test_root, input_file_seq)
         output_file_seq = ".".join(
-            (self._test_file_name, output_frame_seq, self._test_ext))
+            (self._test_file_name, output_frame_seq, self._test_ext)
+        )
         output_file_seq = os.path.join(self._test_root, output_file_seq)
 
         print("\n\n  INPUT FILES\n  -----------")
@@ -335,7 +381,8 @@ class TestSeqparseModule(unittest.TestCase):
 
         input_frame_seq = "0000-0002,,0003-0005"
         input_file_seq = ".".join(
-            (self._test_file_name, input_frame_seq, self._test_ext))
+            (self._test_file_name, input_frame_seq, self._test_ext)
+        )
         input_file_seq = os.path.join(self._test_root, input_file_seq)
 
         print("\n  INPUT FILES\n  -----------")
@@ -364,18 +411,16 @@ class TestSeqparseModule(unittest.TestCase):
         """Seqparse: Test usage of the "missing" option in Seqparse.output."""
         file_path = os.path.join(self._test_root, self._test_file_name)
         chunk_in = FrameChunk(first=1, last=11, step=2, pad=4)
-        fseq = FileSequence(name=file_path,
-                            ext=self._test_ext,
-                            frames=chunk_in)
+        fseq = FileSequence(name=file_path, ext=self._test_ext, frames=chunk_in)
 
         input_entries = [DirEntry(x) for x in fseq]
 
         mock_api_call.return_value = input_entries
 
         chunk_out = FrameChunk(first=2, last=10, step=2, pad=4)
-        expected = FileSequence(name=file_path,
-                                ext=self._test_ext,
-                                frames=chunk_out)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=chunk_out
+        )
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -390,19 +435,17 @@ class TestSeqparseModule(unittest.TestCase):
 
         self.assertEqual(str(inverted[0]), str(expected))
 
-        fseq = FileSequence(name=file_path,
-                            ext=self._test_ext,
-                            frames=[1, 2, 3, 4, 6],
-                            pad=4)
+        fseq = FileSequence(
+            name=file_path, ext=self._test_ext, frames=[1, 2, 3, 4, 6], pad=4
+        )
 
         input_entries = [DirEntry(x) for x in fseq]
 
         mock_api_call.return_value = input_entries
 
-        expected = FileSequence(name=file_path,
-                                ext=self._test_ext,
-                                frames=[5],
-                                pad=4)
+        expected = FileSequence(
+            name=file_path, ext=self._test_ext, frames=[5], pad=4
+        )
 
         parser = get_parser()
         parser.scan_path(self._test_root)
@@ -421,19 +464,17 @@ class TestSeqparseModule(unittest.TestCase):
     def test_scan_options(self, mock_api_call):
         """Seqparse: Make sure scan_options works as expected."""
         frames = {4: (1, 2, 3, 4, 6)}
-        input_entries = generate_entries(name="test",
-                                         ext="py",
-                                         frames=frames,
-                                         root=self._test_root)
+        input_entries = generate_entries(
+            name="test", ext="py", frames=frames, root=self._test_root
+        )
 
         input_entries.extend(
-            generate_entries(name=".test",
-                             ext="py",
-                             frames=frames,
-                             root=self._test_root))
+            generate_entries(
+                name=".test", ext="py", frames=frames, root=self._test_root
+            )
+        )
 
-        input_entries.append(DirEntry(os.path.join(self._test_root,
-                                                   "pony.py")))
+        input_entries.append(DirEntry(os.path.join(self._test_root, "pony.py")))
 
         mock_api_call.return_value = input_entries
 
@@ -443,7 +484,7 @@ class TestSeqparseModule(unittest.TestCase):
         output = list(parser.output())
         expected = [
             os.path.join(self._test_root, "test.0001-0004,0006.py"),
-            os.path.join(self._test_root, "pony.py")
+            os.path.join(self._test_root, "pony.py"),
         ]
 
         self.assertEqual(len(output), 2)
@@ -459,7 +500,7 @@ class TestSeqparseModule(unittest.TestCase):
         expected = [
             os.path.join(self._test_root, ".test.0001-0004,0006.py"),
             os.path.join(self._test_root, "test.0001-0004,0006.py"),
-            os.path.join(self._test_root, "pony.py")
+            os.path.join(self._test_root, "pony.py"),
         ]
 
         self.assertEqual(len(output), 3)

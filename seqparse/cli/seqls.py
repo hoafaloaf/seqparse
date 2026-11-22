@@ -35,15 +35,16 @@ def main(args, _debug=False):
     if args.min_levels[0] != -1:
         args.min_levels[0] = max(args.min_levels[0], 0)
 
-    scan_opts = dict(max_levels=args.max_levels[0],
-                     min_levels=args.min_levels[0])
+    scan_opts = {
+        "max_levels": args.max_levels[0],
+        "min_levels": args.min_levels[0],
+    }
 
     parser = get_parser()
     parser.scan_options.update(all=args.all, stat=args.long_format)
 
     for search_path in sorted(args.search_path):
-        search_path = os.path.abspath(search_path)
-        parser.scan_path(search_path, **scan_opts)
+        parser.scan_path(os.path.abspath(search_path), **scan_opts)
 
     output = []
 
@@ -70,14 +71,14 @@ def long_format_output(items, human_readable=False):
 
     for item in items:
         size = item.size
-        if size:
-            size = item.size
-            if human_readable:
-                size = humanize.naturalsize(size, gnu=True)
-        else:
+        if size is None:
             size = "----"
+        elif human_readable:
+            size = humanize.naturalsize(size, gnu=True)
 
-        mtime = time.strftime('%Y/%m/%d %H:%M', time.localtime(item.mtime))
+        mtime = "----"
+        if item.mtime is not None:
+            mtime = time.strftime("%Y/%m/%d %H:%M", time.localtime(item.mtime))
         bits.append((size, mtime, str(item)))
 
     # Find the maximum width of the sequence sizes; we'll use this to pad
@@ -85,7 +86,7 @@ def long_format_output(items, human_readable=False):
     if bits:
         max_len = max(len(str(x[0])) for x in bits)
         for bit in bits:
-            output.append(f'{bit[0]:<{max_len:d}}  {bit[1]}  {bit[2]}')
+            output.append(f"{bit[0]:<{max_len:d}}  {bit[1]}  {bit[2]}")
 
     return output
 
@@ -98,65 +99,86 @@ def parse_args(args):
         "search_path",
         default=["."],
         help=("Paths that you'd like to search for file sequences."),
-        nargs="*")
-    parser.add_argument("-a",
-                        "--all",
-                        action="store_true",
-                        help="Do not ignore entries starting with '.'.")
+        nargs="*",
+    )
+    parser.add_argument(
+        "-a",
+        "--all",
+        action="store_true",
+        help="Do not ignore entries starting with '.'.",
+    )
 
     parser.add_argument(
         "-H",
         "--human-readable",
         action="store_true",
         dest="human_readable",
-        help=("with -l/--long, print sizes in human readable format (e.g., 1K "
-              "234M 2G)."))
+        help=(
+            "with -l/--long, print sizes in human readable format (e.g., 1K "
+            "234M 2G)."
+        ),
+    )
 
-    parser.add_argument("-l",
-                        "--long",
-                        action="store_true",
-                        dest="long_format",
-                        help="Use a long listing format.")
+    parser.add_argument(
+        "-l",
+        "--long",
+        action="store_true",
+        dest="long_format",
+        help="Use a long listing format.",
+    )
 
     parser.add_argument(
         "--maxdepth",
         default=[-1],
         dest="max_levels",
-        help=("Descend at most levels (a non-negative integer) MAX_LEVELS of "
-              "directories below the starting-points. '--maxdepth 0' means "
-              "scan the starting-points themselves."),
+        help=(
+            "Descend at most levels (a non-negative integer) MAX_LEVELS of "
+            "directories below the starting-points. '--maxdepth 0' means "
+            "scan the starting-points themselves."
+        ),
         nargs=1,
         required=False,
-        type=int)
+        type=int,
+    )
 
     parser.add_argument(
         "--mindepth",
         default=[-1],
         dest="min_levels",
-        help=("Do not scan at levels less than MIN_LEVELS (a non-negative "
-              "integer). '--mindepth 1' means scan all levels except the "
-              " starting-points."),
+        help=(
+            "Do not scan at levels less than MIN_LEVELS (a non-negative "
+            "integer). '--mindepth 1' means scan all levels except the "
+            " starting-points."
+        ),
         nargs=1,
         required=False,
-        type=int)
+        type=int,
+    )
 
     parser.add_argument(
         "-m",
         "--missing",
         action="store_true",
-        help=("Whether to invert output file sequences to only report the "
-              "missing frames."))
+        help=(
+            "Whether to invert output file sequences to only report the "
+            "missing frames."
+        ),
+    )
 
-    parser.add_argument("-S",
-                        "--seqs-only",
-                        action="store_true",
-                        dest="seqs_only",
-                        help="Whether to filter out all non-sequence files.")
+    parser.add_argument(
+        "-S",
+        "--seqs-only",
+        action="store_true",
+        dest="seqs_only",
+        help="Whether to filter out all non-sequence files.",
+    )
 
-    parser.add_argument("-v",
-                        "--version",
-                        action="store_true",
-                        help="Print the version and exit.")
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="store_true",
+        help="Print the version and exit.",
+    )
 
     # Parse the arguments.
     parsed_args = parser.parse_args(args)

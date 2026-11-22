@@ -3,13 +3,29 @@
 from collections import defaultdict
 import os
 
-import six
-
 from .containers import FileSequenceContainer, SingletonContainer
 from .regex import SeqparseRegexMixin
 from .sequences import FrameSequence
 
 __all__ = ("Seqparse",)
+
+
+def _stat(file_name, entry=None):
+    """
+    Disk stats for a file, following symlinks.
+
+    Args:
+        file_name (str): Path to the file.
+        entry (DirEntry, optional): The file's DirEntry when it was found via
+            scan_path; its cached stat is used in preference to os.stat.
+
+    Returns:
+        stat_result for the file.
+    """
+    if entry:
+        return entry.stat(follow_symlinks=True)
+    return os.stat(file_name)
+
 
 ###############################################################################
 # Class: Seqparse
@@ -58,20 +74,23 @@ class Seqparse(SeqparseRegexMixin):
         super().__init__()
 
         self._locs = defaultdict(
-            lambda: dict(seqs=defaultdict(FileSequenceContainer),
-                         files=SingletonContainer()))
+            lambda: {
+                "seqs": defaultdict(FileSequenceContainer),
+                "files": SingletonContainer(),
+            }
+        )
 
-        self._options = dict(all=False, stat=False)
+        self._options = {"all": False, "stat": False}
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         num_seqs = len(list(self.output(seqs_only=True)))
         num_files = len(list(self.output())) - num_seqs
 
-        blurb = ("{name}(sequences={seqs}, singletons={files})")
-        return blurb.format(name=type(self).__name__,
-                            files=num_files,
-                            seqs=num_seqs)
+        blurb = "{name}(sequences={seqs}, singletons={files})"
+        return blurb.format(
+            name=type(self).__name__, files=num_files, seqs=num_seqs
+        )
 
     @property
     def locations(self):
@@ -109,41 +128,43 @@ class Seqparse(SeqparseRegexMixin):
             entry = file_name
             file_name = file_name.path
 
-        sequence_bits = self.file_seq_match(str(file_name))
+        dir_name, base_name = os.path.split(str(file_name))
+
+        # A file found on disk is a single frame; a frame *sequence* in its
+        # name (eg "foo.1-3.exr") is just part of a singleton's name. Strings
+        # passed in directly may describe a whole sequence of files.
+        if entry:
+            sequence_bits = self.file_name_match(base_name)
+            frames = sequence_bits.frame if sequence_bits else None
+        else:
+            sequence_bits = self.file_seq_match(base_name)
+            frames = sequence_bits.frames if sequence_bits else None
 
         if sequence_bits:
-            dir_name, base_name = os.path.split(sequence_bits.name)
+            seq_name = sequence_bits.name or ""
 
             loc = self.locations[dir_name]
-            sequence = loc["seqs"][base_name]
+            sequence = loc["seqs"][seq_name]
 
             # Set the name and path properties at initialization.
             if not sequence:
-                sequence.name = base_name
+                sequence.name = seq_name
                 sequence.path = dir_name
 
             # We'll assume that a frame sequence is properly formed -- and use
             # the length of the first frame as the padding. The FrameSequence
             # to which we're adding the frames will do the actual validation.
-            for chunk in sequence_bits.frames.split(","):
-                bits = self.bits_match(chunk, as_dict=True)
-                pad = len(bits["first"])
-                break
+            first_chunk = frames.lstrip(",").split(",")[0]
+            pad = len(self.bits_match(first_chunk).first)
 
             ext = sequence[sequence_bits.ext]
-            ext[pad].add(sequence_bits.frames)
+            ext[pad].add(frames)
 
-            if self.scan_options["stat"]:
-                # "entry" *should* only ever be defined if it was passed in via
-                # the scan_path method.
-                if entry:
-                    stat = entry.stat(follow_symlinks=True)
-                else:
-                    stat = os.stat(file_name)
-                ext[pad].cache_stat(int(sequence_bits.frames), stat)
+            # Disk stats only make sense for a single file (frame).
+            if self.scan_options["stat"] and frames.isdigit():
+                ext[pad].cache_stat(int(frames), _stat(file_name, entry))
 
         else:
-            dir_name, base_name = os.path.split(file_name)
             loc = self.locations[dir_name]
 
             singletons = loc["files"]
@@ -154,11 +175,7 @@ class Seqparse(SeqparseRegexMixin):
 
             singletons.add(base_name)
             if self.scan_options["stat"]:
-                if entry:
-                    stat = entry.stat(follow_symlinks=True)
-                else:
-                    stat = os.stat(file_name)
-                singletons.cache_stat(base_name, stat)
+                singletons.cache_stat(base_name, _stat(file_name, entry))
 
     def output(self, missing=False, seqs_only=False):
         """
@@ -181,16 +198,18 @@ class Seqparse(SeqparseRegexMixin):
             data = self.locations[root_dir]
             for container in sorted(data["seqs"].values()):
                 for file_seq in container.output():
-                    if missing:
-                        yield file_seq.invert()
-                    else:
+                    if not missing:
                         yield file_seq
+                        continue
+                    inverted = file_seq.invert()
+                    # No gaps: nothing is missing.
+                    if inverted:
+                        yield inverted
 
             if seqs_only:
                 continue
 
-            for file_name in sorted(data["files"].output()):
-                yield file_name
+            yield from sorted(data["files"].output())
 
     def scan_path(self, search_paths, max_levels=-1, min_levels=-1):
         """
@@ -211,22 +230,22 @@ class Seqparse(SeqparseRegexMixin):
         """
         if isinstance(search_paths, (list, set, tuple)):
             for search_path in search_paths:
-                self.scan_path(search_path, max_levels=-1, min_levels=-1)
+                self.scan_path(
+                    search_path, max_levels=max_levels, min_levels=min_levels
+                )
             return
         if os.path.isfile(search_paths):
             self.add_file(search_paths)
             return
 
-        search_path = search_paths.rstrip(os.path.sep)
-        search_seps = search_paths.count(os.path.sep)
+        # Keep the root directory intact (stripping "/" would leave "").
+        search_path = search_paths.rstrip(os.path.sep) or search_paths
 
-        for root, dir_entries, file_entries in self._scandir_walk(search_path):
-            # Cheap and easy way to limit our search depth: count path
-            # separators!
-            cur_level = root.count(os.path.sep) - search_seps
-
-            max_out = max_levels > -1 and cur_level == max_levels
-            min_out = min_levels > -1 and cur_level <= min_levels
+        for cur_level, dir_entries, file_entries in self._scandir_walk(
+            search_path
+        ):
+            max_out = max_levels > -1 and cur_level >= max_levels
+            min_out = min_levels > -1 and cur_level < min_levels
 
             if max_out:
                 del dir_entries[:]
@@ -262,26 +281,48 @@ class Seqparse(SeqparseRegexMixin):
             directory.
         """
         output = {}
-        for loc, data in six.iteritems(self.locations):
+        for loc, data in self.locations.items():
             if data[typ]:
                 output[loc] = data[typ]
 
         return output
 
-    def _scandir_walk(self, search_path, follow_symlinks=True):
+    def _scandir_walk(
+        self, search_path, follow_symlinks=True, _level=0, _visited=None
+    ):
         """
         Recursively yield DirEntry objects for given directory.
+
+        Directories that have already been visited (eg via a symlink loop) are
+        skipped, as are subdirectories that cannot be read.
 
         Args:
             search_path (str): Directory to scan for files.
             follow_symlinks (bool, optional): Whether to follow symlinks
-                dicovered at scan time. Defaults to False.
+                dicovered at scan time. Defaults to True.
 
         Yields:
-            DirEntry representations of discovered files.
+            tuple of (depth below the starting point, list of directory
+            DirEntry instances, list of file DirEntry instances). Removing
+            items from the directory list prevents descending into them.
         """
-        root, dir_entries, file_entries = search_path, [], []
-        for entry in os.scandir(search_path):
+        if _visited is None:
+            _visited = set()
+        real_path = os.path.realpath(search_path)
+        if real_path in _visited:
+            return
+        _visited.add(real_path)
+
+        dir_entries, file_entries = [], []
+        try:
+            entries = list(os.scandir(search_path))
+        except OSError:
+            # Let errors on the starting point propagate to the caller.
+            if not _level:
+                raise
+            return
+
+        for entry in entries:
             if entry.name.startswith(".") and not self.scan_options["all"]:
                 continue
             if entry.is_dir(follow_symlinks=follow_symlinks):
@@ -289,11 +330,15 @@ class Seqparse(SeqparseRegexMixin):
             elif entry.is_file(follow_symlinks=follow_symlinks):
                 file_entries.append(entry)
 
-        yield root, dir_entries, file_entries
+        yield _level, dir_entries, file_entries
 
         for entry in dir_entries:
-            for data in self._scandir_walk(entry.path):
-                yield data
+            yield from self._scandir_walk(
+                entry.path,
+                follow_symlinks=follow_symlinks,
+                _level=_level + 1,
+                _visited=_visited,
+            )
 
     @staticmethod
     def validate_frame_sequence(frame_seq):

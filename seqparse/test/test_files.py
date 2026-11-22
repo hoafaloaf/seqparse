@@ -4,8 +4,8 @@ import os
 import unittest
 from unittest import mock
 
-from . import mock_os_stat
 from ..files import File
+from . import mock_os_stat
 
 ###############################################################################
 # class: TestFiles
@@ -83,3 +83,13 @@ class TestFiles(unittest.TestCase):
         self.assertGreater(str3, file3)
         with self.assertRaises(AssertionError):
             self.assertEqual(str3, file3)
+
+    def test_hashing(self):
+        """File: Equal instances hash equally (usable in sets and dicts)."""
+        file1 = File("/golly/gosh/geewhiz.txt")
+        file2 = File("/golly/gosh/geewhiz.txt")
+        file3 = File("/golly/gosh/geewhillickers.txt")
+
+        self.assertEqual(hash(file1), hash(file2))
+        self.assertEqual(len({file1, file2, file3}), 2)
+        self.assertEqual({file1: "found"}[file2], "found")

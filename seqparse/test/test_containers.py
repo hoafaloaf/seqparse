@@ -4,10 +4,10 @@ import os
 import unittest
 from unittest import mock
 
-from . import DirEntry
 from .. import get_parser
 from ..containers import FileExtension, SingletonContainer
 from ..sequences import FileSequence
+from . import DirEntry
 
 ###############################################################################
 # class: TestSingletonContainer
@@ -17,7 +17,7 @@ class TestSingletonContainer(unittest.TestCase):
     """Test the SingletonContainer class used by the Seqparse module."""
 
     _test_root = "/pretty/kitty".replace("/", os.sep)
-    _singletons = ["singleton0.jpg", "singleton1.jpg"]
+    _singletons = ("singleton0.jpg", "singleton1.jpg")
 
     def setUp(self):
         """Set up the test case."""
@@ -117,13 +117,13 @@ class TestFileSequenceContainer(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        frames1 = list(range(0, 5))
+        frames1 = list(range(5))
         frames2 = list(range(1, 6))
 
         full_name1 = os.path.join(self._test_root, self._test_file_name1)
         full_name2 = os.path.join(self._test_root, self._test_file_name2)
 
-        # yapf: disable
+        # fmt: off
         self._input_seqs = [
             FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name1, pad=4),
@@ -134,7 +134,7 @@ class TestFileSequenceContainer(unittest.TestCase):
             FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name2, pad=4)
         ]
-        # yapf: enable
+        # fmt: on
 
     @mock.patch("seqparse.seqparse.os.path.isfile")
     def test_equality(self, fake_isfile):
@@ -177,28 +177,22 @@ class TestFileSequenceContainer(unittest.TestCase):
         parser.scan_path([str(x) for x in input_seq])
         container = parser.sequences[input_seq.path][input_seq.name]
 
-        for value in ([], FileExtension(name="tif")):
-            with self.assertRaises(ValueError):
-                container["tiff"] = value
+        # Wrong type of value.
+        with self.assertRaises(TypeError):
+            container["tiff"] = []
 
-        # Test __setitem__
-        raised = False
+        # Right type, but the key doesn't match the extension name.
+        with self.assertRaises(ValueError):
+            container["tiff"] = FileExtension(name="tif")
+
+        # Test __setitem__ (any exception fails the test).
         file_ext = FileExtension(name="tiff")
-        try:
-            container["tiff"] = file_ext
-        except ValueError:
-            raised = False
-        self.assertFalse(raised,
-                         f'Unable to set specified value: {file_ext!r}')
+        container["tiff"] = file_ext
+        self.assertIs(container["tiff"], file_ext)
 
         # Test __delitem__
-        raised = False
-        ext = "tiff"
-        try:
-            del container["tiff"]
-        except ValueError:
-            raised = False
-        self.assertFalse(raised, f'Unable to delete specified value: {ext!r}')
+        del container["tiff"]
+        self.assertNotIn("tiff", container)
 
         with self.assertRaises(KeyError):
             del container["tiff"]
@@ -233,13 +227,13 @@ class TestFileExtension(unittest.TestCase):
 
     def setUp(self):
         """Set up the test case."""
-        frames1 = list(range(0, 5))
+        frames1 = list(range(5))
         frames2 = list(range(1, 6))
 
         full_name1 = os.path.join(self._test_root, self._test_file_name1)
         full_name2 = os.path.join(self._test_root, self._test_file_name2)
 
-        # yapf: disable
+        # fmt: off
         self._input_seqs = [
             FileSequence(
                 ext=self._test_ext, frames=frames1, name=full_name1, pad=4),
@@ -250,7 +244,7 @@ class TestFileExtension(unittest.TestCase):
             FileSequence(
                 ext=self._test_ext, frames=frames2, name=full_name2, pad=4)
         ]
-        # yapf: enable
+        # fmt: on
 
     @mock.patch("seqparse.seqparse.os.path.isfile")
     def test_properties(self, fake_isfile):
@@ -277,9 +271,9 @@ class TestFileExtension(unittest.TestCase):
         parser = get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(ext=self._test_ext,
-                                  frames=frames1,
-                                  name=full_name)
+        input_seq1 = FileSequence(
+            ext=self._test_ext, frames=frames1, name=full_name
+        )
         parser.scan_path([str(x) for x in input_seq1])
         container = parser.sequences[input_seq1.path][input_seq1.name]
 
@@ -287,29 +281,23 @@ class TestFileExtension(unittest.TestCase):
 
         # Test __setitem__, __delitem__ ...
         frames4 = list(range(1000, 1003))
-        input_seq4 = FileSequence(ext=self._test_ext,
-                                  frames=frames4,
-                                  name=full_name)
+        input_seq4 = FileSequence(
+            ext=self._test_ext, frames=frames4, name=full_name
+        )
 
+        # Setting and deleting must work for both accepted input types (any
+        # exception fails the test).
         for test_input in (frames4, input_seq4):
-            raised = False
-            blurb = ""
-            try:
+            with self.subTest(test_input=test_input):
                 file_ext[4] = test_input
+                self.assertIn(4, file_ext)
                 del file_ext[4]
-            except KeyError:
-                raised = False
-                blurb = "Unable to delete specified value: {!r}"
-            except ValueError:
-                raised = False
-                blurb = "Unable to set specified value: {!r}"
-
-            self.assertFalse(raised, blurb.format(test_input))
+                self.assertNotIn(4, file_ext)
 
         with self.assertRaises(KeyError):
             del file_ext[4]
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             file_ext[4] = str(input_seq4)
 
     @mock.patch("seqparse.seqparse.os.path.isfile")
@@ -322,9 +310,9 @@ class TestFileExtension(unittest.TestCase):
         parser = get_parser()
 
         # Add in the source FileSequence files one-by-one.
-        input_seq1 = FileSequence(ext=self._test_ext,
-                                  frames=frames1,
-                                  name=full_name)
+        input_seq1 = FileSequence(
+            ext=self._test_ext, frames=frames1, name=full_name
+        )
         parser.scan_path([str(x) for x in input_seq1])
         container = parser.sequences[input_seq1.path][input_seq1.name]
 

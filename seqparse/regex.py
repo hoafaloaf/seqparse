@@ -3,8 +3,13 @@
 from collections import namedtuple
 import re
 
-__all__ = ("BITS_EXPR", "FILE_NAME_EXPR", "FRAME_EXPR", "FILE_SEQ_EXPR",
-           "SeqparseRegexMixin")
+__all__ = (
+    "BITS_EXPR",
+    "FILE_NAME_EXPR",
+    "FILE_SEQ_EXPR",
+    "FRAME_EXPR",
+    "SeqparseRegexMixin",
+)
 
 # BITS_EXPR is used to split a frame "chunk" into three sections: first
 # (frame), last (frame). and step.
@@ -22,9 +27,9 @@ FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
 FILE_SEQ_EXPR = r"(?:^(?P<name>.+)\.|^)(?P<frames>%s)\.(?P<ext>[^\.]+)$"
 FILE_SEQ_EXPR = FILE_SEQ_EXPR % FRAME_EXPR
 
-ChunkBits = namedtuple('ChunkBits', 'first last step')
-FileNameBits = namedtuple('FileNameBits', 'name frame ext')
-SequenceBits = namedtuple('SequenceBits', 'name frames ext')
+ChunkBits = namedtuple("ChunkBits", "first last step")
+FileNameBits = namedtuple("FileNameBits", "name frame ext")
+SequenceBits = namedtuple("SequenceBits", "name frames ext")
 
 
 ###############################################################################
@@ -54,8 +59,11 @@ class SeqparseRegexMixin:
         """
         bmatch = self._bits_expr.match(val)
         if bmatch:
-            return bmatch.groupdict() if as_dict else ChunkBits(
-                **bmatch.groupdict())
+            return (
+                bmatch.groupdict()
+                if as_dict
+                else ChunkBits(**bmatch.groupdict())
+            )
         return None
 
     def file_name_match(self, val, as_dict=False):
@@ -75,8 +83,11 @@ class SeqparseRegexMixin:
         """
         fmatch = self._file_expr.match(val)
         if fmatch:
-            return fmatch.groupdict() if as_dict else FileNameBits(
-                **fmatch.groupdict())
+            return (
+                fmatch.groupdict()
+                if as_dict
+                else FileNameBits(**fmatch.groupdict())
+            )
         return None
 
     def file_seq_match(self, val, as_dict=False):
@@ -96,8 +107,11 @@ class SeqparseRegexMixin:
         """
         fmatch = self._fseq_expr.match(val)
         if fmatch:
-            return fmatch.groupdict() if as_dict else SequenceBits(
-                **fmatch.groupdict())
+            return (
+                fmatch.groupdict()
+                if as_dict
+                else SequenceBits(**fmatch.groupdict())
+            )
         return None
 
     def is_frame_sequence(self, val):

@@ -39,13 +39,20 @@ class FileExtension(MutableMapping):
         """Define key deletion logic (per standard dictionary)."""
         del self._data[key]
 
+    def __contains__(self, key):
+        """Membership test that, like defaultdict, never creates entries."""
+        return key in self._data
+
+    def get(self, key, default=None):
+        """Look up a key without creating it (per collections.defaultdict)."""
+        return self._data.get(key, default)
+
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
         if key not in self._data:
-            opts = {'ext': self.name, 'pad': key}
-            if self.parent:
-                opts.update(name=self.parent.full_name)
-            self._data[key] = self._CHILD_CLASS(**opts)
+            self._data[key] = self._adopt(
+                self._CHILD_CLASS(ext=self.name, pad=key)
+            )
         return self._data[key]
 
     def __iter__(self):
@@ -59,23 +66,22 @@ class FileExtension(MutableMapping):
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "{cls}(name={name!r}, pads={pads})"
-        return blurb.format(cls=type(self).__name__,
-                            name=self.name,
-                            pads=sorted(self))
+        return blurb.format(
+            cls=type(self).__name__, name=self.name, pads=sorted(self)
+        )
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if isinstance(value, (list, tuple, set)):
-            opts = dict(ext=self.name, frames=value, pad=key)
-            if self.parent:
-                opts.update(name=self.parent.full_name)
-            value = self._CHILD_CLASS(**opts)
+            value = self._adopt(
+                self._CHILD_CLASS(ext=self.name, frames=value, pad=key)
+            )
 
         if not isinstance(value, self._CHILD_CLASS):
             blurb = 'Container may only hold "{}" instances ("{}" provided)'
-            raise ValueError(
-                blurb.format(self._CHILD_CLASS.__name__,
-                             type(value).__name__))
+            raise TypeError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__)
+            )
 
         self._data[key] = value
 
@@ -101,6 +107,13 @@ class FileExtension(MutableMapping):
         if isinstance(val, FileSequenceContainer):
             self._parent = val
 
+    def _adopt(self, child):
+        """Give a new child sequence the parent container's path and name."""
+        if self.parent:
+            child.path = self.parent.path
+            child.name = self.parent.name
+        return child
+
     def output(self):
         """
         Calculate a sorted list of all contained file extentions.
@@ -109,7 +122,7 @@ class FileExtension(MutableMapping):
             FrameSequence, sorted by zero-pad length.
         """
         # First, check to see if we need to consolidate our file sequences.
-        data = sorted(list(self.items()), reverse=True)
+        data = sorted(self.items(), reverse=True)
         while len(data) > 1:
             pad, fseq = data.pop(0)
 
@@ -141,6 +154,10 @@ class FileSequenceContainer(MutableMapping):
 
     _CHILD_CLASS = FileExtension
 
+    # Mutable, and equality depends on mutable state: deliberately
+    # unhashable (like set and dict).
+    __hash__ = None
+
     def __init__(self, name=None, file_path=None):
         """Initialise the instance."""
         self._data = {}
@@ -166,6 +183,14 @@ class FileSequenceContainer(MutableMapping):
         if type(other) is type(self):
             return self.full_name == other.full_name
         return False
+
+    def __contains__(self, key):
+        """Membership test that, like defaultdict, never creates entries."""
+        return key in self._data
+
+    def get(self, key, default=None):
+        """Look up a key without creating it (per collections.defaultdict)."""
+        return self._data.get(key, default)
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
@@ -195,26 +220,27 @@ class FileSequenceContainer(MutableMapping):
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
         blurb = "{cls}(full_name={full_name!r}, exts={exts})"
-        return blurb.format(cls=type(self).__name__,
-                            exts=sorted(self),
-                            full_name=self.full_name)
+        return blurb.format(
+            cls=type(self).__name__, exts=sorted(self), full_name=self.full_name
+        )
 
     def __setitem__(self, key, value):
         """Define item setting logic (per standard dictionary)."""
         if not isinstance(value, self._CHILD_CLASS):
             blurb = 'Container may only hold "{}" instances ("{}" provided)'
-            raise ValueError(
-                blurb.format(self._CHILD_CLASS.__name__,
-                             type(value).__name__))
+            raise TypeError(
+                blurb.format(self._CHILD_CLASS.__name__, type(value).__name__)
+            )
 
         if key != value.name:
-            blurb = ("Key value must match extension name of provided value "
-                     "({!r} != {!r})")
+            blurb = (
+                "Key value must match extension name of provided value "
+                "({!r} != {!r})"
+            )
             raise ValueError(blurb.format(key, value.name))
 
         self._data[key] = value
-        # Overriding child container's name to match!
-        value.name = self.full_name
+        value.parent = self
 
     @property
     def full_name(self):
@@ -253,9 +279,8 @@ class FileSequenceContainer(MutableMapping):
             FileSequence, sorted (in order) by file path, extension, and zero-
                 padding length.
         """
-        for data in sorted(self.values()):
-            for file_seq in data.output():
-                yield file_seq
+        for ext in sorted(self):
+            yield from self[ext].output()
 
 
 ###############################################################################
@@ -320,7 +345,9 @@ class SingletonContainer(MutableSet):
 
     def discard(self, value):
         """Defining item discard logic (per standard set)."""
+        value = str(value)
         self._data.discard(value)
+        self._stat.pop(value, None)
 
     def update(self, iterable):
         """Defining update logic (per standard set)."""
@@ -355,8 +382,7 @@ class SingletonContainer(MutableSet):
             File, sorted alphabetically.
         """
         for file_name in sorted(self):
-            yield File(os.path.join(self.path, file_name),
-                       self.stat(file_name))
+            yield File(os.path.join(self.path, file_name), self.stat(file_name))
 
     def stat(self, base_name=None):
         """

@@ -3,18 +3,45 @@
 from collections.abc import MutableSet
 import os
 
-import six
-
 from .regex import SeqparseRegexMixin
 
-__all__ = ("FileSequence", "FrameSequence", "SeqparsePadException")
+__all__ = ("FileSequence", "FrameSequence", "SeqparsePadError")
+
+
+def _is_iterable(value):
+    """Whether value is a non-string iterable (list, set, range, ...)."""
+    if isinstance(value, (str, bytes)):
+        return False
+    try:
+        iter(value)
+    except TypeError:
+        return False
+    return True
+
+
+def _is_correctly_padded(value, pad):
+    """
+    Whether a string frame is correctly zero-padded for the given padding.
+
+    A frame with leading zeros must be exactly `pad` digits long; a frame with
+    no leading zeros may be as long as (or longer than) `pad`.
+    """
+    if value.startswith("0"):
+        return len(value) == pad
+    return len(value) >= pad
+
 
 ###############################################################################
-# Class: SeqparsePadException
+# Class: SeqparsePadError
 
 
-class SeqparsePadException(Exception):
-    """Exception thrown when unexpected frame padding is encountered."""
+class SeqparsePadError(ValueError):
+    """
+    Exception thrown when unexpected frame padding is encountered.
+
+    Subclasses ValueError: incorrect padding is an invalid value, and callers
+    catching ValueError for bad frame input should catch this too.
+    """
 
     def __init__(self, message):
         """
@@ -42,13 +69,19 @@ class FrameChunk:
         pad (int, optional): Frame padding for the chunk. Defaults to 1.
     """
 
+    # Mutable, and equality depends on mutable state: deliberately
+    # unhashable (like set and dict).
+    __hash__ = None
+
     def __init__(self, first, last=None, step=1, pad=1):
         """Initialise the instance."""
-        self._data = dict(first=None,
-                          last=None,
-                          length=None,
-                          pad=int(pad),
-                          step=None)
+        self._data = {
+            "first": None,
+            "last": None,
+            "length": None,
+            "pad": int(pad),
+            "step": None,
+        }
         self._output = None
 
         # This will calculate the string output as well!
@@ -57,19 +90,13 @@ class FrameChunk:
     def __contains__(self, item):
         """Whether the chunk contains the specified (non-)padded frame."""
         frame_num = int(item)
-        for frame in range(self.first, self.last + 1, self.step):
-            if frame < frame_num:
-                continue
-
-            if frame_num == frame:
-                if isinstance(item, six.string_types):
-                    frame_len = len(item)
-                    if item.startswith("0"):
-                        return frame_len == self.pad
-                    return frame_len >= self.pad
-                return True
-
+        if not self.first <= frame_num <= self.last:
             return False
+        if (frame_num - self.first) % self.step:
+            return False
+        if isinstance(item, str):
+            return _is_correctly_padded(item, self.pad)
+        return True
 
     def __eq__(self, other):
         """Define equality between instances."""
@@ -80,7 +107,7 @@ class FrameChunk:
     def __iter__(self):
         """Iterate over the frames contained by the chunk."""
         for frame in range(self.first, self.last + 1, self.step):
-            yield f'{frame:0{self.pad}d}'
+            yield f"{frame:0{self.pad}d}"
 
     def __len__(self):
         """Return the length of the frame chunk."""
@@ -92,8 +119,10 @@ class FrameChunk:
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{name}(first={first}, last={last}, step={step}, "
-                 "length={length}, pad={pad})")
+        blurb = (
+            "{name}(first={first}, last={last}, step={step}, "
+            "length={length}, pad={pad})"
+        )
         return blurb.format(name=type(self).__name__, **self._data)
 
     def __reversed__(self):
@@ -192,14 +221,14 @@ class FrameChunk:
         step = min(last - first, step)
 
         # Calculate the string representation of the frame chunk.
-        self._output = f'{first:0{self.pad}d}'
+        self._output = f"{first:0{self.pad}d}"
         if bits == 1:
-            self._output += f',{last:0{self.pad}d}'
+            self._output += f",{last:0{self.pad}d}"
         elif bits > 1:
-            self._output += f'-{last:0{self.pad}d}'
+            self._output += f"-{last:0{self.pad}d}"
 
         if step > 1 and bits > 1:
-            self._output += f'x{step:d}'
+            self._output += f"x{step:d}"
 
         self._data.update(first=first, last=last, length=(1 + bits), step=step)
         return self._output
@@ -235,16 +264,18 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         """Initialise the instance."""
         super().__init__()
 
-        self._attrs = dict(chunks=[],
-                           dirty=True,
-                           is_padded=False,
-                           pad=None,
-                           stat={})
+        self._attrs = {
+            "chunks": [],
+            "dirty": True,
+            "is_padded": False,
+            "pad": None,
+            "stat": {},
+        }
 
         self._data = set()
         self._output = None
 
-        if isinstance(frames, six.string_types):
+        if isinstance(frames, str):
             if not self.is_frame_sequence(frames):
                 blurb = "Invalid iterable specified ({}, {!r})"
                 raise ValueError(blurb.format(type(frames), frames))
@@ -257,23 +288,21 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         # the job's already been done for us.
         if isinstance(frames, (FrameChunk, FrameSequence)):
             pad = frames.pad
-        elif frames and not isinstance(frames, (list, tuple, set)):
+        elif frames is None:
+            frames = []
+        elif not _is_iterable(frames):
             frames = [frames]
 
         self.pad = pad
 
-        for item in frames or []:
+        for item in frames:
             self.add(item)
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
         if int(item) in self._data:
-            if isinstance(item, six.string_types):
-                item_pad = len(item)
-                if item.startswith("0"):
-                    return item_pad == self.pad
-                return item_pad >= self.pad
-
+            if isinstance(item, str):
+                return _is_correctly_padded(item, self.pad)
             return True
 
         return False
@@ -284,8 +313,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             self.calculate()
 
         for chunk in self._attrs["chunks"]:
-            for frame in chunk:
-                yield frame
+            yield from chunk
 
     def __len__(self):
         """Defining item length logic (per standard set)."""
@@ -331,32 +359,27 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def add(self, value):
         """Defining value addition logic (per standard set)."""
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             if self.is_frame_sequence(value):
                 if not value.isdigit():
                     self._add_frame_sequence(value)
                     return
             else:
-                raise ValueError(f'Invalid value specified ({value!r})')
+                raise ValueError(f"Invalid value specified ({value!r})")
 
-            value_pad = len(value)
-            if value.startswith("0") and value_pad != self.pad:
-                blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
-                         "!= {:d})")
-                raise SeqparsePadException(
-                    blurb.format(value, value_pad, self.pad))
-
+            self._check_pad(value, strict=False)
             self._data.add(int(value))
-
-        elif isinstance(value, (list, set, tuple)):
-            self._add_from_iterable(value)
 
         elif isinstance(value, (FrameChunk, FrameSequence)):
             if value.pad != self.pad:
-                blurb = ("Specified value ({!r}) is incorrectly padded ({:d} "
-                         "!= {:d})")
-                raise SeqparsePadException(
-                    blurb.format(value, value.pad, self.pad))
+                blurb = (
+                    "Specified value ({!r}) is incorrectly padded ({:d} "
+                    "!= {:d})"
+                )
+                raise SeqparsePadError(blurb.format(value, value.pad, self.pad))
+            self._add_from_iterable(value)
+
+        elif _is_iterable(value):
             self._add_from_iterable(value)
 
         else:
@@ -366,15 +389,8 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
     def discard(self, value):
         """Defining item discard logic (per standard set)."""
-        if isinstance(value, six.string_types):
-            if value.startswith("0"):
-                value_pad = len(value)
-                if value_pad != self.pad:
-                    blurb = ("Specified value ({!r}) is incorrectly padded "
-                             "({:d} != {:d}))")
-                    raise SeqparsePadException(
-                        blurb.format(value, value_pad, self.pad))
-
+        if isinstance(value, str):
+            self._check_pad(value, strict=False)
             value = int(value)
 
         self._data.discard(value)
@@ -413,13 +429,14 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         all_frames = sorted(self._data)
         if num_frames == 1:
             self._attrs["chunks"].append(
-                FrameChunk(all_frames[0], pad=self.pad))
+                FrameChunk(all_frames[0], pad=self.pad)
+            )
 
         else:
             current_frames = set()
             prev_step = 0
             for idx in range(num_frames - 1):
-                frames = all_frames[idx:idx + 2]
+                frames = all_frames[idx : idx + 2]
                 step = frames[1] - frames[0]
 
                 if not prev_step:
@@ -433,19 +450,22 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                     # The typical "easy" login was previously expressing this
                     # as
                     #     "1,3,4,5"
-                    if len(current_frames) == 2 \
-                            and max(current_frames) != all_frames[-1]:
+                    if (
+                        len(current_frames) == 2  # noqa: PLR2004 (a pair)
+                        and max(current_frames) != all_frames[-1]
+                    ):
                         min_frame = min(current_frames)
-                        chunk = self._chunk_from_frames([min_frame], 1,
-                                                        self.pad)
+                        chunk = self._chunk_from_frames(
+                            [min_frame], 1, self.pad
+                        )
                         current_frames = set(frames)
                         prev_step = step
-                        idx += 1
 
                     else:
                         chunk = self._chunk_from_frames(
-                            current_frames, prev_step, self.pad)
-                        current_frames = set([frames[1]])
+                            current_frames, prev_step, self.pad
+                        )
+                        current_frames = {frames[1]}
                         prev_step = 0
 
                     self._attrs["chunks"].append(chunk)
@@ -459,7 +479,7 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
 
         # This will be used by the parent FileExtension instance during the
         # zero-pad consolidation stage of the output process.
-        self._attrs["is_padded"] = all_frames[0] < 10**(self.pad - 1)
+        self._attrs["is_padded"] = all_frames[0] < 10 ** (self.pad - 1)
 
         # Optimize padding in cases similar to 1, 2, 1000.
         self._output = ",".join(str(x) for x in self._attrs["chunks"])
@@ -520,11 +540,36 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
                 continue
 
             first, last, step = self.bits_match(bit)
-            pad = len(first)
             if self.pad is None:
-                self.pad = pad
+                self.pad = len(first)
 
-            self.add(FrameChunk(first, last, step, pad))
+            for value in (first, last):
+                if value is not None:
+                    self._check_pad(value)
+
+            self.add(FrameChunk(first, last, step, self.pad))
+
+    def _check_pad(self, value, strict=True):
+        """
+        Raise SeqparsePadError if a string frame is incorrectly padded.
+
+        Args:
+            value (str): String frame to validate against the instance's pad.
+            strict (bool, optional): Whether to also reject frames without
+                leading zeros that are shorter than the pad. Defaults to True.
+
+        Returns:
+            None
+        """
+        if strict:
+            valid = _is_correctly_padded(value, self.pad)
+        else:
+            valid = not value.startswith("0") or len(value) == self.pad
+        if not valid:
+            blurb = (
+                "Specified value ({!r}) is incorrectly padded ({:d} != {:d})"
+            )
+            raise SeqparsePadError(blurb.format(value, len(value), self.pad))
 
     @staticmethod
     def _chunk_from_frames(frames, step, pad):
@@ -574,29 +619,44 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         pad (int, optional): Frame padding for the sequence. Defaults to 1.
     """
 
+    # Mutable, and equality depends on mutable state: deliberately
+    # unhashable (like set and dict).
+    __hash__ = None
+
     def __init__(self, name=None, frames=None, ext=None, pad=1):
         """Initialise the instance."""
-        self._cache = {'ctime': None, 'mtime': None, 'size': None}
-        self._info = {'ext': None, 'full': None, 'name': None, 'path': None}
+        self._cache = {"ctime": None, "mtime": None, "size": None}
+        self._info = {"ext": None, "full": None, "name": None, "path": None}
         self._stat = {}
 
-        if name:
-            if isinstance(name, six.string_types):
+        source = None
+        if isinstance(name, FileSequence):
+            source = name
+            name = None
+            frames, ext, pad = set(source._data), source.ext, source.pad  # pylint: disable=W0212
+        elif name:
+            # Only treat the name as a complete file sequence string when it
+            # is the sole argument; otherwise base names that happen to look
+            # like file sequences (eg "comp.1.final") would be mangled.
+            file_seq_bits = None
+            if isinstance(name, str) and frames is None and ext is None:
                 file_seq_bits = self.file_seq_match(name)
-                if file_seq_bits:
-                    name, frames, ext = file_seq_bits
-                    pad = None
+            if file_seq_bits:
+                name, frames, ext = file_seq_bits
+                pad = None
 
-            elif isinstance(name, FileSequence):
-                name, frames, ext, pad = (name.full_name, name.pretty_frames,
-                                          name.ext, name.pad)
         if frames is None:
             frames = []
 
         super().__init__(frames, pad=pad)
 
         self.ext = ext
-        self.name = name
+        if source is not None:
+            self.path = source.path
+            self.name = source.name
+            self._stat.update(source.stat())
+        else:
+            self.name = name
 
     def __contains__(self, item):
         """Defining containment logic (per standard set)."""
@@ -621,12 +681,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
 
     def __repr__(self):  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = ("{cls}(full_name={full!r}, ext={ext!r}, pad={pad}, "
-                 "frames=set({fr!r}))")
-        return blurb.format(cls=type(self).__name__,
-                            fr=sorted(self._data),
-                            pad=self.pad,
-                            **self._info)
+        blurb = (
+            "{cls}(full_name={full!r}, ext={ext!r}, pad={pad}, "
+            "frames=set({fr!r}))"
+        )
+        return blurb.format(
+            cls=type(self).__name__,
+            fr=sorted(self._data),
+            pad=self.pad,
+            **self._info,
+        )
 
     def __str__(self):
         """String reprentation of the frame sequence."""
@@ -657,8 +721,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     @property
     def frames(self):
         """iterator(str): the file sequence's padded frames."""
-        for frame in super().__iter__():
-            yield frame
+        yield from super().__iter__()
 
     @property
     def pretty_frames(self):
@@ -720,7 +783,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         if val:
             self._info["path"] = str(os.path.normpath(val))
 
-        self._info["full"] = os.path.join(val or "", self._info["name"] or "")
+        self._info["full"] = os.path.join(
+            self._info["path"] or "", self._info["name"] or ""
+        )
 
     @property
     def size(self):
@@ -735,7 +800,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
     def discard(self, value):
         """Defining value discard logic (per standard set)."""
         super().discard(value)
-        self._stat.pop(value, None)
+        self._stat.pop(int(value), None)
 
     def update(self, iterable):
         """Defining item update logic (per standard set)."""
@@ -744,10 +809,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                 iterable_value = getattr(iterable, attr)
                 self_value = getattr(self, attr)
                 if iterable_value != self_value:
-                    blurb = ("Attribute mismatch on supplied FileSequence "
-                             "instance ({}): self:{!r} != iterable:{!r}")
+                    blurb = (
+                        "Attribute mismatch on supplied FileSequence "
+                        "instance ({}): self:{!r} != iterable:{!r}"
+                    )
                     raise ValueError(
-                        blurb.format(attr, self_value, iterable_value))
+                        blurb.format(attr, self_value, iterable_value)
+                    )
 
             self.stat().update(iterable.stat())
             iterable = iterable.frames
@@ -806,9 +874,9 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             FileSequence containing the missing files (if any).
         """
         frames = super().invert()
-        inverted = FileSequence(name=self.full_name,
-                                frames=frames,
-                                ext=self.ext)
+        inverted = FileSequence(frames=frames, ext=self.ext, pad=frames.pad)
+        inverted.path = self.path
+        inverted.name = self.name
         return inverted
 
     def stat(self, frame=None, force=False, lazy=False):
@@ -834,15 +902,16 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         if frame is None:
             if force or lazy:
                 raise ValueError(
-                    "Must specify frame when querying for file disk stats.")
+                    "Must specify frame when querying for file disk stats."
+                )
+            return self._stat
 
-        elif force or (lazy and self._stat.get(frame) is None):
+        frame = int(frame)
+        if force or (lazy and self._stat.get(frame) is None):
             file_name = self._get_sequence_output(frame)
             self.cache_stat(frame, os.stat(file_name))
 
-        if frame is None:
-            return self._stat
-        return self._stat.get(int(frame), None)
+        return self._stat.get(frame, None)
 
     def _aggregate_stats(self):
         """
@@ -854,7 +923,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             None
         """
-        self._cache = {'ctime': None, 'mtime': None, 'size': None}
+        self._cache = {"ctime": None, "mtime": None, "size": None}
 
         if not self.stat():
             return
@@ -865,11 +934,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         ctime = mtime = size = 0
         for frame in self._data:
             stat = self.stat(frame)
+            if stat is None:
+                continue
             ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
             mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
             size += stat.st_size  # pylint: disable=E1101
 
-        self._cache = dict(ctime=ctime, mtime=mtime, size=size)
+        self._cache = {"ctime": ctime, "mtime": mtime, "size": size}
 
     def _get_sequence_output(self, frames):
         """
@@ -881,14 +952,13 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             str representation of a file sequence.
         """
-        if not frames:
+        if frames is None or frames == "":
             return ""
 
         if str(frames).isdigit():
             frames = f"{int(frames):0{self.pad}d}"
         elif not self.ext:
-            raise AttributeError(
-                "File sequence extension has not been defined.")
+            raise ValueError("File sequence extension has not been defined.")
 
         file_name = "{fr}.{ext}"
         if self.name:
