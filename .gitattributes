@@ -6,7 +6,6 @@
 *rc text eol=lf
 *.bat text eol=crlf
 Dockerfile text eol=lf
-*.rst text eol=lf
 *.toml text eol=lf
 *.txt text eol=lf
 *.yml text eol=lf

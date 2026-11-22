@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "seqparse"
 dynamic = ["version"]
 description = "A nifty way to parse your file sequences."
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE.txt"]
@@ -36,7 +36,7 @@ seqls = "seqparse.cli.seqls:run_main"
 [project.urls]
 Homepage = "https://github.com/hoafaloaf/seqparse"
 Issues = "https://github.com/hoafaloaf/seqparse/issues"
-Changelog = "https://github.com/hoafaloaf/seqparse/blob/master/CHANGES.rst"
+Changelog = "https://github.com/hoafaloaf/seqparse/blob/master/CHANGES.md"
 
 [tool.setuptools.packages.find]
 include = ["seqparse*"]
