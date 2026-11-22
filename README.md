@@ -74,7 +74,7 @@ Examples of valid file sequences:
 
 ```text
 usage: seqls [-h] [-a] [-H] [-l] [--maxdepth MAX_LEVELS]
-             [--mindepth MIN_LEVELS] [-m] [-S] [-v]
+             [--mindepth MIN_LEVELS] [-m] [-S] [--json] [-v]
              [search_path ...]
 
 Command line tool for listing file sequences. Upon installation of the package
@@ -101,6 +101,10 @@ options:
   -m, --missing         Whether to invert output file sequences to only report
                         the missing frames.
   -S, --seqs-only       Whether to filter out all non-sequence files.
+  --json                Print JSON instead of text: sizes (bytes) and
+                        modification times (epoch seconds) are included with
+                        -l/--long, and with -m/--missing only sequences that
+                        have gaps are listed.
   -v, --version         Print the version and exit.
 ```
 
@@ -132,6 +136,49 @@ You can easily figure out the missing frames, though, with the
 $ seqls --missing
 superhero_cape_v0001.0501-0599,0801,0991-0994,0996-0999.exr
 ```
+
+### JSON output
+
+For scripts and pipelines, `--json` prints one JSON array instead of text,
+and nothing else (no blank line before it):
+
+```console
+$ seqls --json -l -S
+[
+  {
+    "type": "sequence",
+    "path": "/renders/superhero_cape_v0001",
+    "name": "superhero_cape_v0001",
+    "ext": "exr",
+    "pad": 4,
+    "frames": "0001,0002,0004",
+    "count": 3,
+    "first": 1,
+    "last": 4,
+    "missing": "0003",
+    "size": 3000,
+    "mtime": 1763798400.0,
+    "string": "/renders/superhero_cape_v0001/superhero_cape_v0001.0001,0002,0004.exr"
+  }
+]
+```
+
+Each entry is either a sequence or a singleton file:
+
+| Field | Meaning |
+| --- | --- |
+| `type` | `"sequence"` or `"file"` |
+| `path`, `name` | The directory, and the sequence's base name or the file's name |
+| `string` | What the text output prints for the item |
+| `ext`, `pad` | Sequences only: extension and zero-padding |
+| `frames` | Sequences only: the frame sequence, e.g. `"0001-0500,0600-0800"` |
+| `count`, `first`, `last` | Sequences only: number of frames, first and last frame |
+| `missing` | Sequences only: the missing frames in the same notation (`""` if none) |
+| `size`, `mtime` | Size in bytes and modification time in seconds since the epoch; `null` unless `-l` is given |
+
+The other options work as usual (`-S`, `--maxdepth`, ...). With `-m/--missing`,
+only sequences that have gaps are listed, still described by their real
+`frames`; `-H` has no effect.
 
 ## The module
 

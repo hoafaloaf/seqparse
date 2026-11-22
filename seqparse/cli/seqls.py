@@ -10,16 +10,24 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Iterable, Sequence
+import json
 import os
 import sys
 import time
+from typing import Any
 
 import humanize
 
 import seqparse
 from seqparse import files, sequences
 
-__all__ = ("long_format_output", "main", "parse_args", "run_main")
+__all__ = (
+    "json_output",
+    "long_format_output",
+    "main",
+    "parse_args",
+    "run_main",
+)
 
 
 def run_main() -> None:  # pragma: no cover
@@ -54,6 +62,15 @@ def main(
     for search_path in sorted(args.search_path):
         parser.scan_path(os.path.abspath(search_path), **scan_opts)
 
+    if args.json:
+        text = json_output(
+            parser.output(seqs_only=args.seqs_only), only_missing=args.missing
+        )
+        if _debug:
+            return text
+        print(text)
+        return None
+
     output = []
 
     items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
@@ -70,6 +87,70 @@ def main(
         print(line)
 
     return None
+
+
+def json_output(
+    items: Iterable[files.File | sequences.FileSequence],
+    only_missing: bool = False,
+) -> str:
+    """
+    Describe the items as a JSON array.
+
+    Args:
+        items: The files and file sequences to describe.
+        only_missing (bool, optional): Only describe sequences that have
+            missing frames (singletons are left out). Defaults to False.
+
+    Returns:
+        JSON text; see the README for the fields. Sizes and times are null
+        unless the items were scanned with disk stats.
+    """
+    records: list[dict[str, Any]] = []
+
+    for item in items:
+        if not isinstance(item, sequences.FileSequence):
+            if not only_missing:
+                records.append(
+                    {
+                        "type": "file",
+                        "path": item.path,
+                        "name": item.name,
+                        "size": item.size,
+                        "mtime": item.mtime,
+                        "string": str(item),
+                    }
+                )
+            continue
+
+        missing = item.invert().pretty_frames
+        if only_missing and not missing:
+            continue
+
+        first = last = 0
+        for number, frame in enumerate(item.frames):
+            if number == 0:
+                first = int(frame)
+            last = int(frame)
+
+        records.append(
+            {
+                "type": "sequence",
+                "path": item.path,
+                "name": item.name,
+                "ext": item.ext,
+                "pad": item.pad,
+                "frames": item.pretty_frames,
+                "count": len(item),
+                "first": first,
+                "last": last,
+                "missing": missing,
+                "size": item.size,
+                "mtime": item.mtime,
+                "string": str(item),
+            }
+        )
+
+    return json.dumps(records, indent=2)
 
 
 def long_format_output(
@@ -181,6 +262,16 @@ def parse_args(args: Sequence[str]) -> argparse.Namespace:
         action="store_true",
         dest="seqs_only",
         help="Whether to filter out all non-sequence files.",
+    )
+
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help=(
+            "Print JSON instead of text: sizes (bytes) and modification "
+            "times (epoch seconds) are included with -l/--long, and with "
+            "-m/--missing only sequences that have gaps are listed."
+        ),
     )
 
     parser.add_argument(

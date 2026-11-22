@@ -1,8 +1,12 @@
 """Tests for the seqls script (seqparse.cli.seqls)."""
 
+import contextlib
 import copy
+import io
+import json
 import os
 import shlex
+import tempfile
 import time
 import unittest
 from unittest import mock
@@ -10,6 +14,7 @@ from unittest import mock
 import seqparse
 from seqparse import sequences, test
 from seqparse.cli import seqls
+from seqparse.test import test_windows_paths
 
 ###############################################################################
 # class: TestFrameSequences
@@ -28,6 +33,7 @@ class TestSeqls(unittest.TestCase):
         defaults = {
             "all": False,
             "human_readable": False,
+            "json": False,
             "long_format": False,
             "max_levels": [-1],
             "min_levels": [-1],
@@ -272,3 +278,130 @@ class TestSeqls(unittest.TestCase):
 
         self.assertEqual(len(output), 2)
         self.assertEqual(output, expected)
+
+
+###############################################################################
+# Tests that scan real files
+
+
+class _RealFilesTestCase(unittest.TestCase):
+    """Base class: a temporary directory to fill with real files."""
+
+    def setUp(self):
+        """Create the temporary directory."""
+        super().setUp()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = tmp.name
+
+    def touch(self, *names, size=0):
+        """Create files of the given size in the temporary directory."""
+        for name in names:
+            with open(os.path.join(self.root, name), "w") as handle:
+                handle.write("x" * size)
+
+    def run_seqls(self, *options):
+        """Run seqls on the temporary directory; return its text result."""
+        args = seqls.parse_args([*options, self.root])
+        return seqls.main(args, _debug=True)
+
+
+class TestJsonOption(_RealFilesTestCase):
+    """seqls --json."""
+
+    def setUp(self):
+        """Two sequences (one with a gap) and a singleton."""
+        super().setUp()
+        self.touch("plate.0001.exr", "plate.0002.exr", "plate.0004.exr", size=5)
+        self.touch("comp.0001.png", "comp.0002.png", size=7)
+        self.touch("notes.txt", size=3)
+
+    def records(self, *options):
+        """The parsed JSON records, keyed by name."""
+        return {r["name"]: r for r in json.loads(self.run_seqls(*options))}
+
+    def test_describes_sequences_and_files(self):
+        """Every field of a sequence and of a singleton."""
+        records = self.records("--json")
+        self.assertEqual(set(records), {"plate", "comp", "notes.txt"})
+        self.assertEqual(
+            records["plate"],
+            {
+                "type": "sequence",
+                "path": self.root,
+                "name": "plate",
+                "ext": "exr",
+                "pad": 4,
+                "frames": "0001,0002,0004",
+                "count": 3,
+                "first": 1,
+                "last": 4,
+                "missing": "0003",
+                "size": None,
+                "mtime": None,
+                "string": os.path.join(self.root, "plate.0001,0002,0004.exr"),
+            },
+        )
+        self.assertEqual(records["comp"]["missing"], "")
+        self.assertEqual(
+            records["notes.txt"],
+            {
+                "type": "file",
+                "path": self.root,
+                "name": "notes.txt",
+                "size": None,
+                "mtime": None,
+                "string": os.path.join(self.root, "notes.txt"),
+            },
+        )
+
+    def test_long_format_adds_sizes_and_times(self):
+        """-l fills in size (bytes) and mtime (epoch seconds)."""
+        records = self.records("--json", "-l")
+        self.assertEqual(records["plate"]["size"], 15)
+        self.assertEqual(records["comp"]["size"], 14)
+        self.assertEqual(records["notes.txt"]["size"], 3)
+        for record in records.values():
+            self.assertIsInstance(record["mtime"], float)
+
+    def test_seqs_only(self):
+        """-S leaves the singletons out."""
+        self.assertEqual(set(self.records("--json", "-S")), {"plate", "comp"})
+
+    def test_missing_keeps_only_sequences_with_gaps(self):
+        """-m lists the gapped sequences, still with their real frames."""
+        records = self.records("--json", "-m")
+        self.assertEqual(set(records), {"plate"})
+        self.assertEqual(records["plate"]["frames"], "0001,0002,0004")
+        self.assertEqual(records["plate"]["missing"], "0003")
+
+    def test_no_results_is_an_empty_array(self):
+        """Nothing to report is still valid JSON."""
+        with tempfile.TemporaryDirectory() as empty_dir:
+            for options in (["--json"], ["--json", "-m"]):
+                args = seqls.parse_args([*options, empty_dir])
+                self.assertEqual(json.loads(seqls.main(args, _debug=True)), [])
+        # A directory with only gap-free sequences has nothing for -m.
+        for name in os.listdir(self.root):
+            if name.startswith("plate") or name == "notes.txt":
+                os.remove(os.path.join(self.root, name))
+        self.assertEqual(json.loads(self.run_seqls("--json", "-m")), [])
+
+    def test_printed_output_is_only_json(self):
+        """No blank line or other text around the JSON on stdout."""
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            seqls.main(seqls.parse_args(["--json", self.root]))
+        text = out.getvalue()
+        self.assertTrue(text.startswith("["), text)
+        self.assertEqual(len(json.loads(text)), 3)
+
+    def test_windows_paths_survive_json(self):
+        """Backslashes and drive letters round-trip."""
+        with test_windows_paths.windows_paths():
+            fseq = sequences.FileSequence(
+                name="C:\\renders\\plate", ext="exr", frames=[1, 2], pad=4
+            )
+            record = json.loads(seqls.json_output([fseq]))[0]
+        self.assertEqual(record["path"], "C:\\renders")
+        self.assertEqual(record["string"], "C:\\renders\\plate.0001,0002.exr")

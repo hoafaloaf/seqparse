@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* `seqls --json` prints machine-readable JSON (see the README for the fields).
 * `__all__` is now complete in every module (added `get_stat_result`,
   `StatLike`, `FrameChunk`, `ScanOptions`, `Location`, the regex result types
   and the `seqls` functions), and a test keeps it that way.

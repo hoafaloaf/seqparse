@@ -20,7 +20,7 @@ three OSes. See `CLAUDE.md` for commands and conventions.
   still lists imported names: hiding them (module `__dir__`, or underscore
   import aliases) was rejected, because `py.typed` already makes type checkers
   hide them and the aliases would break the Windows-simulation tests.
-- [ ] **3. `seqls --json`.** Machine-readable output: one object per item with
+- [x] **3. `seqls --json`.** Machine-readable output: one object per item with
   name, path, ext, frames (string form), pad, missing frames, and with `-l`
   the size and mtime. Document the schema in the README.
 - [ ] **4. Flag suspicious frames in `seqls`.** For example `--empty` to list
