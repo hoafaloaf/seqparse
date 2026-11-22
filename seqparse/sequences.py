@@ -635,12 +635,15 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             name = None
             frames, ext, pad = set(source._data), source.ext, source.pad  # pylint: disable=W0212
         elif name:
-            # Only treat the name as a complete file sequence string when it
-            # is the sole argument; otherwise base names that happen to look
-            # like file sequences (eg "comp.1.final") would be mangled.
+            # Only treat the name as a complete file sequence string when no
+            # frames are given and any given extension agrees with it;
+            # otherwise base names that happen to look like file sequences
+            # (eg "comp.1.final") would be mangled.
             file_seq_bits = None
-            if isinstance(name, str) and frames is None and ext is None:
+            if isinstance(name, str) and frames is None:
                 file_seq_bits = self.file_seq_match(name)
+                if file_seq_bits and ext not in (None, file_seq_bits.ext):
+                    file_seq_bits = None
             if file_seq_bits:
                 name, frames, ext = file_seq_bits
                 pad = None

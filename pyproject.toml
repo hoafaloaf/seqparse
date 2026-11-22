@@ -32,6 +32,7 @@ seqls = "seqparse.cli.seqls:run_main"
 
 [tool.setuptools.packages.find]
 include = ["seqparse*"]
+exclude = ["seqparse.test*"]
 
 [tool.setuptools.dynamic]
 version = {attr = "seqparse.__version__"}

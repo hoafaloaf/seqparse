@@ -123,6 +123,21 @@ class Seqparse(SeqparseRegexMixin):
         Returns:
             None
         """
+        on_disk = type(file_name).__name__ == "DirEntry"
+        self._add_file(file_name, on_disk=on_disk)
+
+    def _add_file(self, file_name, on_disk=False):
+        """
+        Add a file (or, for strings, a whole file sequence) to the instance.
+
+        Args:
+            file_name (str or DirEntry): The file to add.
+            on_disk (bool, optional): Whether file_name is a single file that
+                exists on disk (a DirEntry or a path found by scanning).
+
+        Returns:
+            None
+        """
         entry = None
         if type(file_name).__name__ == "DirEntry":
             entry = file_name
@@ -133,7 +148,7 @@ class Seqparse(SeqparseRegexMixin):
         # A file found on disk is a single frame; a frame *sequence* in its
         # name (eg "foo.1-3.exr") is just part of a singleton's name. Strings
         # passed in directly may describe a whole sequence of files.
-        if entry:
+        if on_disk:
             sequence_bits = self.file_name_match(base_name)
             frames = sequence_bits.frame if sequence_bits else None
         else:
@@ -235,7 +250,8 @@ class Seqparse(SeqparseRegexMixin):
                 )
             return
         if os.path.isfile(search_paths):
-            self.add_file(search_paths)
+            # Treat it exactly as a directory scan would treat the same file.
+            self._add_file(search_paths, on_disk=True)
             return
 
         # Keep the root directory intact (stripping "/" would leave "").
@@ -288,13 +304,19 @@ class Seqparse(SeqparseRegexMixin):
         return output
 
     def _scandir_walk(
-        self, search_path, follow_symlinks=True, _level=0, _visited=None
+        self,
+        search_path,
+        follow_symlinks=True,
+        _level=0,
+        _ancestors=frozenset(),
     ):
         """
         Recursively yield DirEntry objects for given directory.
 
-        Directories that have already been visited (eg via a symlink loop) are
-        skipped, as are subdirectories that cannot be read.
+        A directory that resolves to one of its own ancestors (a symlink loop)
+        is skipped, as are subdirectories that cannot be read. Other symlinked
+        directories are followed, so their files are reported under every path
+        that reaches them (like `find -L`).
 
         Args:
             search_path (str): Directory to scan for files.
@@ -306,12 +328,10 @@ class Seqparse(SeqparseRegexMixin):
             DirEntry instances, list of file DirEntry instances). Removing
             items from the directory list prevents descending into them.
         """
-        if _visited is None:
-            _visited = set()
         real_path = os.path.realpath(search_path)
-        if real_path in _visited:
+        if real_path in _ancestors:
             return
-        _visited.add(real_path)
+        _ancestors = _ancestors | {real_path}
 
         dir_entries, file_entries = [], []
         try:
@@ -337,7 +357,7 @@ class Seqparse(SeqparseRegexMixin):
                 entry.path,
                 follow_symlinks=follow_symlinks,
                 _level=_level + 1,
-                _visited=_visited,
+                _ancestors=_ancestors,
             )
 
     @staticmethod

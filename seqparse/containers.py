@@ -9,6 +9,9 @@ from .sequences import FileSequence
 
 __all__ = ("FileExtension", "FileSequenceContainer", "SingletonContainer")
 
+# Sentinel for "no default given" (None is a valid default for pop()).
+_MISSING = object()
+
 ###############################################################################
 # Class: FileExtension
 
@@ -46,6 +49,25 @@ class FileExtension(MutableMapping):
     def get(self, key, default=None):
         """Look up a key without creating it (per collections.defaultdict)."""
         return self._data.get(key, default)
+
+    def pop(self, key, default=_MISSING):
+        """Remove and return a key's value without creating missing keys."""
+        if default is _MISSING:
+            return self._data.pop(key)
+        return self._data.pop(key, default)
+
+    def setdefault(self, key, default=None):
+        """
+        Return a key's value, inserting `default` if the key is missing.
+
+        With no default, a missing key gets a new empty child (like indexing,
+        per collections.defaultdict).
+        """
+        if key not in self._data:
+            if default is None:
+                return self[key]
+            self[key] = default
+        return self._data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""
@@ -106,10 +128,14 @@ class FileExtension(MutableMapping):
         self._parent = None
         if isinstance(val, FileSequenceContainer):
             self._parent = val
+            # Sequences added before the parent was set adopt its names too.
+            for child in self._data.values():
+                self._adopt(child)
 
     def _adopt(self, child):
-        """Give a new child sequence the parent container's path and name."""
-        if self.parent:
+        """Give a child sequence the parent container's path and name."""
+        # An empty container is falsy (it's a mapping): test identity.
+        if self.parent is not None:
             child.path = self.parent.path
             child.name = self.parent.name
         return child
@@ -191,6 +217,25 @@ class FileSequenceContainer(MutableMapping):
     def get(self, key, default=None):
         """Look up a key without creating it (per collections.defaultdict)."""
         return self._data.get(key, default)
+
+    def pop(self, key, default=_MISSING):
+        """Remove and return a key's value without creating missing keys."""
+        if default is _MISSING:
+            return self._data.pop(key)
+        return self._data.pop(key, default)
+
+    def setdefault(self, key, default=None):
+        """
+        Return a key's value, inserting `default` if the key is missing.
+
+        With no default, a missing key gets a new empty child (like indexing,
+        per collections.defaultdict).
+        """
+        if key not in self._data:
+            if default is None:
+                return self[key]
+            self[key] = default
+        return self._data[key]
 
     def __getitem__(self, key):
         """Define key getter logic (per collections.defaultdict)."""

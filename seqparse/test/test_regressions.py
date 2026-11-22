@@ -100,6 +100,23 @@ class TestScanning(_TempDirMixin, unittest.TestCase):
         parser = self.scan()
         self.assertEqual(len(list(parser.output())), 3)
 
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unsupported")
+    def test_symlinked_directory_reported_under_both_paths(self):
+        """The loop guard hid any directory reachable by a second path."""
+        os.symlink(
+            os.path.join(self.root, "a", "b"), os.path.join(self.root, "alias")
+        )
+        parser = self.scan()
+        self.assertCountEqual(
+            self.rel(parser.output()),
+            [
+                "top.0001.exr",
+                "a/mid.0001.exr",
+                "a/b/low.0001.exr",
+                "alias/low.0001.exr",
+            ],
+        )
+
     @unittest.skipIf(
         os.name != "posix" or os.geteuid() == 0,
         "needs POSIX permissions and a non-root user",
@@ -148,6 +165,16 @@ class TestFileNames(_TempDirMixin, unittest.TestCase):
         items = list(parser.output())
         self.assertEqual(self.rel(items), ["a.1-3.exr"])
         self.assertEqual(items[0].size, 0)
+
+    def test_single_file_scan_matches_directory_scan(self):
+        """Scanning "a.1-3.exr" directly reported a 3-frame sequence."""
+        self.make_files("a.1-3.exr", content="abc")
+        results = []
+        for path in (os.path.join(self.root, "a.1-3.exr"), self.root):
+            items = list(self.scan(path, stat=True).output())
+            results.append([(type(x).__name__, x.size) for x in items])
+        self.assertEqual(results[0], [("File", 3)])
+        self.assertEqual(results[0], results[1])
 
     def test_sequence_string_via_add_file_still_supported(self):
         """add_file() with a whole sequence string remains a feature."""
@@ -257,6 +284,17 @@ class TestFileSequences(_TempDirMixin, unittest.TestCase):
         """A full sequence string as the only argument is still parsed."""
         fseq = FileSequence("shot.0001-0003.exr")
         self.assertEqual((fseq.name, fseq.ext, fseq.pad), ("shot", "exr", 4))
+
+    def test_full_name_with_matching_ext_is_parsed(self):
+        """A full sequence string plus a redundant ext wasn't parsed."""
+        fseq = FileSequence("foo.0001-0003.exr", ext="exr")
+        self.assertEqual((fseq.name, fseq.ext, len(fseq)), ("foo", "exr", 3))
+
+        # A conflicting ext means the name is just a base name.
+        fseq = FileSequence("comp.1.final", ext="exr")
+        self.assertEqual(
+            (fseq.name, fseq.ext, len(fseq)), ("comp.1.final", "exr", 0)
+        )
 
     def test_clone_keeps_pad_with_overflowing_frame(self):
         """Cloning re-derived the pad from the frames ("10000" -> pad 5)."""
@@ -385,6 +423,43 @@ class TestContainers(unittest.TestCase):
             FileSequenceContainer(name="foo")["exr"] = []
         with self.assertRaises(TypeError):
             FileExtension(name="exr")[4] = "foo.0001.exr"
+
+    def test_assigned_extension_adopts_existing_sequences(self):
+        """Sequences already in an assigned FileExtension lost their names."""
+        extension = FileExtension(name="exr")
+        extension[4] = [1, 2, 3]
+        container = FileSequenceContainer(name="foo", file_path="d")
+        container["exr"] = extension
+        self.assertEqual(
+            [str(x) for x in container.output()],
+            [os.path.join("d", "foo.0001-0003.exr")],
+        )
+
+    def test_empty_parent_still_names_new_sequences(self):
+        """An empty (falsy) parent container was ignored when naming."""
+        parent = FileSequenceContainer(name="foo", file_path="d")
+        extension = FileExtension(name="exr", parent=parent)
+        extension[4].add(1)
+        self.assertEqual(
+            [str(x) for x in extension.output()],
+            [os.path.join("d", "foo.0001.exr")],
+        )
+
+    def test_pop_and_setdefault_do_not_autocreate(self):
+        """pop()/setdefault() went through the auto-creating __getitem__."""
+        extension = FileExtension(name="exr")
+        self.assertIsNone(extension.pop(4, None))
+        with self.assertRaises(KeyError):
+            extension.pop(4)
+        self.assertEqual(list(extension), [])
+
+        container = FileSequenceContainer(name="foo")
+        mine = FileExtension(name="tif")
+        self.assertIs(container.setdefault("tif", mine), mine)
+        self.assertIs(container.setdefault("tif", FileExtension("tif")), mine)
+        # No default: behaves like indexing and creates an empty child.
+        self.assertIsInstance(container.setdefault("exr"), FileExtension)
+        self.assertCountEqual(container, ["exr", "tif"])
 
 
 class TestFileSequenceErrors(unittest.TestCase):
