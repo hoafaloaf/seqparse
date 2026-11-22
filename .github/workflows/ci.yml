@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+# CI only reads the code; the token gets no write access.
+permissions:
+  contents: read
+
 # A newer push to the same branch or PR cancels the older run.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -44,3 +48,25 @@ jobs:
       # Coverage settings live in pyproject.toml.
       - run: python -m coverage run -m pytest -q
       - run: python -m coverage report
+      # Cobertura XML uses "/" in file paths on every OS, so Coveralls can
+      # merge the Windows jobs with the rest.
+      - run: python -m coverage xml
+      - uses: coverallsapp/github-action@v2
+        with:
+          file: coverage.xml
+          format: cobertura
+          parallel: true
+          flag-name: ${{ matrix.os }}-py${{ matrix.python-version }}
+          # A Coveralls outage shouldn't fail the build.
+          fail-on-error: false
+
+  coverage:
+    # Combines the matrix jobs' uploads into one Coveralls report.
+    needs: test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
+          fail-on-error: false

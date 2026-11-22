@@ -1,8 +1,11 @@
 # seqparse: A nifty way to list your file sequences.
 
-[![PyPI Package](https://badge.fury.io/py/seqparse.svg)](https://badge.fury.io/py/seqparse)
-[![CI Status](https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/hoafaloaf/seqparse.svg)](https://github.com/hoafaloaf/seqparse/blob/master/LICENSE.txt)
+[![PyPI version](https://img.shields.io/pypi/v/seqparse)](https://pypi.org/project/seqparse/)
+[![Python versions](https://img.shields.io/pypi/pyversions/seqparse)](https://pypi.org/project/seqparse/)
+[![CI](https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/hoafaloaf/seqparse/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/coverallsCoverage/github/hoafaloaf/seqparse?branch=master)](https://coveralls.io/github/hoafaloaf/seqparse?branch=master)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/github/license/hoafaloaf/seqparse)](https://github.com/hoafaloaf/seqparse/blob/master/LICENSE.txt)
 
 ## Overview
 

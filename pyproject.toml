@@ -96,6 +96,8 @@ exclude = ['^seqparse/test/']
 source = ["seqparse"]
 omit = ["seqparse/test/*"]
 branch = true
+# Repo-relative paths in reports, so Coveralls can find the source files.
+relative_files = true
 
 [tool.coverage.report]
 show_missing = true
