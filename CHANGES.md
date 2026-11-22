@@ -2,18 +2,76 @@
 
 ## Unreleased
 
+Changes (from v1.0.1)
+
+Breaking changes:
+
+* Requires Python 3.11 or later (was 3.7+), and no longer depends on `six`.
+* `SeqparsePadException` is now `SeqparsePadError`, a subclass of
+  `ValueError`. As a result `validate_frame_sequence()` no longer raises on bad
+  padding.
+* Exceptions are standardized: wrong value types raise `TypeError`, and a
+  missing extension raises `ValueError`.
+* Scanning no longer hides symlinked directories that are not loops: a file
+  reachable by two paths is listed under each, like `find -L`. Only a directory
+  that resolves to one of its own ancestors is skipped.
+
+New features:
+
 * `seqls -` reads file names from standard input (one per line) and groups
   them without touching disk, eg `find . -name '*.exr' | seqls -`.
+* `seqls --json` prints machine-readable JSON (see the README for the fields).
 * `seqls --empty` lists the zero-byte frames of each sequence (the debris of a
   crashed render); `FileSequence.empty_files()` is the library equivalent.
-* `seqls --json` prints machine-readable JSON (see the README for the fields).
-* `__all__` is now complete in every module (added `get_stat_result`,
-  `StatLike`, `FrameChunk`, `ScanOptions`, `Location`, the regex result types
-  and the `seqls` functions), and a test keeps it that way.
+* Windows is supported: native paths, including drive letters, UNC shares and
+  mixed separators, and CI now runs on Windows, macOS and Linux.
+* Fully type-annotated (mypy strict) and ships a `py.typed` marker (PEP 561),
+  so type checkers use seqparse's annotations.
+* `__all__` is complete in every module (added `get_stat_result`, `StatLike`,
+  `FrameChunk`, `ScanOptions`, `Location`, the regex result types and the
+  `seqls` functions), and a test keeps it that way.
+
+Performance:
+
+* Frames are stored in a compact sorted array: peak memory falls to 3-18% of
+  1.0.1's and most operations run 2-14x faster.
+* Frame strings and file names are parsed without per-chunk regex matches, and
+  possessive regexes stop large inputs from using megabytes of backtracking
+  state.
+* Directory scans are faster (inode-based symlink-loop detection, uncopied stat
+  results).
+* Instances use `__slots__`; weak references, custom attributes and pickles
+  made by 1.0.x still work.
+
+Bug fixes:
+
+* *Bugfix:* Scanning: depth limits were ignored for lists of paths,
+  `--mindepth` was off by one, a trailing slash shifted depths, symlink loops
+  caused infinite recursion, and one unreadable subdirectory aborted the whole
+  scan. Scanning a single file now classifies it like a directory scan does,
+  so a file named like `foo.1-3.exr` is one file with its real stats.
+* *Bugfix:* File sequences: crashes and mangled names with frame-only file
+  names, base names that look like sequences, cloning, partially stat'd
+  sequences, frame 0 and containers with several extensions; stale `str()`
+  output after changing a sequence's pad; sequences losing their base name and
+  path in some containers; `FileSequence("foo.0001-0003.exr", ext="exr")` now
+  parses.
+* *Bugfix:* `in` and `.get()` on sequence containers always succeeded and
+  silently created empty entries, and so did `pop()` and `setdefault()`.
+* *Bugfix:* `seqls` output: blank lines from `--missing`, "----" shown as the
+  size of 0-byte files, and the current time shown for entries without stats.
+* `File` objects are now hashable.
 * Fixed Python 2 `print` syntax in the `invert()` and
   `validate_frame_sequence()` docstring examples.
-* Ships a `py.typed` marker (PEP 561), so type checkers now use seqparse's
-  annotations.
+
+Project:
+
+* All packaging metadata lives in `pyproject.toml`, and the tests are no longer
+  shipped in wheels.
+* README and changelog are Markdown; the stale Sphinx docs are gone.
+* GitHub Actions replaces Travis (ruff and mypy replace yapf, isort and pylint)
+  and uploads coverage to Coveralls.
+* The test suite grew from 60 to 168 tests, and coverage is at 99%.
 
 ## v1.0.1 (2022/09/13)
 
