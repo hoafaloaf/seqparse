@@ -1,7 +1,9 @@
 """Container for all regular expressions used by the seqparse module."""
 
-from collections import namedtuple
+from __future__ import annotations
+
 import re
+from typing import ClassVar, Literal, NamedTuple, overload
 
 __all__ = (
     "BITS_EXPR",
@@ -24,12 +26,43 @@ FRAME_EXPR = r"(?:\d+(?:-\d+(?:x\d+)?)?(?:,+\d+(?:-\d+(?:x\d+)?)?)*)"
 
 # FILE_SEQ_EXPR is used to validate and split a "legal" sequence of files into
 # three sections: base (name), frame (sequence), and file ext(ension).
-FILE_SEQ_EXPR = r"(?:^(?P<name>.+)\.|^)(?P<frames>%s)\.(?P<ext>[^\.]+)$"
-FILE_SEQ_EXPR = FILE_SEQ_EXPR % FRAME_EXPR
+FILE_SEQ_EXPR = (
+    rf"(?:^(?P<name>.+)\.|^)(?P<frames>{FRAME_EXPR})\.(?P<ext>[^\.]+)$"
+)
 
-ChunkBits = namedtuple("ChunkBits", "first last step")
-FileNameBits = namedtuple("FileNameBits", "name frame ext")
-SequenceBits = namedtuple("SequenceBits", "name frames ext")
+# The same grammar with possessive quantifiers, for matching: it never needs
+# to backtrack (digits are always followed by "-", "x", "," or what follows
+# the frames), and without them the regex engine keeps a backtracking state
+# per chunk (~23 MB for a 50k-chunk sequence).
+_FRAME_POSSESSIVE = (
+    r"\d++(?:-\d++(?:x\d++)?+)?+(?:,++\d++(?:-\d++(?:x\d++)?+)?+)*+"
+)
+
+GroupDict = dict[str, str | None]
+
+
+class ChunkBits(NamedTuple):
+    """The parts of a frame chunk: "first[-last[xstep]]"."""
+
+    first: str
+    last: str | None
+    step: str | None
+
+
+class FileNameBits(NamedTuple):
+    """The parts of a single-frame file name: "[name.]frame.ext"."""
+
+    name: str | None
+    frame: str
+    ext: str
+
+
+class SequenceBits(NamedTuple):
+    """The parts of a file sequence string: "[name.]frames.ext"."""
+
+    name: str | None
+    frames: str
+    ext: str
 
 
 ###############################################################################
@@ -37,12 +70,28 @@ SequenceBits = namedtuple("SequenceBits", "name frames ext")
 class SeqparseRegexMixin:
     """Base for classes that need to perform regular expression matches."""
 
-    _bits_expr = re.compile(BITS_EXPR)
-    _file_expr = re.compile(FILE_NAME_EXPR)
-    _frame_expr = re.compile(rf",*{FRAME_EXPR},*$")
-    _fseq_expr = re.compile(FILE_SEQ_EXPR)
+    __slots__ = ()
 
-    def bits_match(self, val, as_dict=False):
+    _bits_expr: ClassVar[re.Pattern[str]] = re.compile(BITS_EXPR)
+    _file_expr: ClassVar[re.Pattern[str]] = re.compile(FILE_NAME_EXPR)
+    _frame_expr: ClassVar[re.Pattern[str]] = re.compile(
+        rf",*+{_FRAME_POSSESSIVE},*+$"
+    )
+    _fseq_expr: ClassVar[re.Pattern[str]] = re.compile(
+        FILE_SEQ_EXPR.replace(FRAME_EXPR, _FRAME_POSSESSIVE)
+    )
+
+    @overload
+    def bits_match(
+        self, val: str, as_dict: Literal[False] = False
+    ) -> ChunkBits | None: ...
+    @overload
+    def bits_match(
+        self, val: str, as_dict: Literal[True]
+    ) -> GroupDict | None: ...
+    def bits_match(
+        self, val: str, as_dict: bool = False
+    ) -> ChunkBits | GroupDict | None:
         """
         Calculate first, last, step for valid string frame chunks.
 
@@ -58,15 +107,22 @@ class SeqparseRegexMixin:
             dict of regex groups with as_dict = True.
         """
         bmatch = self._bits_expr.match(val)
-        if bmatch:
-            return (
-                bmatch.groupdict()
-                if as_dict
-                else ChunkBits(**bmatch.groupdict())
-            )
-        return None
+        if not bmatch:
+            return None
+        groups = bmatch.groupdict()
+        return groups if as_dict else ChunkBits(**groups)
 
-    def file_name_match(self, val, as_dict=False):
+    @overload
+    def file_name_match(
+        self, val: str, as_dict: Literal[False] = False
+    ) -> FileNameBits | None: ...
+    @overload
+    def file_name_match(
+        self, val: str, as_dict: Literal[True]
+    ) -> GroupDict | None: ...
+    def file_name_match(
+        self, val: str, as_dict: bool = False
+    ) -> FileNameBits | GroupDict | None:
         """
         Calculate base name, frame, extension for valid string file name.
 
@@ -82,15 +138,22 @@ class SeqparseRegexMixin:
             dict of regex groups with as_dict = True.
         """
         fmatch = self._file_expr.match(val)
-        if fmatch:
-            return (
-                fmatch.groupdict()
-                if as_dict
-                else FileNameBits(**fmatch.groupdict())
-            )
-        return None
+        if not fmatch:
+            return None
+        groups = fmatch.groupdict()
+        return groups if as_dict else FileNameBits(**groups)
 
-    def file_seq_match(self, val, as_dict=False):
+    @overload
+    def file_seq_match(
+        self, val: str, as_dict: Literal[False] = False
+    ) -> SequenceBits | None: ...
+    @overload
+    def file_seq_match(
+        self, val: str, as_dict: Literal[True]
+    ) -> GroupDict | None: ...
+    def file_seq_match(
+        self, val: str, as_dict: bool = False
+    ) -> SequenceBits | GroupDict | None:
         """
         Calculate base name, sequence, extension for valid file sequence.
 
@@ -106,15 +169,12 @@ class SeqparseRegexMixin:
             dict of regex groups with as_dict = True.
         """
         fmatch = self._fseq_expr.match(val)
-        if fmatch:
-            return (
-                fmatch.groupdict()
-                if as_dict
-                else SequenceBits(**fmatch.groupdict())
-            )
-        return None
+        if not fmatch:
+            return None
+        groups = fmatch.groupdict()
+        return groups if as_dict else SequenceBits(**groups)
 
-    def is_frame_sequence(self, val):
+    def is_frame_sequence(self, val: str) -> bool:
         """
         Whether a string frame sequence is valid.
 

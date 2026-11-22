@@ -30,7 +30,18 @@ Examples of proper frame sequences:
     * Two-padded sequence (1, 3, 5, 7, 11, 13, 102): 01-07x2,11,13,102
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable, Sequence
 import os
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from seqparse.seqparse import Seqparse
+    from seqparse.sequences import FrameChunk, FrameSequence
+
+# Anything os.stat_result accepts: another stat_result or a sequence of values.
+StatLike = os.stat_result | Sequence[float]
 
 __all__ = (
     "get_parser",
@@ -47,7 +58,7 @@ __version__ = "1.0.1"
 # EXPORTED METHODS
 
 
-def get_parser():
+def get_parser() -> Seqparse:
     """
     Create a new Seqparse instance.
 
@@ -59,12 +70,14 @@ def get_parser():
         >>> get_parser()
         Seqparse(sequences=0, singletons=0)
     """
-    from .seqparse import Seqparse  # pylint: disable=C0415
+    from seqparse.seqparse import Seqparse
 
     return Seqparse()
 
 
-def get_sequence(frames, pad=1):
+def get_sequence(
+    frames: str | Iterable[int | str] | int, pad: int = 1
+) -> FrameSequence:
     """
     Create a new FrameSequence instance.
 
@@ -86,12 +99,12 @@ def get_sequence(frames, pad=1):
         >>> get_sequence("0001-0005x2")
         FrameSequence(pad=4, frames=set([1, 3, 5]))
     """
-    from .sequences import FrameSequence  # pylint: disable=C0415
+    from seqparse.sequences import FrameSequence
 
     return FrameSequence(frames, pad=pad)
 
 
-def get_stat_result(input_stat):
+def get_stat_result(input_stat: StatLike) -> os.stat_result:
     """
     Wrapper for os-specific stat_result instance.
 
@@ -101,15 +114,27 @@ def get_stat_result(input_stat):
     Returns:
         nt.stat_result or posix.stat_result, dependent on system platform.
     """
-    if os.name == "posix":
-        from posix import stat_result  # pylint: disable=E0401,C0415
-    else:  # pragma: no cover
-        from nt import stat_result  # pylint: disable=E0401,C0415
-
-    return stat_result(input_stat)
+    if type(input_stat) is os.stat_result:
+        return input_stat  # immutable: no need to copy
+    return os.stat_result(input_stat)
 
 
-def get_version(pretty=False):
+def restore_slots(obj: object, state: tuple[Any, Any]) -> None:
+    """
+    Restore pickled state of the (dict, slots) form for a __slots__ class.
+
+    Args:
+        obj (object): The instance being unpickled.
+        state (tuple): (instance __dict__ or None, slot values or None).
+    """
+    dict_state, slot_state = state
+    for name, value in (slot_state or {}).items():
+        object.__setattr__(obj, name, value)
+    if dict_state:
+        obj.__dict__.update(dict_state)
+
+
+def get_version(pretty: bool = False) -> str:
     """
     Report which version of seqparse you're using.
 
@@ -124,7 +149,7 @@ def get_version(pretty=False):
     return __version__
 
 
-def invert(iterable):
+def invert(iterable: FrameChunk | FrameSequence) -> FrameSequence:
     """
     Create an iterator representing a sequence's missing frames or files.
 
@@ -147,7 +172,7 @@ def invert(iterable):
         >>> print repr(inverted), str(inverted)
         FrameSequence(pad=4, frames=set([2, 4])) 0002,0004
     """
-    from .sequences import FrameChunk, FrameSequence  # pylint: disable=C0415
+    from seqparse.sequences import FrameChunk, FrameSequence
 
     if not isinstance(iterable, (FrameChunk, FrameSequence)):
         raise TypeError(
@@ -157,7 +182,7 @@ def invert(iterable):
     return iterable.invert()
 
 
-def validate_frame_sequence(frame_seq):
+def validate_frame_sequence(frame_seq: str) -> str | None:
     """
     Whether the supplied string frame (not file) sequence is valid.
 
@@ -175,6 +200,6 @@ def validate_frame_sequence(frame_seq):
         >>> print validate_frame_sequence("0001-")
         None
     """
-    from .seqparse import Seqparse  # pylint: disable=C0415
+    from seqparse.seqparse import Seqparse
 
     return Seqparse().validate_frame_sequence(frame_seq)

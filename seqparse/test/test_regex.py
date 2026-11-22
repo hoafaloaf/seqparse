@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from ..regex import SeqparseRegexMixin
+from seqparse.regex import SeqparseRegexMixin
 
 ###############################################################################
 # class: TestRegex

@@ -4,7 +4,7 @@ import os
 import unittest
 from unittest import mock
 
-from .. import (
+from seqparse import (
     __version__,
     get_parser,
     get_sequence,
@@ -12,8 +12,8 @@ from .. import (
     invert,
     validate_frame_sequence,
 )
-from ..sequences import FileSequence, FrameChunk, FrameSequence
-from . import (
+from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
+from seqparse.test import (
     DirEntry,
     generate_entries,
     initialise_mock_scandir_data,

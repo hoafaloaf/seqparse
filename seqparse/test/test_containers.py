@@ -4,10 +4,10 @@ import os
 import unittest
 from unittest import mock
 
-from .. import get_parser
-from ..containers import FileExtension, SingletonContainer
-from ..sequences import FileSequence
-from . import DirEntry
+from seqparse import get_parser
+from seqparse.containers import FileExtension, SingletonContainer
+from seqparse.sequences import FileSequence
+from seqparse.test import DirEntry
 
 ###############################################################################
 # class: TestSingletonContainer

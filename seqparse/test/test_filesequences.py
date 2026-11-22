@@ -4,8 +4,8 @@ import os
 import unittest
 from unittest import mock
 
-from ..sequences import FileSequence, FrameChunk, FrameSequence
-from . import mock_os_stat
+from seqparse.sequences import FileSequence, FrameChunk, FrameSequence
+from seqparse.test import mock_os_stat
 
 ###############################################################################
 # class: TestFileSequences
@@ -282,7 +282,6 @@ class TestFileSequences(unittest.TestCase):
         with self.assertRaises(ValueError):
             fseq.stat(force=True)
 
-        # pylint: disable=E1101
         stat = fseq.stat(1, lazy=True)
         self.assertEqual(stat.st_size, 7975)
         self.assertEqual(stat.st_mtime, 1490908305)
@@ -295,7 +294,6 @@ class TestFileSequences(unittest.TestCase):
         self.assertEqual(fseq.stat(1).st_mtime, 1490908305)
         self.assertEqual(fseq.size, 7975)
         self.assertEqual(fseq.mtime, 1490908305)
-        # pylint: enable=E1101
 
     def test_cloning(self):
         """FileSequence: Test cloning from an existing instance."""

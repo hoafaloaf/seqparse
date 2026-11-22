@@ -2,7 +2,7 @@
 
 import unittest
 
-from ..sequences import FrameChunk
+from seqparse.sequences import FrameChunk
 
 ###############################################################################
 # class: TestFrameChunks

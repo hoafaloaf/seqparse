@@ -1,11 +1,12 @@
 #!/bin/bash
+# Local equivalent of .github/workflows/ci.yml (needs ruff and mypy installed).
+set -u
 
-python -m unittest discover
+status=0
+ruff check seqparse benchmarks || status=1
+ruff format --check seqparse benchmarks || status=1
+mypy || status=1
+python -m coverage run -m pytest -q || status=1
+python -m coverage report --include="seqparse/*" --omit="seqparse/test/*"
 
-EXIT_STATUS=$?
-
-pylint -d I0011,R0204,R0801,W0622 seqparse \
-  --msg-template='{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}]' \
-  --reports=yes
-
-exit ${EXIT_STATUS}
+exit ${status}

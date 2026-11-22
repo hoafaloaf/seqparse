@@ -4,8 +4,8 @@ import os
 import unittest
 from unittest import mock
 
-from ..files import File
-from . import mock_os_stat
+from seqparse.files import File
+from seqparse.test import mock_os_stat
 
 ###############################################################################
 # class: TestFiles

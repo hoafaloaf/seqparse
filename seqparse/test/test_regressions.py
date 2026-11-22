@@ -5,19 +5,26 @@ use real temporary directories (not mocked scandir) since symlinks, permissions
 and path handling are exactly what the mocks could not exercise.
 """
 
+import base64
 import os
+import pickle
 import tempfile
 import unittest
+from unittest import mock
+import weakref
 
-from .. import get_parser, get_sequence, validate_frame_sequence
-from ..cli import seqls
-from ..containers import (
+from seqparse import get_parser, get_sequence, validate_frame_sequence
+from seqparse import seqparse as seqparse_module
+from seqparse.cli import seqls
+from seqparse.containers import (
     FileExtension,
     FileSequenceContainer,
     SingletonContainer,
 )
-from ..sequences import (
+from seqparse.files import File
+from seqparse.sequences import (
     FileSequence,
+    FrameChunk,
     FrameSequence,
     SeqparsePadError,
 )
@@ -470,3 +477,196 @@ class TestFileSequenceErrors(unittest.TestCase):
         fseq = FileSequence(frames="0001-0003")
         with self.assertRaises(ValueError):
             str(fseq)
+
+
+class TestFrameStorage(unittest.TestCase):
+    """Frames are stored compactly; edge cases of that storage."""
+
+    def test_frames_beyond_64_bits(self):
+        """Frame numbers too big for a 64-bit array still work."""
+        big = 2**70
+        seq = FrameSequence([3, 1, big, 2])
+        seq.add(big + 2)
+        self.assertEqual(str(seq), f"1-3,{big},{big + 2}")
+        self.assertIn(big, seq)
+        self.assertNotIn(big + 1, seq)
+        seq.discard(big)
+        self.assertEqual(len(seq), 4)
+        inverted = FrameSequence([big, big + 3]).invert()
+        self.assertEqual(str(inverted), f"{big + 1},{big + 2}")
+
+    def test_interleaved_adds_and_reads(self):
+        """Small and large merges, in and out of order, dedupe correctly."""
+        seq = FrameSequence(range(0, 100, 2))
+        for frame in (5, 3, 5, 98, 101, 0):
+            seq.add(frame)
+            self.assertIn(frame, seq)
+        seq.update(range(200, 99, -1))  # 101 frames, descending: full merge
+        self.assertEqual(len(seq), 50 + 2 + 101)
+        self.assertEqual(list(seq)[:4], ["0", "2", "3", "4"])
+        seq.discard(3)
+        seq.discard(3)
+        self.assertNotIn(3, seq)
+        self.assertEqual(len(seq), 152)
+
+
+# Pickles made by seqparse 1.0.x (master at 6ea1a80), protocol 2.
+LEGACY_PICKLES = {
+    "file": (
+        "gAJjc2VxcGFyc2UuZmlsZXMKRmlsZQpxACmBcQF9cQIoWAUAAABfaW5mb3EDfXEE"
+        "KFgEAAAAZnVsbHEFWAgAAAAvci9hLnR4dHEGWAQAAABuYW1lcQdYBQAAAGEudHh0"
+        "cQhYBAAAAHBhdGhxCVgCAAAAL3JxCnVYBQAAAF9zdGF0cQtjb3MKc3RhdF9yZXN1"
+        "bHQKcQwoSwFLAUsBSwFLAUsBSwFLAUsBSwF0cQ19cQ4oWAgAAABzdF9hdGltZXEP"
+        "SwFYCAAAAHN0X210aW1lcRBLAVgIAAAAc3RfY3RpbWVxEUsBWAsAAABzdF9hdGlt"
+        "ZV9uc3ESTlgLAAAAc3RfbXRpbWVfbnNxE05YCwAAAHN0X2N0aW1lX25zcRROWAoA"
+        "AABzdF9ibGtzaXplcRVOWAkAAABzdF9ibG9ja3NxFk5YBwAAAHN0X3JkZXZxF05Y"
+        "CAAAAHN0X2ZsYWdzcRhOWAYAAABzdF9nZW5xGU5YDAAAAHN0X2JpcnRodGltZXEa"
+        "TnWGcRtScRx1Yi4="
+    ),
+    "chunk": (
+        "gAJjc2VxcGFyc2Uuc2VxdWVuY2VzCkZyYW1lQ2h1bmsKcQApgXEBfXECKFgFAAAA"
+        "X2RhdGFxA31xBChYBQAAAGZpcnN0cQVLBVgEAAAAbGFzdHEGSwtYBgAAAGxlbmd0"
+        "aHEHSwRYAwAAAHBhZHEISwNYBAAAAHN0ZXBxCUsCdVgHAAAAX291dHB1dHEKWAkA"
+        "AAAwMDUtMDExeDJxC3ViLg=="
+    ),
+    "frames": (
+        "gAJjc2VxcGFyc2Uuc2VxdWVuY2VzCkZyYW1lU2VxdWVuY2UKcQApgXEBfXECKFgG"
+        "AAAAX2F0dHJzcQN9cQQoWAYAAABjaHVua3NxBV1xBlgFAAAAZGlydHlxB4hYCQAA"
+        "AGlzX3BhZGRlZHEIiVgDAAAAcGFkcQlLAlgEAAAAc3RhdHEKfXELdVgFAAAAX2Rh"
+        "dGFxDGNfX2J1aWx0aW5fXwpzZXQKcQ1dcQ4oSwFLAksDSwdlhXEPUnEQWAcAAABf"
+        "b3V0cHV0cRFOdWIu"
+    ),
+    "file_seq": (
+        "gAJjc2VxcGFyc2Uuc2VxdWVuY2VzCkZpbGVTZXF1ZW5jZQpxACmBcQF9cQIoWAYA"
+        "AABfY2FjaGVxA31xBChYBQAAAGN0aW1lcQVOWAUAAABtdGltZXEGTlgEAAAAc2l6"
+        "ZXEHTnVYBQAAAF9pbmZvcQh9cQkoWAMAAABleHRxClgDAAAAZXhycQtYBAAAAGZ1"
+        "bGxxDFgIAAAAL3IvcGxhdGVxDVgEAAAAbmFtZXEOWAUAAABwbGF0ZXEPWAQAAABw"
+        "YXRocRBYAgAAAC9ycRF1WAUAAABfc3RhdHESfXETSwFjb3MKc3RhdF9yZXN1bHQK"
+        "cRQoSwBLAEsASwBLAEsASwBLAEsASwB0cRV9cRYoWAgAAABzdF9hdGltZXEXSwBY"
+        "CAAAAHN0X210aW1lcRhLAFgIAAAAc3RfY3RpbWVxGUsAWAsAAABzdF9hdGltZV9u"
+        "c3EaTlgLAAAAc3RfbXRpbWVfbnNxG05YCwAAAHN0X2N0aW1lX25zcRxOWAoAAABz"
+        "dF9ibGtzaXplcR1OWAkAAABzdF9ibG9ja3NxHk5YBwAAAHN0X3JkZXZxH05YCAAA"
+        "AHN0X2ZsYWdzcSBOWAYAAABzdF9nZW5xIU5YDAAAAHN0X2JpcnRodGltZXEiTnWG"
+        "cSNScSRzWAYAAABfYXR0cnNxJX1xJihYBgAAAGNodW5rc3EnXXEoWAUAAABkaXJ0"
+        "eXEpiFgJAAAAaXNfcGFkZGVkcSqJWAMAAABwYWRxK0sEWAQAAABzdGF0cSx9cS11"
+        "WAUAAABfZGF0YXEuY19fYnVpbHRpbl9fCnNldApxL11xMChLAUsCSwNLBWWFcTFS"
+        "cTJYBwAAAF9vdXRwdXRxM051Yi4="
+    ),
+}
+
+
+def _legacy(name):
+    """Load one of the seqparse 1.0.x pickles."""
+    return pickle.loads(base64.b64decode(LEGACY_PICKLES[name]))
+
+
+class TestSlotsCompatibility(unittest.TestCase):
+    """__slots__ must not break what worked with dict-based instances."""
+
+    def test_weakrefs_and_custom_attributes(self):
+        """Weak references and ad-hoc attributes still work."""
+        for obj in (
+            File("/r/a.txt"),
+            FrameChunk(1, 5),
+            FrameSequence([1, 2]),
+            FileSequence(name="a", ext="exr", frames=[1]),
+        ):
+            self.assertIs(weakref.ref(obj)(), obj)
+            obj.custom = 1
+            self.assertEqual(obj.custom, 1)
+
+    def test_round_trip_pickle(self):
+        """Current pickles round-trip, including custom attributes."""
+        seq = FileSequence(name="/r/plate", ext="exr", frames=[1, 3], pad=4)
+        seq.custom = "x"
+        clone = pickle.loads(pickle.dumps(seq))
+        self.assertEqual(str(clone), "/r/plate.0001,0003.exr")
+        self.assertEqual(clone.custom, "x")
+        self.assertEqual(
+            str(pickle.loads(pickle.dumps(FrameChunk(1, 9, 2)))), "1-9x2"
+        )
+
+    def test_legacy_pickles(self):
+        """Pickles made by seqparse 1.0.x still load."""
+        file = _legacy("file")
+        self.assertEqual(
+            (file.full_name, file.name, file.path), ("/r/a.txt", "a.txt", "/r")
+        )
+        self.assertEqual(file.size, 1)
+        chunk = _legacy("chunk")
+        self.assertEqual(
+            (str(chunk), len(chunk), chunk.pad), ("005-011x2", 4, 3)
+        )
+        frames = _legacy("frames")
+        self.assertEqual((str(frames), frames.pad), ("01-03,07", 2))
+        frames.add(4)
+        self.assertEqual(str(frames), "01-04,07")
+        fseq = _legacy("file_seq")
+        self.assertEqual(str(fseq), "/r/plate.0001-0003,0005.exr")
+        self.assertEqual(fseq.size, 0)
+        self.assertIn("/r/plate.0005.exr", fseq)
+
+
+class TestSequenceEdgeCases(unittest.TestCase):
+    """Behaviour the array-backed storage must keep."""
+
+    def test_mutating_while_iterating(self):
+        """Iteration works on a snapshot, like the old chunk list."""
+        seq = FrameSequence(range(1, 11))
+        for frame in seq:
+            if int(frame) % 3:
+                seq.discard(frame)
+        self.assertEqual(str(seq), "3-9x3")
+        seq = FrameSequence([1, 5])
+        seen = []
+        for frame in seq:
+            seen.append(frame)
+            seq.add(3)
+            len(seq)
+        self.assertEqual(seen, ["1", "5"])
+
+    def test_discard_inexact_numbers(self):
+        """discard() of a non-integral number removes nothing."""
+        seq = FrameSequence([1, 2, 3])
+        seq.discard(1.5)
+        self.assertEqual(str(seq), "1-3")
+        seq.discard(2.0)
+        self.assertEqual(str(seq), "1,3")
+        seq.discard(None)
+        self.assertEqual(str(seq), "1,3")
+
+    def test_negative_frame_file_names(self):
+        """Negative frames are members by file name too."""
+        seq = FileSequence(name="foo", frames=[-5, 1], ext="exr", pad=4)
+        self.assertIn("foo.-005.exr", list(seq))
+        self.assertIn("foo.-005.exr", seq)
+        self.assertNotIn("foo.-05.exr", seq)
+
+    def test_pad_change_refreshes_output(self):
+        """Changing pad after output was calculated updates str()."""
+        seq = FrameSequence([1, 2])
+        self.assertEqual(str(seq), "1,2")
+        seq.pad = 4
+        self.assertEqual(str(seq), "0001,0002")
+        self.assertEqual(list(seq), ["0001", "0002"])
+
+
+class TestScanLoopDetection(unittest.TestCase):
+    """Loop detection must not drop directories that merely share inodes."""
+
+    def test_reused_inode_numbers_are_not_loops(self):
+        """Same (dev, ino) for different directories (some network mounts)."""
+        with tempfile.TemporaryDirectory() as root:
+            for sub in ("a", "a/b"):
+                os.mkdir(os.path.join(root, sub))
+            with open(os.path.join(root, "a", "b", "f.0001.exr"), "w"):
+                pass
+            with mock.patch.object(
+                seqparse_module, "_dir_key", return_value=(1, 1)
+            ):
+                parser = get_parser()
+                parser.scan_path(root)
+            self.assertEqual(
+                [str(x) for x in parser.output()],
+                [os.path.join(root, "a", "b", "f.0001.exr")],
+            )

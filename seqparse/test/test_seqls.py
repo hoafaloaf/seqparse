@@ -7,10 +7,10 @@ import time
 import unittest
 from unittest import mock
 
-from .. import get_version
-from ..cli import seqls
-from ..sequences import FileSequence, FrameChunk
-from . import (
+from seqparse import get_version
+from seqparse.cli import seqls
+from seqparse.sequences import FileSequence, FrameChunk
+from seqparse.test import (
     DirEntry,
     generate_entries,
     initialise_mock_scandir_data,

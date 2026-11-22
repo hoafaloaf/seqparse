@@ -2,7 +2,7 @@
 
 import os
 
-from .. import get_stat_result
+from seqparse import get_stat_result
 
 __all__ = (
     "DirEntry",
@@ -107,15 +107,15 @@ class DirEntry:
         blurb = "{}(path={!r}, is_file={!r})"
         return blurb.format(type(self).__name__, self.path, self.is_file())
 
-    def is_dir(self, follow_symlinks=False):  # pylint: disable=W0613
+    def is_dir(self, follow_symlinks=False):
         """Whether this instance represents a directory."""
         return not self._is_file
 
-    def is_file(self, follow_symlinks=False):  # pylint: disable=W0613
+    def is_file(self, follow_symlinks=False):
         """Whether this instance represents a file."""
         return self._is_file
 
-    def stat(self, follow_symlinks=False):  # pylint: disable=W0613
+    def stat(self, follow_symlinks=False):
         """Return mock'd os.stat object for the given file."""
         if self.name not in MOCK_SCANDIR_STAT_DATA:
             raise OSError(f"Mock'd file not found: {self.name}")
@@ -185,7 +185,7 @@ def mock_os_stat(file_name):
     return get_stat_result(MOCK_SCANDIR_STAT_DATA[base_name])
 
 
-def mock_scandir_deep(search_path="."):  # pylint: disable=W0613
+def mock_scandir_deep(search_path="."):
     """A mock'd version of scandir.scandir for testing purposes."""
 
     if not MOCK_SCANDIR_DEEP_DATA:

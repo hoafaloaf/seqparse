@@ -6,22 +6,27 @@ Upon installation of the package this script will be accessable via `seqls`
 command on the command line of your choice.
 """
 
-from argparse import ArgumentParser
+from __future__ import annotations
+
+from argparse import ArgumentParser, Namespace
+from collections.abc import Iterable, Sequence
 import os
 import sys
 import time
 
 import humanize
 
-from .. import get_parser, get_version
+from seqparse import get_parser, get_version
+from seqparse.files import File
+from seqparse.sequences import FileSequence
 
 
-def run_main():  # pragma: no cover
+def run_main() -> None:  # pragma: no cover
     """Main entry point into the script."""
     main(parse_args(sys.argv[1:]))
 
 
-def main(args, _debug=False):
+def main(args: Namespace, _debug: bool = False) -> str | list[str] | None:
     """Wrap and initialise the Seqparse class."""
     if args.version:
         # Print the version and exit.
@@ -41,7 +46,7 @@ def main(args, _debug=False):
     }
 
     parser = get_parser()
-    parser.scan_options.update(all=args.all, stat=args.long_format)
+    parser.scan_options.update({"all": args.all, "stat": args.long_format})
 
     for search_path in sorted(args.search_path):
         parser.scan_path(os.path.abspath(search_path), **scan_opts)
@@ -64,13 +69,15 @@ def main(args, _debug=False):
     return None
 
 
-def long_format_output(items, human_readable=False):
+def long_format_output(
+    items: Iterable[File | FileSequence], human_readable: bool = False
+) -> list[str]:
     """Generate long format output for the provided items."""
     bits = []
     output = []
 
     for item in items:
-        size = item.size
+        size: int | str | None = item.size
         if size is None:
             size = "----"
         elif human_readable:
@@ -91,7 +98,7 @@ def long_format_output(items, human_readable=False):
     return output
 
 
-def parse_args(args):
+def parse_args(args: Sequence[str]) -> Namespace:
     """Parse any input arguments."""
     parser = ArgumentParser(description=__doc__)
 

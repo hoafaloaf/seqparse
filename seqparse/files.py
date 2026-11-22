@@ -1,7 +1,12 @@
 """Singleton file-related data structures utilized by the Seqparse module."""
 
+from __future__ import annotations
+
 from functools import total_ordering
 import os
+from typing import Any
+
+from seqparse import get_stat_result, restore_slots, StatLike
 
 __all__ = ("File",)
 
@@ -20,46 +25,67 @@ class File:
             specified file.
     """
 
-    def __init__(self, file_name, stat=None):
-        """Initialise the instance."""
-        self._info = {"full": None, "name": None, "path": None}
-        self._stat = None
+    # __dict__ and __weakref__ keep custom attributes and weak references
+    # working (the dict is only created if used).
+    __slots__ = ("__dict__", "__weakref__", "_full", "_name", "_path", "_stat")
 
+    _full: str
+    _name: str
+    _path: str
+    _stat: os.stat_result | None
+
+    def __init__(self, file_name: str, stat: StatLike | None = None) -> None:
+        """Initialise the instance."""
+        self._stat = None
         self._cache_stat(stat)
         self._set_name(file_name)
 
-    def __eq__(self, other):
+    def __setstate__(self, state: Any) -> None:
+        """Unpickle, including pickles made by seqparse 1.0.x."""
+        if isinstance(state, tuple):
+            restore_slots(self, state)
+            return
+        info = state["_info"]  # 1.0.x kept its state in plain dicts
+        self._full, self._name, self._path = (
+            info["full"],
+            info["name"],
+            info["path"],
+        )
+        self._stat = state["_stat"]
+
+    def __eq__(self, other: object) -> bool:
         """Define equality between instances."""
         if type(other) is type(self):
+            assert isinstance(other, File)
             return self.full_name == other.full_name
         return False
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Hash consistently with __eq__ (the name is fixed at creation)."""
         return hash((type(self), self.full_name))
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
         """Define equality between instances."""
         if type(other) is type(self):
+            assert isinstance(other, File)
             return self.full_name < other.full_name
         return True
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{cls}({full!r})"
-        return blurb.format(cls=type(self).__name__, **self._info)
+        return f"{type(self).__name__}({self._full!r})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of a File instance."""
         return str(self.full_name)
 
     @property
-    def full_name(self):
+    def full_name(self) -> str:
         """str: Full name of the sequence, including containing directory."""
-        return self._info["full"]
+        return self._full
 
     @property
-    def mtime(self):
+    def mtime(self) -> float | None:
         """
         int: Modification time of the file.
 
@@ -70,17 +96,17 @@ class File:
         return self._stat.st_mtime
 
     @property
-    def name(self):
+    def name(self) -> str:
         """str: Base name of the file sequence (no containing directory)."""
-        return self._info["name"]
+        return self._name
 
     @property
-    def path(self):
+    def path(self) -> str:
         """str: Directory in which the contained files are located."""
-        return self._info["path"]
+        return self._path
 
     @property
-    def size(self):
+    def size(self) -> int | None:
         """
         int: Size of the file in bytes.
 
@@ -90,7 +116,7 @@ class File:
             return None
         return self._stat.st_size
 
-    def _cache_stat(self, input_stat):
+    def _cache_stat(self, input_stat: StatLike | None) -> os.stat_result | None:
         """
         Cache file system stat data.
 
@@ -100,28 +126,24 @@ class File:
         Returns:
             stat_result that was successfully cached.
         """
-        from . import get_stat_result  # pylint: disable=C0415
-
         self._stat = None
         if input_stat:
             self._stat = get_stat_result(input_stat)
         return self._stat
 
-    def _set_name(self, full_name):
+    def _set_name(self, full_name: str) -> None:
         """
         Set all name-related fields on the instance.
 
         Args:
             full_name (str): Full path to the contained file.
-
-        Returns:
-            dict of path-related strings (full name, base name, path).
         """
-        path_name, file_name = os.path.split(full_name)
-        self._info.update(full=full_name, name=file_name, path=path_name)
-        return self._info
+        self._path, self._name = os.path.split(full_name)
+        self._full = full_name
 
-    def stat(self, force=False, lazy=False):
+    def stat(
+        self, force: bool = False, lazy: bool = False
+    ) -> os.stat_result | None:
         """
         File system status.
 

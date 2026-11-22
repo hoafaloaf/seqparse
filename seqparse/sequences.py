@@ -1,25 +1,69 @@
 """Sequence-related data structures utilized by the Seqparse module."""
 
-from collections.abc import MutableSet
-import os
+from __future__ import annotations
 
-from .regex import SeqparseRegexMixin
+from array import array
+from bisect import bisect_left
+from collections.abc import Iterable, Iterator, MutableSequence, MutableSet
+from itertools import islice, pairwise
+from operator import lt, sub
+import os
+from typing import Any, overload, SupportsInt, TypeAlias
+
+from seqparse import get_stat_result, restore_slots, StatLike
+from seqparse.regex import SeqparseRegexMixin
 
 __all__ = ("FileSequence", "FrameSequence", "SeqparsePadError")
 
+# Anything a FrameSequence accepts as frames: a frame number (int or digit
+# string), a frame sequence string, a FrameChunk/FrameSequence, or an iterable
+# of frames.
+Frames: TypeAlias = str | SupportsInt | Iterable[Any]
 
-def _is_iterable(value):
+
+def _is_iterable(value: object) -> bool:
     """Whether value is a non-string iterable (list, set, range, ...)."""
     if isinstance(value, (str, bytes)):
         return False
     try:
-        iter(value)
+        iter(value)  # type: ignore[call-overload]
     except TypeError:
         return False
     return True
 
 
-def _is_correctly_padded(value, pad):
+def _frame_number(item: Any) -> int:
+    """The integer frame number of item (raises like int() on bad input)."""
+    return int(item)
+
+
+# Frames are stored as a sorted array of 64-bit ints (8 bytes per frame, no
+# int objects); frame numbers too big for that fall back to a list.
+FrameStore: TypeAlias = MutableSequence[int]
+
+# Up to this many pending frames are merged by binary-search insertion;
+# more are merged by a full sort.
+_SMALL_MERGE = 32
+
+
+def _compact(values: list[int]) -> FrameStore:
+    """Store sorted, unique frames as compactly as their size allows."""
+    try:
+        return array("q", values)
+    except OverflowError:
+        return values
+
+
+def _exact_frame(value: object) -> int | None:
+    """value as a frame number if it is exactly one (1.0 is; 1.5 isn't)."""
+    try:
+        number = _frame_number(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number == value else None
+
+
+def _is_correctly_padded(value: str, pad: int) -> bool:
     """
     Whether a string frame is correctly zero-padded for the given padding.
 
@@ -43,15 +87,6 @@ class SeqparsePadError(ValueError):
     catching ValueError for bad frame input should catch this too.
     """
 
-    def __init__(self, message):
-        """
-        Initialise the instance.
-
-        Args:
-            message (str): Error message to throw when exception is raised.
-        """
-        super().__init__(message)
-
 
 ###############################################################################
 # Class: FrameChunk
@@ -69,91 +104,127 @@ class FrameChunk:
         pad (int, optional): Frame padding for the chunk. Defaults to 1.
     """
 
+    # __dict__ and __weakref__ keep custom attributes and weak references
+    # working (the dict is only created if used).
+    __slots__ = (
+        "__dict__",
+        "__weakref__",
+        "_first",
+        "_last",
+        "_length",
+        "_output",
+        "_pad",
+        "_step",
+    )
+
+    _first: int
+    _last: int
+    _length: int
+    _output: str
+    _pad: int
+    _step: int
+
     # Mutable, and equality depends on mutable state: deliberately
     # unhashable (like set and dict).
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
-    def __init__(self, first, last=None, step=1, pad=1):
+    def __init__(
+        self,
+        first: SupportsInt | str,
+        last: SupportsInt | str | None = None,
+        step: SupportsInt | str | None = 1,
+        pad: SupportsInt | str = 1,
+    ) -> None:
         """Initialise the instance."""
-        self._data = {
-            "first": None,
-            "last": None,
-            "length": None,
-            "pad": int(pad),
-            "step": None,
-        }
-        self._output = None
-
+        self._pad = int(pad)
         # This will calculate the string output as well!
         self.set_frames(first, last, step)
 
-    def __contains__(self, item):
+    def __setstate__(self, state: Any) -> None:
+        """Unpickle, including pickles made by seqparse 1.0.x."""
+        if isinstance(state, tuple):
+            restore_slots(self, state)
+            return
+        data = state["_data"]  # 1.0.x kept its state in plain dicts
+        self._first, self._last = data["first"], data["last"]
+        self._length, self._pad, self._step = (
+            data["length"],
+            data["pad"],
+            data["step"],
+        )
+        self._output = state["_output"]
+
+    def __contains__(self, item: object) -> bool:
         """Whether the chunk contains the specified (non-)padded frame."""
-        frame_num = int(item)
-        if not self.first <= frame_num <= self.last:
+        frame_num = _frame_number(item)
+        if not self._first <= frame_num <= self._last:
             return False
-        if (frame_num - self.first) % self.step:
+        if (frame_num - self._first) % self.step:
             return False
         if isinstance(item, str):
-            return _is_correctly_padded(item, self.pad)
+            return _is_correctly_padded(item, self._pad)
         return True
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Define equality between instances."""
-        if type(other) is type(self):
-            return self._data == other._data  # pylint: disable=W0212
+        if isinstance(other, FrameChunk) and type(other) is type(self):
+            return self._key() == other._key()
         return False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Iterate over the frames contained by the chunk."""
-        for frame in range(self.first, self.last + 1, self.step):
-            yield f"{frame:0{self.pad}d}"
+        spec = f"0{self._pad}d"
+        for frame in range(self._first, self._last + 1, self.step):
+            yield format(frame, spec)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Return the length of the frame chunk."""
-        return self._data["length"] or 0
+        return self._length
 
-    def __ne__(self, other):
-        """Define inequality between instance."""
-        return not self.__eq__(other)
-
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = (
-            "{name}(first={first}, last={last}, step={step}, "
-            "length={length}, pad={pad})"
+        return (
+            f"{type(self).__name__}(first={self._first}, last={self._last}, "
+            f"step={self._step}, length={self._length}, pad={self._pad})"
         )
-        return blurb.format(name=type(self).__name__, **self._data)
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[str]:
         """Allow reversed iteration via reversed()."""
-        return reversed(list(self))
+        spec = f"0{self._pad}d"
+        for frame in reversed(range(self._first, self._last + 1, self.step)):
+            yield format(frame, spec)
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation of the frame chunk."""
         return self._output
 
+    def _key(self) -> tuple[int, int, int, int, int]:
+        """Everything equality depends on."""
+        return (self._first, self._last, self._length, self._pad, self._step)
+
     @property
-    def first(self):
+    def first(self) -> int:
         """int: first frame of the chunk."""
-        return self._data["first"]
+        return self._first
 
     @property
-    def last(self):
+    def last(self) -> int:
         """int: Last frame of the chunk."""
-        return self._data["last"]
+        return self._last
 
     @property
-    def pad(self):
+    def pad(self) -> int:
         """int: zero-padding for the frames contained by the object."""
-        return self._data["pad"]
+        return self._pad
 
     @property
-    def step(self):
+    def step(self) -> int:
         """int: step size for the frame chunk."""
-        return max(self._data["step"] or 1, 1)
+        return max(self._step, 1)
 
-    def invert(self, first=None, last=None):
+    def invert(
+        self, first: int | None = None, last: int | None = None
+    ) -> FrameSequence:
         """
         Calculate iterator for the frames missing from the chunk.
 
@@ -184,14 +255,22 @@ class FrameChunk:
             001-004,006-012x2,013-015
         """
         if first is None:
-            first = self.first
+            first = self._first
         if last is None:
-            last = self.last
+            last = self._last
 
-        full_range = set(range(first, last + 1))
-        return FrameSequence(full_range - set(map(int, self)), pad=self.pad)
+        missing = set(range(first, last + 1))
+        missing.difference_update(range(self._first, self._last + 1, self.step))
+        inverted = FrameSequence(pad=self._pad)
+        inverted._frames = _compact(sorted(missing))
+        return inverted
 
-    def set_frames(self, first, last=None, step=1):
+    def set_frames(
+        self,
+        first: SupportsInt | str,
+        last: SupportsInt | str | None = None,
+        step: SupportsInt | str | None = 1,
+    ) -> str:
         """
         Set and validate the first and last frames of the chunk.
 
@@ -207,38 +286,41 @@ class FrameChunk:
         if last is None:
             last = first
 
-        first = int(first)
-        last = int(last)
-        step = max(1, int(step or 1))
+        low = int(first)
+        high = int(last)
+        size = max(1, int(step or 1))
 
-        if last < first:
-            message = "Last frame is less than first frame: {:d} < {:d}"
-            raise ValueError(message.format(last, first))
+        if high < low:
+            raise ValueError(
+                f"Last frame is less than first frame: {high:d} < {low:d}"
+            )
 
         # Calculate the length and the real last frame of the chunk.
-        bits = (last - first) // step
-        last = first + bits * step
-        step = min(last - first, step)
+        bits = (high - low) // size
+        high = low + bits * size
+        size = min(high - low, size)
 
         # Calculate the string representation of the frame chunk.
-        self._output = f"{first:0{self.pad}d}"
+        spec = f"0{self._pad}d"
+        output = format(low, spec)
         if bits == 1:
-            self._output += f",{last:0{self.pad}d}"
+            output += "," + format(high, spec)
         elif bits > 1:
-            self._output += f"-{last:0{self.pad}d}"
+            output += "-" + format(high, spec)
+        if size > 1 and bits > 1:
+            output += f"x{size:d}"
 
-        if step > 1 and bits > 1:
-            self._output += f"x{step:d}"
-
-        self._data.update(first=first, last=last, length=(1 + bits), step=step)
-        return self._output
+        self._first, self._last, self._step = low, high, size
+        self._length = 1 + bits
+        self._output = output
+        return output
 
 
 ###############################################################################
 # Class: FrameSequence
 
 
-class FrameSequence(MutableSet, SeqparseRegexMixin):
+class FrameSequence(MutableSet[str], SeqparseRegexMixin):
     """
     Representative for zero-padded frame sequences.
 
@@ -260,32 +342,47 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         >>> FrameSequence(FrameChunk(first=1, last=5, pad=4))
     """
 
-    def __init__(self, frames=None, pad=1):
+    # __dict__ and __weakref__ keep custom attributes and weak references
+    # working (the dict is only created if used).
+    __slots__ = (
+        "__dict__",
+        "__weakref__",
+        "_dirty",
+        "_frames",
+        "_is_padded",
+        "_ordered",
+        "_output",
+        "_pad",
+        "_pending",
+    )
+
+    def __init__(
+        self, frames: Frames | None = None, pad: SupportsInt | None = 1
+    ) -> None:
         """Initialise the instance."""
         super().__init__()
 
-        self._attrs = {
-            "chunks": [],
-            "dirty": True,
-            "is_padded": False,
-            "pad": None,
-            "stat": {},
-        }
-
-        self._data = set()
-        self._output = None
+        # Sorted, unique frames, plus frames added since the last _sync()
+        # (unsorted, possibly duplicated or already present).
+        self._frames: FrameStore = array("q")
+        self._pending: FrameStore = array("q")
+        # Whether _pending is strictly increasing.
+        self._ordered = True
+        self._dirty = True
+        self._is_padded = False
+        self._output = ""
+        # 0 means "not set yet": a frame sequence string sets it from its
+        # first frame.
+        self._pad = 0
 
         if isinstance(frames, str):
             if not self.is_frame_sequence(frames):
-                blurb = "Invalid iterable specified ({}, {!r})"
-                raise ValueError(blurb.format(type(frames), frames))
+                raise ValueError(
+                    f"Invalid iterable specified ({type(frames)}, {frames!r})"
+                )
             self._add_frame_sequence(frames)
             return
 
-        # NOTE: This could probably be made more efficient by copying a
-        # FrameSequence's _data attribute and/or checking to see if _chunks
-        # had anything in it. We shouldn't have to count on recalculating if
-        # the job's already been done for us.
         if isinstance(frames, (FrameChunk, FrameSequence)):
             pad = frames.pad
         elif frames is None:
@@ -294,114 +391,156 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             frames = [frames]
 
         self.pad = pad
+        self._add_from_iterable(frames)  # type: ignore[arg-type]
 
-        for item in frames:
-            self.add(item)
+    def __setstate__(self, state: Any) -> None:
+        """Unpickle, including pickles made by seqparse 1.0.x."""
+        if isinstance(state, tuple):
+            restore_slots(self, state)
+        else:
+            self._set_legacy_state(state)
 
-    def __contains__(self, item):
+    def _set_legacy_state(self, state: dict[str, Any]) -> None:
+        """Restore the plain-dict state that seqparse 1.0.x pickled."""
+        self._frames = _compact(sorted(state["_data"]))
+        self._pending = array("q")
+        self._ordered = True
+        self._dirty = True
+        self._is_padded = False
+        self._output = ""
+        self.pad = state["_attrs"]["pad"]
+
+    def __contains__(self, item: object) -> bool:
         """Defining containment logic (per standard set)."""
-        if int(item) in self._data:
+        if self._has(_frame_number(item)):
             if isinstance(item, str):
-                return _is_correctly_padded(item, self.pad)
+                return _is_correctly_padded(item, self._pad)
             return True
 
         return False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Defining item iteration logic (per standard set)."""
-        if self.is_dirty:
+        if self._dirty:
             self.calculate()
 
-        for chunk in self._attrs["chunks"]:
-            yield from chunk
+        spec = f"0{self._pad}d"
+        # Iterate a copy, so changing the sequence mid-loop is safe.
+        for frame in self._frames[:]:
+            yield format(frame, spec)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Defining item length logic (per standard set)."""
-        return len(self._data)
+        self._sync()
+        return len(self._frames)
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = "{}(pad={:d}, frames=set({!r}))"
-        return blurb.format(type(self).__name__, self.pad, sorted(self._data))
+        return (
+            f"{type(self).__name__}(pad={self._pad:d}, "
+            f"frames=set({self._sorted_frames()!r}))"
+        )
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[str]:
         """Allow reversed iteration via reversed()."""
         return reversed(list(self))
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String reprentation of the frame sequence."""
         self.calculate()
         return self._output
 
     @property
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         """bool: Whether output needs to be recalculated after an update."""
-        return self._attrs["dirty"]
+        return self._dirty
 
     @property
-    def is_padded(self):
+    def is_padded(self) -> bool:
         """bool: Whether the FrameSequence contains any zero-padded frames."""
         self.calculate()
-        return self._attrs["is_padded"]
+        return self._is_padded
 
     @property
-    def pad(self):
+    def pad(self) -> int:
         """
         int: Zero-padding for the frames contained by the object.
 
         Minimum acceptable value for pad is 1.
         """
-        return self._attrs["pad"]
+        return self._pad
 
     @pad.setter
-    def pad(self, val):
-        self._attrs["pad"] = max(1, int(val or 1))
+    def pad(self, val: SupportsInt | None) -> None:
+        self._pad = max(1, int(val or 1))
+        self._dirty = True  # the output's padding changes
 
-    def add(self, value):
+    def add(self, value: Frames) -> None:
         """Defining value addition logic (per standard set)."""
-        if isinstance(value, str):
-            if self.is_frame_sequence(value):
-                if not value.isdigit():
-                    self._add_frame_sequence(value)
-                    return
+        if type(value) is int:
+            self._push(value)
+
+        elif isinstance(value, str):
+            # isdecimal() accepts exactly the digits the frame regex's \d
+            # does, so a single frame skips the regex entirely.
+            if value.isdecimal():
+                self._check_pad(value, strict=False)
+                self._push(int(value))
+            elif self.is_frame_sequence(value):
+                self._add_frame_sequence(value)
+                return
             else:
                 raise ValueError(f"Invalid value specified ({value!r})")
 
-            self._check_pad(value, strict=False)
-            self._data.add(int(value))
-
         elif isinstance(value, (FrameChunk, FrameSequence)):
-            if value.pad != self.pad:
-                blurb = (
-                    "Specified value ({!r}) is incorrectly padded ({:d} "
-                    "!= {:d})"
+            if value.pad != self._pad:
+                raise SeqparsePadError(
+                    f"Specified value ({value!r}) is incorrectly padded "
+                    f"({value.pad:d} != {self._pad:d})"
                 )
-                raise SeqparsePadError(blurb.format(value, value.pad, self.pad))
-            self._add_from_iterable(value)
+            # Same pad, so every frame is valid: add the integers directly.
+            # (FileSequence iterates file names, so it keeps the slow path.)
+            if type(value) is FrameChunk:
+                self._extend(
+                    range(value.first, value.last + 1, value.step), True
+                )
+            elif type(value) is FrameSequence:
+                value._sync()
+                self._extend(value._frames, True)
+            else:
+                self._add_from_iterable(value)
 
         elif _is_iterable(value):
-            self._add_from_iterable(value)
+            self._add_from_iterable(value)  # type: ignore[arg-type]
 
         else:
-            self._data.add(int(value))
+            self._push(_frame_number(value))
 
-        self._attrs["dirty"] = True
+        self._dirty = True
 
-    def discard(self, value):
+    def discard(self, value: SupportsInt | str) -> None:
         """Defining item discard logic (per standard set)."""
         if isinstance(value, str):
             self._check_pad(value, strict=False)
-            value = int(value)
+            number: int | None = int(value)
+        else:
+            number = _exact_frame(value)
+        self._dirty = True
+        if number is None:
+            return  # not a frame number (eg 1.5), so not in the sequence
 
-        self._data.discard(value)
-        self._attrs["dirty"] = True
+        self._sync()
+        frames = self._frames
+        idx = bisect_left(frames, number)
+        if idx < len(frames) and frames[idx] == number:
+            del frames[idx]
 
-    def update(self, value):
+    def update(self, value: Iterable[Any]) -> None:
         """Defining value update logic (per standard set)."""
         for item in value:
             self.add(item)
 
-    def calculate(self, force=False):
+    def calculate(self, force: bool = False) -> None:
         """
         Calculate the output file sequence.
 
@@ -415,102 +554,146 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         Returns:
             None
         """
-        if not (self.is_dirty or force):
+        if not (self._dirty or force):
             return
 
-        self._attrs["is_padded"] = False
-        del self._attrs["chunks"][:]
+        self._sync()
+        self._is_padded = False
         self._output = ""
-
-        num_frames = len(self._data)
+        frames = self._frames
+        num_frames = len(frames)
         if not num_frames:
             return
 
-        all_frames = sorted(self._data)
-        if num_frames == 1:
-            self._attrs["chunks"].append(
-                FrameChunk(all_frames[0], pad=self.pad)
-            )
+        spec = f"0{self._pad}d"
+        parts: list[str] = []
 
-        else:
-            current_frames = set()
-            prev_step = 0
-            for idx in range(num_frames - 1):
-                frames = all_frames[idx : idx + 2]
-                step = frames[1] - frames[0]
+        def emit(first: int, last: int, length: int, step: int) -> None:
+            """Render the run frames[first..last] (indices)."""
+            low, high = format(frames[first], spec), format(frames[last], spec)
+            if length == 1:
+                parts.append(low)
+            elif length == 2:  # noqa: PLR2004 - a pair is written "a,b"
+                parts.append(f"{low},{high}")
+            elif step > 1:
+                parts.append(f"{low}-{high}x{step}")
+            else:
+                parts.append(f"{low}-{high}")
 
-                if not prev_step:
-                    prev_step = step
-
-                if prev_step != step:
-                    # A special case that allows frame sequences like
-                    #     [1, 3, 4, 5]
-                    # to be expressed as
-                    #     "1,3-5"
-                    # The typical "easy" login was previously expressing this
-                    # as
-                    #     "1,3,4,5"
-                    if (
-                        len(current_frames) == 2  # noqa: PLR2004 (a pair)
-                        and max(current_frames) != all_frames[-1]
-                    ):
-                        min_frame = min(current_frames)
-                        chunk = self._chunk_from_frames(
-                            [min_frame], 1, self.pad
-                        )
-                        current_frames = set(frames)
-                        prev_step = step
-
-                    else:
-                        chunk = self._chunk_from_frames(
-                            current_frames, prev_step, self.pad
-                        )
-                        current_frames = {frames[1]}
-                        prev_step = 0
-
-                    self._attrs["chunks"].append(chunk)
-
+        # Split the sorted frames into runs with a constant step. A run of
+        # exactly two frames followed by a different step gives up its second
+        # frame to the next run, so [1, 3, 4, 5] renders as "1,3-5" rather
+        # than "1,3,4,5".
+        start, step = 0, 0
+        for idx, gap in enumerate(map(sub, islice(frames, 1, None), frames)):
+            if not step:
+                step = gap
+            elif gap != step:
+                if idx - start == 1:
+                    emit(start, start, 1, 1)
+                    start, step = idx, gap
                 else:
-                    current_frames.update(frames)
-
-            if current_frames:
-                chunk = self._chunk_from_frames(current_frames, step, self.pad)
-                self._attrs["chunks"].append(chunk)
+                    emit(start, idx, idx - start + 1, step)
+                    start, step = idx + 1, 0
+        emit(start, num_frames - 1, num_frames - start, step)
 
         # This will be used by the parent FileExtension instance during the
         # zero-pad consolidation stage of the output process.
-        self._attrs["is_padded"] = all_frames[0] < 10 ** (self.pad - 1)
+        self._is_padded = frames[0] < 10 ** (self._pad - 1)
+        self._output = ",".join(parts)
+        self._dirty = False
 
-        # Optimize padding in cases similar to 1, 2, 1000.
-        self._output = ",".join(str(x) for x in self._attrs["chunks"])
-
-        self._attrs["dirty"] = False
-
-    def invert(self):
+    def invert(self) -> FrameSequence:
         """
         Calculate frames missing from the sequence.
 
         Returns:
             FrameSequence containing the missing frames (if any).
         """
-        self.calculate()
-        inverted = FrameSequence(pad=self.pad)
-        num_chunks = len(self._attrs["chunks"])
-
-        if num_chunks == 1:
-            inverted.add(self._attrs["chunks"][0].invert())
-
-        elif num_chunks:
-            for idx in range(num_chunks - 1):
-                current_chunk = self._attrs["chunks"][idx]
-                next_chunk = self._attrs["chunks"][idx + 1]
-                inverted.add(current_chunk.invert(last=next_chunk.first - 1))
-
-            inverted.add(self._attrs["chunks"][-1].invert())
-
+        self._sync()
+        inverted = FrameSequence(pad=self._pad)
+        # Gaps between consecutive sorted frames are already sorted and
+        # unique, so they go straight into the store (same kind as ours, so
+        # anything that fits ours fits it).
+        missing = self._frames[:0]
+        for low, high in pairwise(self._frames):
+            if high - low > 1:
+                missing.extend(range(low + 1, high))
+        inverted._frames = missing
         return inverted
 
-    def _add_from_iterable(self, iterable):
+    def _has(self, number: int) -> bool:
+        """Whether the frame number is in the sequence."""
+        self._sync()
+        frames = self._frames
+        idx = bisect_left(frames, number)
+        return idx < len(frames) and frames[idx] == number
+
+    def _sorted_frames(self) -> list[int]:
+        """The frame numbers, sorted."""
+        self._sync()
+        return list(self._frames)
+
+    def _push(self, number: int) -> None:
+        """Queue one frame number for addition."""
+        pending = self._pending
+        if pending and number <= pending[-1]:
+            self._ordered = False
+        try:
+            pending.append(number)
+        except OverflowError:
+            self._pending = pending = list(pending)
+            pending.append(number)
+
+    def _extend(self, numbers: Iterable[int], ordered: bool = False) -> None:
+        """
+        Queue frame numbers for addition.
+
+        Args:
+            numbers (iterable of int): Frame numbers to add.
+            ordered (bool, optional): Whether numbers is strictly increasing.
+        """
+        pending = self._pending
+        if ordered and pending:
+            first = next(iter(numbers), None)
+            ordered = first is None or first > pending[-1]
+        if not ordered:
+            self._ordered = False
+        try:
+            pending.extend(numbers)
+        except OverflowError:
+            # Some numbers may already be in: duplicates are harmless.
+            self._ordered = False
+            self._pending = pending = list(pending)
+            pending.extend(numbers)
+        self._dirty = True
+
+    def _sync(self) -> None:
+        """Merge pending frames into the sorted, unique frame store."""
+        pending = self._pending
+        if not pending:
+            return
+        frames = self._frames
+        ordered = self._ordered
+        self._pending = array("q")
+        self._ordered = True
+        try:
+            if ordered and (not frames or frames[-1] < pending[0]):
+                frames.extend(pending)
+                return
+            if len(pending) <= _SMALL_MERGE:
+                for number in pending:
+                    idx = bisect_left(frames, number)
+                    if idx == len(frames) or frames[idx] != number:
+                        frames.insert(idx, number)
+                return
+        except OverflowError:
+            pass  # a frame is too big for the array: rebuild below
+        merged = set(frames)
+        merged.update(pending)
+        self._frames = _compact(sorted(merged))
+
+    def _add_from_iterable(self, iterable: Iterable[Any]) -> None:
         """
         Add items from supplied iterable to the instance.
 
@@ -521,10 +704,38 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         Returns:
             None
         """
+        if (
+            isinstance(iterable, (FrameChunk, FrameSequence))
+            and type(iterable) in (FrameChunk, FrameSequence)
+            and iterable.pad == self._pad
+        ):
+            self.add(iterable)  # integer fast path, no string round trip
+            return
+        if isinstance(iterable, array) and iterable.typecode == "q":
+            self._extend(iterable)
+            return
+        if isinstance(iterable, range):
+            self._extend(iterable, iterable.step > 0)
+            return
+        if isinstance(iterable, (list, tuple, set, frozenset)):
+            # array() converts in C and rejects anything that isn't an
+            # integer (strings need pad checks; floats, huge ints, ...),
+            # which then takes the general path below.
+            try:
+                numbers = array("q", iterable)
+            except (TypeError, OverflowError):
+                pass
+            else:
+                # Sorted input (common) skips the merge's temporary set.
+                ordered = not isinstance(iterable, (set, frozenset)) and all(
+                    map(lt, numbers, islice(numbers, 1, None))
+                )
+                self._extend(numbers, ordered)
+                return
         for item in iterable:
             self.add(item)
 
-    def _add_frame_sequence(self, frame_seq):
+    def _add_frame_sequence(self, frame_seq: str) -> None:
         """
         Add a string frame sequence to the instance.
 
@@ -535,21 +746,46 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
         Returns:
             None
         """
-        for bit in frame_seq.split(","):
-            if not bit:
-                continue
+        # Callers have already validated frame_seq against the frame sequence
+        # regex, so each chunk is exactly "first[-last[xstep]]".
+        self._dirty = True
+        pending = self._pending
+        ordered = self._ordered
+        try:
+            for bit in frame_seq.split(","):
+                if not bit:
+                    continue
 
-            first, last, step = self.bits_match(bit)
-            if self.pad is None:
-                self.pad = len(first)
+                first, _, rest = bit.partition("-")
+                last, _, step = rest.partition("x")
+                if not self._pad:
+                    self.pad = len(first)
 
-            for value in (first, last):
-                if value is not None:
-                    self._check_pad(value)
+                self._check_pad(first)
+                if last:
+                    self._check_pad(last)
 
-            self.add(FrameChunk(first, last, step, self.pad))
+                low = int(first)
+                high = int(last) if last else low
+                if high < low:
+                    raise ValueError(
+                        "Last frame is less than first frame: "
+                        f"{high:d} < {low:d}"
+                    )
+                frames = range(low, high + 1, max(1, int(step or 1)))
+                if ordered and pending and low <= pending[-1]:
+                    ordered = False
+                try:
+                    pending.extend(frames)
+                except OverflowError:
+                    ordered = False
+                    self._pending = pending = list(pending)
+                    pending.extend(frames)
+        finally:
+            # Frames added before an error stay added (as before).
+            self._ordered = ordered
 
-    def _check_pad(self, value, strict=True):
+    def _check_pad(self, value: str, strict: bool = True) -> None:
         """
         Raise SeqparsePadError if a string frame is incorrectly padded.
 
@@ -562,38 +798,21 @@ class FrameSequence(MutableSet, SeqparseRegexMixin):
             None
         """
         if strict:
-            valid = _is_correctly_padded(value, self.pad)
+            valid = _is_correctly_padded(value, self._pad)
         else:
-            valid = not value.startswith("0") or len(value) == self.pad
+            valid = not value.startswith("0") or len(value) == self._pad
         if not valid:
-            blurb = (
-                "Specified value ({!r}) is incorrectly padded ({:d} != {:d})"
+            raise SeqparsePadError(
+                f"Specified value ({value!r}) is incorrectly padded "
+                f"({len(value):d} != {self._pad:d})"
             )
-            raise SeqparsePadError(blurb.format(value, len(value), self.pad))
-
-    @staticmethod
-    def _chunk_from_frames(frames, step, pad):
-        """
-        Calculate FrameChunk from a list of frames.
-
-        Args:
-            frames (list of int): (first, last) frames used to initialise the
-                output FrameChunk instance.
-            step (int): Frame step size.
-            pad (int): Zero-padding for the output FrameChunk.
-
-        Returns:
-            FrameChunk containing the input frames.
-        """
-        frames = sorted(frames)
-        return FrameChunk(frames[0], frames[-1], step, pad)
 
 
 ###############################################################################
 # Class: FileSequence
 
 
-class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
+class FileSequence(FrameSequence):
     """
     Representative for sequences of files.
 
@@ -619,21 +838,43 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         pad (int, optional): Frame padding for the sequence. Defaults to 1.
     """
 
+    __slots__ = (
+        "_ctime",
+        "_ext",
+        "_full",
+        "_mtime",
+        "_name",
+        "_path",
+        "_size",
+        "_stat",
+    )
+
     # Mutable, and equality depends on mutable state: deliberately
     # unhashable (like set and dict).
-    __hash__ = None
+    __hash__ = None  # type: ignore[assignment]
 
-    def __init__(self, name=None, frames=None, ext=None, pad=1):
+    def __init__(
+        self,
+        name: FileSequence | str | None = None,
+        frames: Frames | None = None,
+        ext: str | None = None,
+        pad: SupportsInt | None = 1,
+    ) -> None:
         """Initialise the instance."""
-        self._cache = {"ctime": None, "mtime": None, "size": None}
-        self._info = {"ext": None, "full": None, "name": None, "path": None}
-        self._stat = {}
+        self._ctime: float | None = None
+        self._mtime: float | None = None
+        self._size: int | None = None
+        self._ext: str | None = None
+        self._full = ""
+        self._name: str | None = None
+        self._path: str | None = None
+        self._stat: dict[int, os.stat_result] = {}
 
         source = None
         if isinstance(name, FileSequence):
             source = name
             name = None
-            frames, ext, pad = set(source._data), source.ext, source.pad  # pylint: disable=W0212
+            frames, ext, pad = source._sorted_frames(), source.ext, source.pad
         elif name:
             # Only treat the name as a complete file sequence string when no
             # frames are given and any given extension agrees with it;
@@ -661,172 +902,195 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         else:
             self.name = name
 
-    def __contains__(self, item):
+    def _set_legacy_state(self, state: dict[str, Any]) -> None:
+        """Restore the plain-dict state that seqparse 1.0.x pickled."""
+        super()._set_legacy_state(state)
+        info = state["_info"]
+        self._ext, self._full = info["ext"], info["full"]
+        self._name, self._path = info["name"], info["path"]
+        self._stat = state["_stat"]
+        self._ctime = self._mtime = self._size = None
+
+    def __contains__(self, item: object) -> bool:
         """Defining containment logic (per standard set)."""
         if str(item).isdigit():
             return super().__contains__(item)
-        return item in set(self)
+        if not isinstance(item, str):
+            return item in set(self)
 
-    def __eq__(self, other):
+        # A file name is a member when it is prefix + padded frame + suffix
+        # for one of our frames; check that directly instead of building
+        # every file name.
+        if os.altsep:  # Windows: either separator names the same file
+            item = item.replace(os.altsep, os.sep)
+        prefix, suffix = self._name_affixes()
+        if len(item) <= len(prefix) + len(suffix):
+            return False
+        if not (item.startswith(prefix) and item.endswith(suffix)):
+            return False
+        frame = item[len(prefix) : len(item) - len(suffix)]
+        digits = frame.removeprefix("-")  # negative frames render as "-005"
+        if not (digits.isascii() and digits.isdigit()):
+            return False
+        number = int(frame)
+        return self._has(number) and frame == f"{number:0{self._pad}d}"
+
+    def __eq__(self, other: object) -> bool:
         """Define equality between instances."""
         if type(other) is type(self):
             return super().__eq__(other)
         return False
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Defining item iteration logic (per standard set)."""
+        prefix, suffix = self._name_affixes()
         for frame in super().__iter__():
-            yield self._get_sequence_output(frame)
+            yield f"{prefix}{frame}{suffix}"
 
-    def __ne__(self, other):
-        """Define inequality between instance."""
-        return not self.__eq__(other)
-
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self) -> str:  # pragma: no cover
         """Pretty representation of the instance."""
-        blurb = (
-            "{cls}(full_name={full!r}, ext={ext!r}, pad={pad}, "
-            "frames=set({fr!r}))"
-        )
-        return blurb.format(
-            cls=type(self).__name__,
-            fr=sorted(self._data),
-            pad=self.pad,
-            **self._info,
+        return (
+            f"{type(self).__name__}(full_name={self._full!r}, "
+            f"ext={self._ext!r}, pad={self._pad}, "
+            f"frames=set({self._sorted_frames()!r}))"
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String reprentation of the frame sequence."""
         frames = super().__str__()
         return self._get_sequence_output(frames)
 
     @property
-    def ctime(self):
+    def ctime(self) -> float | None:
         """
         int: Most recent inode or file change time for a file in the sequence.
 
         Returns None if the files have not been stat'd on disk.
         """
         self.calculate()
-        return self._cache["ctime"]
+        return self._ctime
 
     @property
-    def ext(self):
+    def ext(self) -> str | None:
         """str: File extension for the sequence."""
-        return self._info["ext"]
+        return self._ext
 
     @ext.setter
-    def ext(self, val):
-        self._info["ext"] = None
-        if val:
-            self._info["ext"] = str(val)
+    def ext(self, val: object) -> None:
+        self._ext = str(val) if val else None
 
     @property
-    def frames(self):
+    def frames(self) -> Iterator[str]:
         """iterator(str): the file sequence's padded frames."""
         yield from super().__iter__()
 
     @property
-    def pretty_frames(self):
+    def pretty_frames(self) -> str:
         """str: pretty representation of the file sequence's print frames."""
         return super().__str__()
 
     @property
-    def full_name(self):
+    def full_name(self) -> str:
         """str: Full name of the sequence, including containing directory."""
-        return self._info["full"]
+        return self._full
 
     @property
-    def mtime(self):
+    def mtime(self) -> float | None:
         """
         int: Most recent file modification time for a file in the sequence.
 
         Returns None if the files have not been stat'd on disk.
         """
         self.calculate()
-        return self._cache["mtime"]
+        return self._mtime
 
     @property
-    def name(self):
+    def name(self) -> str | None:
         """
         str: Base name of the file sequence (no containing directory).
 
         Note: Setting this property will modify both the `full_path` and `path`
         properties.
         """
-        return self._info["name"]
+        return self._name
 
     @name.setter
-    def name(self, val):
-        self._info["name"] = None
-        if val:
-            val = str(val)
-
+    def name(self, val: object) -> None:
+        self._name = None
+        text = str(val) if val else ""
+        if text:
             # If it's a file path (complete with directory prefix), set the
             # path property as well.
-            if os.sep in val:
-                path_name, val = os.path.split(os.path.normpath(val))
+            if os.sep in text or (os.altsep and os.altsep in text):
+                path_name, text = os.path.split(os.path.normpath(text))
                 self.path = path_name
-            self._info["name"] = val
+            self._name = text
 
-        self._info["full"] = os.path.join(self._info["path"] or "", val or "")
+        self._full = os.path.join(self._path or "", text)
 
     @property
-    def path(self):
+    def path(self) -> str | None:
         """
         str: Directory in which the contained files are located.
 
         Note: Setting the `name` property will reset the contained value.
         """
-        return self._info["path"]
+        return self._path
 
     @path.setter
-    def path(self, val):
-        self._info["path"] = None
-        if val:
-            self._info["path"] = str(os.path.normpath(val))
-
-        self._info["full"] = os.path.join(
-            self._info["path"] or "", self._info["name"] or ""
-        )
+    def path(self, val: str | os.PathLike[str] | None) -> None:
+        self._path = str(os.path.normpath(val)) if val else None
+        self._full = os.path.join(self._path or "", self._name or "")
 
     @property
-    def size(self):
+    def size(self) -> int | None:
         """
         int: Total size of the file sequence in bytes.
 
         Returns None if the files have not been stat'd on disk.
         """
         self.calculate()
-        return self._cache["size"]
+        return self._size
 
-    def discard(self, value):
+    def discard(self, value: SupportsInt | str) -> None:
         """Defining value discard logic (per standard set)."""
         super().discard(value)
-        self._stat.pop(int(value), None)
+        number = int(value) if isinstance(value, str) else _exact_frame(value)
+        if number is not None:
+            self._stat.pop(number, None)
 
-    def update(self, iterable):
+    def update(self, iterable: Iterable[Any]) -> None:
         """Defining item update logic (per standard set)."""
         if isinstance(iterable, FileSequence):
             for attr in ("ext", "full_name"):
                 iterable_value = getattr(iterable, attr)
                 self_value = getattr(self, attr)
                 if iterable_value != self_value:
-                    blurb = (
-                        "Attribute mismatch on supplied FileSequence "
-                        "instance ({}): self:{!r} != iterable:{!r}"
-                    )
                     raise ValueError(
-                        blurb.format(attr, self_value, iterable_value)
+                        "Attribute mismatch on supplied FileSequence "
+                        f"instance ({attr}): self:{self_value!r} != "
+                        f"iterable:{iterable_value!r}"
                     )
 
-            self.stat().update(iterable.stat())
+            self._stat.update(iterable.stat())
+            # Frames are valid for this pad unless they carry leading zeros
+            # of a different width; then take the slow path (which raises).
+            iterable._sync()
+            other = iterable._frames
+            if other and (
+                iterable.pad == self._pad
+                or other[0] >= 10 ** (iterable.pad - 1)
+            ):
+                self._extend(other, True)
+                return
             iterable = iterable.frames
 
         for item in iterable:
             self.add(item)
 
-    def cache_stat(self, frame, input_stat):
+    def cache_stat(
+        self, frame: SupportsInt | str, input_stat: StatLike
+    ) -> os.stat_result:
         """
         Cache file system stat data for the specified frame.
 
@@ -841,13 +1105,11 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             stat_result that was successfully cached.
         """
-        from . import get_stat_result  # pylint: disable=C0415
+        number = int(frame)
+        self._stat[number] = get_stat_result(input_stat)
+        return self._stat[number]
 
-        frame = int(frame)
-        self._stat[frame] = get_stat_result(input_stat)
-        return self._stat[frame]
-
-    def calculate(self, force=False):
+    def calculate(self, force: bool = False) -> None:
         """
         Calculate the output file sequence.
 
@@ -861,7 +1123,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             None
         """
-        if not (self.is_dirty or force):
+        if not (self._dirty or force):
             return
 
         super().calculate(force=force)
@@ -869,7 +1131,7 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         # Cache disk stats for easy/quick access via property ...
         self._aggregate_stats()
 
-    def invert(self):
+    def invert(self) -> FileSequence:
         """
         Calculate file names missing from the sequence.
 
@@ -877,12 +1139,30 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             FileSequence containing the missing files (if any).
         """
         frames = super().invert()
-        inverted = FileSequence(frames=frames, ext=self.ext, pad=frames.pad)
-        inverted.path = self.path
-        inverted.name = self.name
+        inverted = FileSequence(frames=frames, ext=self._ext, pad=frames.pad)
+        inverted.path = self._path
+        inverted.name = self._name
         return inverted
 
-    def stat(self, frame=None, force=False, lazy=False):
+    @overload
+    def stat(self) -> dict[int, os.stat_result]: ...
+    @overload
+    def stat(
+        self, frame: SupportsInt | str, force: bool = ..., lazy: bool = ...
+    ) -> os.stat_result | None: ...
+    @overload
+    def stat(
+        self,
+        frame: SupportsInt | str | None = ...,
+        force: bool = ...,
+        lazy: bool = ...,
+    ) -> dict[int, os.stat_result] | os.stat_result | None: ...
+    def stat(
+        self,
+        frame: SupportsInt | str | None = None,
+        force: bool = False,
+        lazy: bool = False,
+    ) -> dict[int, os.stat_result] | os.stat_result | None:
         """
         Individual frame file system status.
 
@@ -909,14 +1189,14 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
                 )
             return self._stat
 
-        frame = int(frame)
-        if force or (lazy and self._stat.get(frame) is None):
-            file_name = self._get_sequence_output(frame)
-            self.cache_stat(frame, os.stat(file_name))
+        number = int(frame)
+        if force or (lazy and self._stat.get(number) is None):
+            file_name = self._get_sequence_output(number)
+            self.cache_stat(number, os.stat(file_name))
 
-        return self._stat.get(frame, None)
+        return self._stat.get(number, None)
 
-    def _aggregate_stats(self):
+    def _aggregate_stats(self) -> None:
         """
         Aggregate stats for a variety of file sequence properties.
 
@@ -926,26 +1206,38 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
         Returns:
             None
         """
-        self._cache = {"ctime": None, "mtime": None, "size": None}
+        self._ctime = self._mtime = self._size = None
 
-        if not self.stat():
+        stats = self._stat
+        if not stats:
             return
 
-        # Disabling pylint here because the stat object will never be a
-        # dict at this point ... unless somebody's been messing with the data
-        # cache directly.
-        ctime = mtime = size = 0
-        for frame in self._data:
-            stat = self.stat(frame)
+        ctime: float = 0
+        mtime: float = 0
+        size = 0
+        self._sync()
+        for frame in self._frames:
+            stat = stats.get(frame)
             if stat is None:
                 continue
-            ctime = max(ctime, stat.st_ctime)  # pylint: disable=E1101
-            mtime = max(mtime, stat.st_mtime)  # pylint: disable=E1101
-            size += stat.st_size  # pylint: disable=E1101
+            ctime = max(ctime, stat.st_ctime)
+            mtime = max(mtime, stat.st_mtime)
+            size += stat.st_size
 
-        self._cache = {"ctime": ctime, "mtime": mtime, "size": size}
+        self._ctime, self._mtime, self._size = ctime, mtime, size
 
-    def _get_sequence_output(self, frames):
+    def _name_affixes(self) -> tuple[str, str]:
+        """
+        Calculate the text surrounding the frame in this sequence's names.
+
+        Returns:
+            tuple of (prefix, suffix) such that prefix + padded frame + suffix
+            is a member file name (matches _get_sequence_output for digits).
+        """
+        name = f"{self._name}." if self._name else ""
+        return os.path.join(self._path or "", name), f".{self._ext}"
+
+    def _get_sequence_output(self, frames: str | int | None) -> str:
         """
         Calculate a valid file sequence string from the given iterator.
 
@@ -959,13 +1251,12 @@ class FileSequence(FrameSequence):  # pylint: disable=too-many-ancestors
             return ""
 
         if str(frames).isdigit():
-            frames = f"{int(frames):0{self.pad}d}"
-        elif not self.ext:
+            frames = f"{int(frames):0{self._pad}d}"
+        elif not self._ext:
             raise ValueError("File sequence extension has not been defined.")
 
-        file_name = "{fr}.{ext}"
-        if self.name:
-            file_name = "{name}.{fr}.{ext}"
-
-        file_name = file_name.format(fr=frames, **self._info)
-        return os.path.join(self.path or "", file_name)
+        if self._name:
+            file_name = f"{self._name}.{frames}.{self._ext}"
+        else:
+            file_name = f"{frames}.{self._ext}"
+        return os.path.join(self._path or "", file_name)

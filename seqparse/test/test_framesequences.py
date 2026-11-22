@@ -3,7 +3,7 @@
 import os
 import unittest
 
-from ..sequences import (
+from seqparse.sequences import (
     FileSequence,
     FrameChunk,
     FrameSequence,
