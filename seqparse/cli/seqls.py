@@ -20,6 +20,7 @@ import humanize
 
 import seqparse
 from seqparse import files, sequences
+from seqparse import seqparse as seqparse_module
 
 __all__ = (
     "json_output",
@@ -36,9 +37,19 @@ def run_main() -> None:  # pragma: no cover
 
 
 def main(
-    args: argparse.Namespace, _debug: bool = False
+    args: argparse.Namespace,
+    _debug: bool = False,
+    stdin: Iterable[str] | None = None,
 ) -> str | list[str] | None:
-    """Wrap and initialise the Seqparse class."""
+    """
+    Wrap and initialise the Seqparse class.
+
+    Args:
+        args: Parsed command line arguments (see `parse_args`).
+        _debug (bool, optional): Return the result instead of printing it.
+        stdin (iterable of str, optional): The lines to read file names from
+            when the search paths include "-". Defaults to sys.stdin.
+    """
     if args.version:
         # Print the version and exit.
         if _debug:
@@ -46,6 +57,34 @@ def main(
         print(seqparse.get_version(pretty=True))
         return None
 
+    parser = _load(args, sys.stdin if stdin is None else stdin)
+
+    if args.json:
+        text = json_output(
+            parser.output(seqs_only=args.seqs_only),
+            only_missing=args.missing,
+            only_empty=args.empty,
+        )
+        if _debug:
+            return text
+        print(text)
+        return None
+
+    output = _text_lines(parser, args)
+    if _debug:
+        return output
+
+    print("")
+    for line in output:
+        print(line)
+
+    return None
+
+
+def _load(
+    args: argparse.Namespace, stdin: Iterable[str]
+) -> seqparse_module.Seqparse:
+    """Scan the search paths and read any names from stdin."""
     if args.max_levels[0] != -1:
         args.max_levels[0] = max(args.max_levels[0], 0)
     if args.min_levels[0] != -1:
@@ -61,38 +100,34 @@ def main(
         {"all": args.all, "stat": args.long_format or args.empty}
     )
 
-    for search_path in sorted(args.search_path):
+    for search_path in sorted(p for p in args.search_path if p != "-"):
         parser.scan_path(os.path.abspath(search_path), **scan_opts)
 
-    if args.json:
-        text = json_output(
-            parser.output(seqs_only=args.seqs_only),
-            only_missing=args.missing,
-            only_empty=args.empty,
-        )
-        if _debug:
-            return text
-        print(text)
-        return None
+    if "-" in args.search_path:
+        for name in _read_names(stdin):
+            parser.add_file(name)
 
-    output = []
+    return parser
 
+
+def _text_lines(
+    parser: seqparse_module.Seqparse, args: argparse.Namespace
+) -> list[str]:
+    """The lines of text output for what the parser found."""
     items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
     if args.empty:
         items = _empty_files(items)
     if args.long_format:
-        output.extend(long_format_output(items, args.human_readable))
-    else:
-        output.extend(str(x) for x in items)
+        return long_format_output(items, args.human_readable)
+    return [str(x) for x in items]
 
-    if _debug:
-        return output
 
-    print("")
-    for line in output:
-        print(line)
-
-    return None
+def _read_names(lines: Iterable[str]) -> Iterator[str]:
+    """Yield the file names in the lines, skipping blank ones."""
+    for line in lines:
+        name = line.rstrip("\r\n")
+        if name.strip():
+            yield name
 
 
 def _empty_files(
@@ -216,7 +251,12 @@ def parse_args(args: Sequence[str]) -> argparse.Namespace:
     parser.add_argument(
         "search_path",
         default=["."],
-        help=("Paths that you'd like to search for file sequences."),
+        help=(
+            "Paths that you'd like to search for file sequences. Use '-' to "
+            "read file names (one per line) from standard input instead; "
+            "they are used as written, so -a, --maxdepth and --mindepth do "
+            "not apply to them."
+        ),
         nargs="*",
     )
     parser.add_argument(
@@ -318,6 +358,14 @@ def parse_args(args: Sequence[str]) -> argparse.Namespace:
 
     # Parse the arguments.
     parsed_args = parser.parse_args(args)
+
+    # Names from stdin need not exist, so there is nothing to stat.
+    if "-" in parsed_args.search_path and (
+        parsed_args.long_format or parsed_args.empty
+    ):
+        parser.error(
+            "-l/--long and --empty need files on disk, not names from stdin"
+        )
 
     # We'll assume that if the user is requesting missing (or empty) sequence
     # files that he/she doesn't want to see any singletons.

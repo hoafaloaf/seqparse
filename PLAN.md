@@ -28,8 +28,9 @@ three OSes. See `CLAUDE.md` for commands and conventions.
   the existing stat caching; no extra stat calls when the flag is off. Size
   outliers were considered and dropped: file sizes vary naturally (EXR
   compression), so any threshold gives false alarms.
-- [ ] **5. Read names from stdin.** `find … | seqls -` (or `--stdin`) groups
-  names without scanning disk, via `Seqparse.add_file`.
+- [x] **5. Read names from stdin.** `find … | seqls -` groups names without
+  scanning disk, via `Seqparse.add_file`. `-l` and `--empty` are rejected with
+  it (the names need not exist).
 
 ## Moderate effort
 

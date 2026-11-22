@@ -83,6 +83,9 @@ choice.
 
 positional arguments:
   search_path           Paths that you'd like to search for file sequences.
+                        Use '-' to read file names (one per line) from
+                        standard input instead; they are used as written, so
+                        -a, --maxdepth and --mindepth do not apply to them.
 
 options:
   -h, --help            show this help message and exit
@@ -181,7 +184,7 @@ Each entry is either a sequence or a singleton file:
 | Field | Meaning |
 | --- | --- |
 | `type` | `"sequence"` or `"file"` |
-| `path`, `name` | The directory, and the sequence's base name or the file's name |
+| `path`, `name` | The directory (`null` for a name without one), and the sequence's base name or the file's name |
 | `string` | What the text output prints for the item |
 | `ext`, `pad` | Sequences only: extension and zero-padding |
 | `frames` | Sequences only: the frame sequence, e.g. `"0001-0500,0600-0800"` |
@@ -194,6 +197,23 @@ The other options work as usual (`-S`, `--maxdepth`, ...). With `-m/--missing`,
 only sequences that have gaps are listed, still described by their real
 `frames`, and likewise `--empty` for sequences with zero-byte frames; `-H` has no
 effect.
+
+### Reading names from stdin
+
+`seqls -` groups file names read from standard input (one per line) instead
+of scanning disk, so it also works on listings of files that aren't on a local
+disk:
+
+```console
+$ find /renders/superhero_cape_v0001 -name '*.exr' | seqls -
+/renders/superhero_cape_v0001/superhero_cape_v0001.0001-1000.exr
+```
+
+Names are used as written and grouped by directory exactly as spelled
+(`./a/f.1.exr` and `a/f.2.exr` are different directories). `-` can be combined
+with real paths. `-m`, `-S` and `--json` work as usual, with `null` sizes;
+`-a`, `--maxdepth` and `--mindepth` only apply to scanned paths, and `-l` and
+`--empty` need files on disk, so they are rejected together with `-`.
 
 ## The module
 

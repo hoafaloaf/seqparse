@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* `seqls -` reads file names from standard input (one per line) and groups
+  them without touching disk, eg `find . -name '*.exr' | seqls -`.
 * `seqls --empty` lists the zero-byte frames of each sequence (the debris of a
   crashed render); `FileSequence.empty_files()` is the library equivalent.
 * `seqls --json` prints machine-readable JSON (see the README for the fields).

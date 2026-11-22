@@ -59,6 +59,7 @@ class TestSeqls(unittest.TestCase):
             (shlex.split("--maxdepth 1 -S"), {
                 "max_levels": [1], "seqs_only": True}),
             (["--empty"], {"empty": True, "seqs_only": True}),
+            (["-"], {"search_path": ["-"]}),
             (shlex.split("-m test_dir"), {
                 "missing": True, "search_path": ["test_dir"],
                 "seqs_only": True})]
@@ -470,3 +471,93 @@ class TestEmptyOption(_RealFilesTestCase):
         }
         self.assertEqual(records["plate"]["empty"], "0003,0005")
         self.assertEqual(records["good"]["empty"], "")
+
+
+class TestStdinInput(_RealFilesTestCase):
+    """seqls - reads file names from standard input."""
+
+    def run_stdin(self, lines, *options):
+        """Run seqls on the lines (no scanning); return posix-style text."""
+        args = seqls.parse_args([*options, "-"])
+        result = seqls.main(args, _debug=True, stdin=lines)
+        if isinstance(result, str):
+            return result
+        return [line.replace(os.sep, "/") for line in result]
+
+    def test_groups_the_names_into_sequences(self):
+        """Names need not exist; bare names and directories both work."""
+        lines = [
+            "/r/plate.0001.exr\n",
+            "/r/plate.0002.exr\n",
+            "/r/plate.0004.exr\n",
+            "/r/other.0001.png\n",
+            "readme.txt\n",
+        ]
+        self.assertEqual(
+            self.run_stdin(lines),
+            ["readme.txt", "/r/other.0001.png", "/r/plate.0001,0002,0004.exr"],
+        )
+
+    def test_blank_lines_and_line_endings_are_ignored(self):
+        """Windows line endings, blank lines and the last line's newline."""
+        lines = ["\n", "plate.0001.exr\r\n", "   \n", "plate.0002.exr"]
+        self.assertEqual(self.run_stdin(lines), ["plate.0001,0002.exr"])
+
+    def test_sequence_notation_is_understood(self):
+        """Names may already be sequences (eg, the output of seqls)."""
+        self.assertEqual(
+            self.run_stdin(["plate.0001-0003.exr\n"]), ["plate.0001-0003.exr"]
+        )
+
+    def test_other_options_apply_to_the_names(self):
+        """-m reports the gaps of names that are not on disk."""
+        lines = ["a.0001.exr\n", "a.0003.exr\n", "b.0001.exr\n"]
+        self.assertEqual(self.run_stdin(lines, "-m"), ["a.0002.exr"])
+        self.assertEqual(
+            self.run_stdin(["x.0001.exr\n", "x.0002.exr\n", "y.txt\n"], "-S"),
+            ["x.0001,0002.exr"],
+        )
+
+    def test_json(self):
+        """--json describes the names; nothing was statted."""
+        (record,) = json.loads(
+            self.run_stdin(["a.0001.exr\n", "a.0003.exr\n"], "--json")
+        )
+        self.assertEqual(record["frames"], "0001,0003")
+        self.assertEqual(record["missing"], "0002")
+        # A bare name has no directory.
+        self.assertIsNone(record["path"])
+        self.assertIsNone(record["size"])
+        self.assertIsNone(record["empty"])
+
+    def test_reads_sys_stdin_by_default(self):
+        """No stdin argument: the real standard input."""
+        args = seqls.parse_args(["-"])
+        with mock.patch("sys.stdin", io.StringIO("a.0001.exr\na.0002.exr\n")):
+            result = seqls.main(args, _debug=True)
+        self.assertEqual(result, ["a.0001,0002.exr"])
+
+    def test_does_not_scan_disk_unless_asked(self):
+        """ "-" alone replaces the default "."; with a path, both are used."""
+        with mock.patch.object(seqparse.seqparse.Seqparse, "scan_path") as scan:
+            self.run_stdin([])
+            scan.assert_not_called()
+        self.touch("real.0001.exr", "real.0002.exr")
+        args = seqls.parse_args([self.root, "-"])
+        result = seqls.main(args, _debug=True, stdin=["other.0001.exr\n"])
+        self.assertEqual(
+            sorted(os.path.basename(line) for line in result),
+            ["other.0001.exr", "real.0001,0002.exr"],
+        )
+
+    def test_disk_options_are_rejected(self):
+        """-l and --empty need files on disk."""
+        for option in ("-l", "--empty"):
+            with self.subTest(option=option):
+                stderr = io.StringIO()
+                with (
+                    contextlib.redirect_stderr(stderr),
+                    self.assertRaises(SystemExit),
+                ):
+                    seqls.parse_args([option, "-"])
+                self.assertIn("not names from stdin", stderr.getvalue())
