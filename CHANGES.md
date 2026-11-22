@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* `seqls --empty` lists the zero-byte frames of each sequence (the debris of a
+  crashed render); `FileSequence.empty_files()` is the library equivalent.
 * `seqls --json` prints machine-readable JSON (see the README for the fields).
 * `__all__` is now complete in every module (added `get_stat_result`,
   `StatLike`, `FrameChunk`, `ScanOptions`, `Location`, the regex result types

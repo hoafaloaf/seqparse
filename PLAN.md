@@ -23,10 +23,11 @@ three OSes. See `CLAUDE.md` for commands and conventions.
 - [x] **3. `seqls --json`.** Machine-readable output: one object per item with
   name, path, ext, frames (string form), pad, missing frames, and with `-l`
   the size and mtime. Document the schema in the README.
-- [ ] **4. Flag suspicious frames in `seqls`.** For example `--empty` to list
-  0-byte frames (common after crashed renders), possibly also size outliers.
-  Reuse the existing stat caching; avoid extra stat calls when the flag is
-  off.
+- [x] **4. Flag suspicious frames in `seqls`.** `--empty` lists the 0-byte
+  frames (common after crashed renders), via `FileSequence.empty_files()` and
+  the existing stat caching; no extra stat calls when the flag is off. Size
+  outliers were considered and dropped: file sizes vary naturally (EXR
+  compression), so any threshold gives false alarms.
 - [ ] **5. Read names from stdin.** `find … | seqls -` (or `--stdin`) groups
   names without scanning disk, via `Seqparse.add_file`.
 

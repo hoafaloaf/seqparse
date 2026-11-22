@@ -32,6 +32,7 @@ class TestSeqls(unittest.TestCase):
         """Seqls: Test seqls argument parsing."""
         defaults = {
             "all": False,
+            "empty": False,
             "human_readable": False,
             "json": False,
             "long_format": False,
@@ -57,6 +58,7 @@ class TestSeqls(unittest.TestCase):
                 "max_levels": [0], "min_levels": [2]}),
             (shlex.split("--maxdepth 1 -S"), {
                 "max_levels": [1], "seqs_only": True}),
+            (["--empty"], {"empty": True, "seqs_only": True}),
             (shlex.split("-m test_dir"), {
                 "missing": True, "search_path": ["test_dir"],
                 "seqs_only": True})]
@@ -337,6 +339,7 @@ class TestJsonOption(_RealFilesTestCase):
                 "first": 1,
                 "last": 4,
                 "missing": "0003",
+                "empty": None,
                 "size": None,
                 "mtime": None,
                 "string": os.path.join(self.root, "plate.0001,0002,0004.exr"),
@@ -405,3 +408,65 @@ class TestJsonOption(_RealFilesTestCase):
             record = json.loads(seqls.json_output([fseq]))[0]
         self.assertEqual(record["path"], "C:\\renders")
         self.assertEqual(record["string"], "C:\\renders\\plate.0001,0002.exr")
+
+
+class TestEmptyOption(_RealFilesTestCase):
+    """seqls --empty."""
+
+    def setUp(self):
+        """A render that crashed: some frames are zero bytes."""
+        super().setUp()
+        self.touch("plate.0001.exr", "plate.0002.exr", "plate.0004.exr", size=5)
+        self.touch("plate.0003.exr", "plate.0005.exr", size=0)
+        self.touch("good.0001.png", "good.0002.png", size=7)
+        self.touch("empty_note.txt", size=0)
+        self.touch("notes.txt", size=3)
+
+    def test_lists_only_the_zero_byte_frames(self):
+        """Sequence notation, like -m; singletons and healthy sequences out."""
+        self.assertEqual(
+            self.run_seqls("--empty"),
+            [os.path.join(self.root, "plate.0003,0005.exr")],
+        )
+
+    def test_long_format_reports_the_zero_sizes(self):
+        """-l shows size 0 and a modification time."""
+        (line,) = self.run_seqls("--empty", "-l")
+        size, date, name = line.split("  ", 2)
+        self.assertEqual(size, "0")
+        self.assertNotEqual(date, "----")
+        self.assertEqual(name, os.path.join(self.root, "plate.0003,0005.exr"))
+
+    def test_nothing_empty_prints_nothing(self):
+        """No zero-byte frames, no output."""
+        os.remove(os.path.join(self.root, "plate.0003.exr"))
+        os.remove(os.path.join(self.root, "plate.0005.exr"))
+        self.assertEqual(self.run_seqls("--empty"), [])
+
+    def test_implies_seqs_only_and_excludes_missing(self):
+        """--empty drops singletons and cannot be combined with -m."""
+        self.assertTrue(seqls.parse_args(["--empty"]).seqs_only)
+        with (
+            contextlib.redirect_stderr(io.StringIO()),
+            self.assertRaises(SystemExit),
+        ):
+            seqls.parse_args(["--empty", "-m"])
+
+    def test_json_lists_the_empty_frames(self):
+        """--json --empty keeps only sequences that have empty frames."""
+        (record,) = json.loads(self.run_seqls("--json", "--empty"))
+        self.assertEqual(record["name"], "plate")
+        self.assertEqual(record["empty"], "0003,0005")
+        # The record still describes the whole sequence.
+        self.assertEqual(record["frames"], "0001-0005")
+        self.assertEqual(record["size"], 15)
+
+    def test_json_empty_field_needs_disk_stats(self):
+        """null without stats (nothing was checked), "" with stats and none."""
+        records = {r["name"]: r for r in json.loads(self.run_seqls("--json"))}
+        self.assertIsNone(records["plate"]["empty"])
+        records = {
+            r["name"]: r for r in json.loads(self.run_seqls("--json", "-l"))
+        }
+        self.assertEqual(records["plate"]["empty"], "0003,0005")
+        self.assertEqual(records["good"]["empty"], "")

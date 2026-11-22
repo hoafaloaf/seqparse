@@ -1148,6 +1148,28 @@ class FileSequence(FrameSequence):
         inverted.name = self._name
         return inverted
 
+    def empty_files(self) -> FileSequence:
+        """
+        Find the zero-byte files in the sequence.
+
+        Only frames whose disk stats are already cached (see `stat`) can be
+        found, so scan with disk stats enabled first; a frame without cached
+        stats is never reported.
+
+        Returns:
+            FileSequence containing the empty files (if any), with their
+            cached stats.
+        """
+        empty = [
+            number for number, info in self._stat.items() if info.st_size == 0
+        ]
+        found = FileSequence(frames=empty, ext=self._ext, pad=self.pad)
+        found.path = self._path
+        found.name = self._name
+        for number in empty:
+            found.cache_stat(number, self._stat[number])
+        return found
+
     @overload
     def stat(self) -> dict[int, os.stat_result]: ...
     @overload

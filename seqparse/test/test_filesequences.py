@@ -381,3 +381,62 @@ class TestFileSequences(unittest.TestCase):
         self.assertIn(frames[0], input_seq)
         input_seq.discard(frames[0])
         self.assertNotIn(frames[0], input_seq)
+
+
+###############################################################################
+# class: TestEmptyFiles
+
+
+def _stat_of_size(size, mtime=1):
+    """A stat_result for a regular file of the given size."""
+    return os.stat_result((0o100644, 1, 2, 1, 0, 0, size, 1, mtime, 1))
+
+
+class TestEmptyFiles(unittest.TestCase):
+    """FileSequence.empty_files() finds the zero-byte files."""
+
+    def make(self, sizes, **kwargs):
+        """A FileSequence whose frames have the given cached sizes."""
+        seq = sequences.FileSequence(
+            name=os.path.join("renders", "plate"),
+            ext="exr",
+            frames=list(sizes),
+            pad=4,
+            **kwargs,
+        )
+        for frame, size in sizes.items():
+            seq.cache_stat(frame, _stat_of_size(size, mtime=frame))
+        return seq
+
+    def test_finds_only_the_zero_byte_frames(self):
+        """Frames 3 and 5 are empty; the rest are not."""
+        empty = self.make({1: 10, 2: 10, 3: 0, 4: 10, 5: 0}).empty_files()
+        self.assertEqual(
+            str(empty), os.path.join("renders", "plate.0003,0005.exr")
+        )
+        self.assertEqual((empty.ext, empty.pad), ("exr", 4))
+        self.assertEqual((empty.name, empty.path), ("plate", "renders"))
+
+    def test_keeps_the_cached_stats(self):
+        """The result carries the stats of the files it reports."""
+        empty = self.make({1: 10, 3: 0, 5: 0}).empty_files()
+        self.assertEqual(empty.size, 0)
+        self.assertEqual(empty.mtime, 5)
+
+    def test_nothing_empty_is_falsy(self):
+        """A sequence without empty files gives an empty (falsy) result."""
+        self.assertFalse(self.make({1: 10, 2: 1}).empty_files())
+
+    def test_frames_without_stats_are_never_reported(self):
+        """Not statted is not the same as empty."""
+        seq = sequences.FileSequence(name="plate", ext="exr", frames=[1, 2])
+        self.assertFalse(seq.empty_files())
+
+    def test_original_is_unchanged(self):
+        """The sequence itself keeps all its frames and stats."""
+        seq = self.make({1: 10, 2: 0})
+        seq.empty_files()
+        self.assertEqual(
+            str(seq), os.path.join("renders", "plate.0001,0002.exr")
+        )
+        self.assertEqual(sorted(seq.stat()), [1, 2])

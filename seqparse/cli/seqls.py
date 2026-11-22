@@ -9,7 +9,7 @@ command on the command line of your choice.
 from __future__ import annotations
 
 import argparse
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 import json
 import os
 import sys
@@ -57,14 +57,18 @@ def main(
     }
 
     parser = seqparse.get_parser()
-    parser.scan_options.update({"all": args.all, "stat": args.long_format})
+    parser.scan_options.update(
+        {"all": args.all, "stat": args.long_format or args.empty}
+    )
 
     for search_path in sorted(args.search_path):
         parser.scan_path(os.path.abspath(search_path), **scan_opts)
 
     if args.json:
         text = json_output(
-            parser.output(seqs_only=args.seqs_only), only_missing=args.missing
+            parser.output(seqs_only=args.seqs_only),
+            only_missing=args.missing,
+            only_empty=args.empty,
         )
         if _debug:
             return text
@@ -74,6 +78,8 @@ def main(
     output = []
 
     items = parser.output(missing=args.missing, seqs_only=args.seqs_only)
+    if args.empty:
+        items = _empty_files(items)
     if args.long_format:
         output.extend(long_format_output(items, args.human_readable))
     else:
@@ -89,9 +95,21 @@ def main(
     return None
 
 
+def _empty_files(
+    items: Iterable[files.File | sequences.FileSequence],
+) -> Iterator[sequences.FileSequence]:
+    """Yield the zero-byte files of each sequence that has any."""
+    for item in items:
+        if isinstance(item, sequences.FileSequence):
+            empty = item.empty_files()
+            if empty:
+                yield empty
+
+
 def json_output(
     items: Iterable[files.File | sequences.FileSequence],
     only_missing: bool = False,
+    only_empty: bool = False,
 ) -> str:
     """
     Describe the items as a JSON array.
@@ -100,16 +118,18 @@ def json_output(
         items: The files and file sequences to describe.
         only_missing (bool, optional): Only describe sequences that have
             missing frames (singletons are left out). Defaults to False.
+        only_empty (bool, optional): Only describe sequences that have
+            zero-byte files (singletons are left out). Defaults to False.
 
     Returns:
-        JSON text; see the README for the fields. Sizes and times are null
-        unless the items were scanned with disk stats.
+        JSON text; see the README for the fields. Sizes, times and empty
+        files are null unless the items were scanned with disk stats.
     """
     records: list[dict[str, Any]] = []
 
     for item in items:
         if not isinstance(item, sequences.FileSequence):
-            if not only_missing:
+            if not (only_missing or only_empty):
                 records.append(
                     {
                         "type": "file",
@@ -124,6 +144,11 @@ def json_output(
 
         missing = item.invert().pretty_frames
         if only_missing and not missing:
+            continue
+
+        # Without disk stats there is nothing to tell (as opposed to "none").
+        empty = item.empty_files().pretty_frames if item.stat() else None
+        if only_empty and not empty:
             continue
 
         first = last = 0
@@ -144,6 +169,7 @@ def json_output(
                 "first": first,
                 "last": last,
                 "missing": missing,
+                "empty": empty,
                 "size": item.size,
                 "mtime": item.mtime,
                 "string": str(item),
@@ -246,13 +272,22 @@ def parse_args(args: Sequence[str]) -> argparse.Namespace:
         type=int,
     )
 
-    parser.add_argument(
+    problems = parser.add_mutually_exclusive_group()
+    problems.add_argument(
         "-m",
         "--missing",
         action="store_true",
         help=(
             "Whether to invert output file sequences to only report the "
             "missing frames."
+        ),
+    )
+    problems.add_argument(
+        "--empty",
+        action="store_true",
+        help=(
+            "Only report the zero-byte frames of each sequence (the likely "
+            "debris of a crashed render), as a frame sequence."
         ),
     )
 
@@ -284,9 +319,9 @@ def parse_args(args: Sequence[str]) -> argparse.Namespace:
     # Parse the arguments.
     parsed_args = parser.parse_args(args)
 
-    # We'll assume that if the user is requesting missing sequence files that
-    # he/she doesn't want to see any singletons.
-    if parsed_args.missing:
+    # We'll assume that if the user is requesting missing (or empty) sequence
+    # files that he/she doesn't want to see any singletons.
+    if parsed_args.missing or parsed_args.empty:
         parsed_args.seqs_only = True
 
     return parsed_args

@@ -74,7 +74,7 @@ Examples of valid file sequences:
 
 ```text
 usage: seqls [-h] [-a] [-H] [-l] [--maxdepth MAX_LEVELS]
-             [--mindepth MIN_LEVELS] [-m] [-S] [--json] [-v]
+             [--mindepth MIN_LEVELS] [-m | --empty] [-S] [--json] [-v]
              [search_path ...]
 
 Command line tool for listing file sequences. Upon installation of the package
@@ -100,6 +100,9 @@ options:
                         starting points.
   -m, --missing         Whether to invert output file sequences to only report
                         the missing frames.
+  --empty               Only report the zero-byte frames of each sequence (the
+                        likely debris of a crashed render), as a frame
+                        sequence.
   -S, --seqs-only       Whether to filter out all non-sequence files.
   --json                Print JSON instead of text: sizes (bytes) and
                         modification times (epoch seconds) are included with
@@ -137,6 +140,15 @@ $ seqls --missing
 superhero_cape_v0001.0501-0599,0801,0991-0994,0996-0999.exr
 ```
 
+Crashed renders also tend to leave zero-byte frames behind. `--empty` lists
+just those, in the same notation (`-l` adds their sizes and dates; it can't be
+combined with `-m`):
+
+```console
+$ seqls --empty
+superhero_cape_v0001.0501-0510.exr
+```
+
 ### JSON output
 
 For scripts and pipelines, `--json` prints one JSON array instead of text,
@@ -156,6 +168,7 @@ $ seqls --json -l -S
     "first": 1,
     "last": 4,
     "missing": "0003",
+    "empty": "",
     "size": 3000,
     "mtime": 1763798400.0,
     "string": "/renders/superhero_cape_v0001/superhero_cape_v0001.0001,0002,0004.exr"
@@ -174,11 +187,13 @@ Each entry is either a sequence or a singleton file:
 | `frames` | Sequences only: the frame sequence, e.g. `"0001-0500,0600-0800"` |
 | `count`, `first`, `last` | Sequences only: number of frames, first and last frame |
 | `missing` | Sequences only: the missing frames in the same notation (`""` if none) |
+| `empty` | Sequences only: the zero-byte frames in the same notation (`""` if none); `null` unless `-l` or `--empty` is given |
 | `size`, `mtime` | Size in bytes and modification time in seconds since the epoch; `null` unless `-l` is given |
 
 The other options work as usual (`-S`, `--maxdepth`, ...). With `-m/--missing`,
 only sequences that have gaps are listed, still described by their real
-`frames`; `-H` has no effect.
+`frames`, and likewise `--empty` for sequences with zero-byte frames; `-H` has no
+effect.
 
 ## The module
 
