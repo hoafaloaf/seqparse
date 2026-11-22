@@ -68,3 +68,25 @@ CI (`.github/workflows/ci.yml`) runs on Linux, macOS and Windows with Python
 - Never change the version (`seqparse/__init__.py`) unless asked. Add
   user-visible changes to the `## Unreleased` section of `CHANGES.md` as you
   make them; it gets renamed when releasing.
+
+## Releasing
+
+Releases go to PyPI from GitHub Actions (`.github/workflows/release.yml`) with
+trusted publishing, when a `vX.Y.Z` tag is pushed. The tag must be on master
+and match `__version__`, and the `pypi` environment waits for the maintainer's
+approval before uploading. This needs one-time setup by the maintainer: a
+trusted publisher on PyPI (owner `hoafaloaf`, repository `seqparse`, workflow
+`release.yml`, environment `pypi`) and a `pypi` environment on GitHub with a
+required reviewer.
+
+To release (only when asked):
+
+1. Set `__version__` in `seqparse/__init__.py`.
+2. Rename `## Unreleased` in `CHANGES.md` to `## vX.Y.Z (YYYY/MM/DD)`.
+3. Switch the README's install section back to `pip install seqparse`.
+4. Commit, push, and wait for CI to pass.
+5. `git tag vX.Y.Z && git push origin vX.Y.Z`, then approve the run on GitHub.
+6. Check `pip install seqparse==X.Y.Z` in a fresh virtual environment.
+
+PyPI versions cannot be re-uploaded, so try a pre-release tag (`v2.0.0rc1`)
+first.
