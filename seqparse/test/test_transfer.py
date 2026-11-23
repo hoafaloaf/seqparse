@@ -354,6 +354,15 @@ class TestProblems(_TempDirs):
         self.assertEqual(len(problems), 1)
         self.assertIn("a, b", problems[0])
 
+    def test_a_case_only_rename_is_never_silently_dropped(self):
+        """Windows folds case in paths; that must not turn it into a no-op."""
+        _make(self.src, "Plate", [1])
+        with mock.patch("os.path.normcase", str.lower):
+            plan = transfer.plan_move(
+                _seq(self.src, "Plate", [1]), name="plate"
+            )
+        self.assertEqual(len(plan.pairs), 1)
+
     def test_case_only_collisions(self):
         """On a case-insensitive filesystem Plate and plate are one file."""
         _make(self.src, "Plate", [1])

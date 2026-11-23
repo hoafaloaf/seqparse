@@ -333,7 +333,8 @@ def _plan(kind: _Kind, fseq: sequences.FileSequence, options: _Options) -> Plan:
     problems: list[str] = []
     for src, number in zip(sources, numbers, strict=True):
         dst = _file_name(directory, base, number + shift, pad, ext)
-        if _key(src) != _key(dst):
+        # Spelling only: a rename that changes just the case is not a no-op.
+        if os.path.abspath(src) != os.path.abspath(dst):
             pairs.append((src, dst))
         elif kind == "copy":
             problems.append(f"source and destination are the same: {src}")
