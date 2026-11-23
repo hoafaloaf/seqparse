@@ -1073,7 +1073,15 @@ class FileSequence(FrameSequence):
         return self._size
 
     def discard(self, value: SupportsInt | str) -> None:
-        """Defining value discard logic (per standard set)."""
+        """
+        Remove a frame if it is in the sequence (per standard set).
+
+        Args:
+            value: A frame number, a frame string, or the file name of one of
+                the sequence's files (what iterating gives). The name of a
+                file that is not in the sequence is ignored if it is shaped
+                like the sequence's files; any other string raises ValueError.
+        """
         if isinstance(value, str) and not value.isdigit():
             # Iterating gives file names, so the standard set methods that
             # hand those back (pop, clear, -=, remove) must work with them.

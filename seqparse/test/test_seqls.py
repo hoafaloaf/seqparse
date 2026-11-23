@@ -384,6 +384,9 @@ class TestJsonOption(_RealFilesTestCase):
             ([7], 7, 7),
             ([3, 4, 5, 9, 12, 15, 18, 40], 3, 40),
             (range(1, 100_001), 1, 100_000),
+            ([-5, -3, -1, 2], -5, 2),
+            ([-10, -9, -8], -10, -8),
+            ([-3, -2, -1, 0, 1], -3, 1),
         )
         for frames, first, last in cases:
             with self.subTest(first=first, last=last):
@@ -394,6 +397,36 @@ class TestJsonOption(_RealFilesTestCase):
                 self.assertEqual(
                     (record["first"], record["last"]), (first, last)
                 )
+
+    def test_negative_frames_are_read_from_the_notation(self):
+        """The fast path must handle them: the slow one would also be right."""
+
+        class Fake:
+            def __init__(self, notation):
+                self.pretty_frames = notation
+
+            @property
+            def frames(self):
+                raise AssertionError("the frames must not be walked")
+
+        for notation, bounds in (
+            ("-05--01x2,002", (-5, 2)),
+            ("-10--08", (-10, -8)),
+            ("-03-001", (-3, 1)),
+            ("-7", (-7, -7)),
+            ("0001-0500,0600-0800,0990-1000x5", (1, 1000)),
+        ):
+            with self.subTest(notation=notation):
+                self.assertEqual(seqls._frame_bounds(Fake(notation)), bounds)
+
+    def test_bounds_fall_back_to_the_frames_for_an_unknown_notation(self):
+        """Never wrong, only slower."""
+
+        class Odd:
+            pretty_frames = "some other notation"
+            frames = iter(["0003", "0009", "0005"])
+
+        self.assertEqual(seqls._frame_bounds(Odd()), (3, 9))
 
     def test_seqs_only(self):
         """-S leaves the singletons out."""

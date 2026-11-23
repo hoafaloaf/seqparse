@@ -76,7 +76,8 @@ class TransferError(OSError):
 
     Attributes:
         done (list): The (source, destination) pairs that had completed.
-        failed (tuple): The (source, destination) pair that failed.
+        failed (tuple): The (source, destination) pair that failed. When the
+            destination directory could not be created it is ("", directory).
         rolled_back (bool): Whether everything that was done has been undone.
         rollback_errors (list): What went wrong while undoing (if anything).
     """
@@ -652,26 +653,27 @@ def _rename_exclusive(src: str, dst: str) -> None:
         raise
 
 
-def _finish_if_linked(src: str, dst: str) -> None:
+def _linked(src: str, dst: str) -> bool:
     """
-    Remove the old name when a replace left it behind.
+    Whether the two names are hard links of one file.
 
-    POSIX rename does nothing when both names are hard links of one file, so
-    the move would report success with the source still in place.
+    POSIX rename does nothing then, so a move would report success with the
+    source still in place.
     """
     try:
-        if _same_file(os.lstat(src), os.lstat(dst)):  # pragma: no branch
-            os.unlink(src)
+        return _same_file(os.lstat(src), os.lstat(dst))
     except FileNotFoundError:
-        pass  # the usual case: the source is gone
+        return False  # the usual case: nothing at the destination yet
 
 
 def _move_file(src: str, dst: str, overwrite: bool) -> None:
     """Rename a file, copying it first when it crosses filesystems."""
     try:
         if overwrite:
-            os.replace(src, dst)
-            _finish_if_linked(src, dst)
+            if _linked(src, dst):
+                os.unlink(src)  # rename would do nothing: the name is enough
+            else:
+                os.replace(src, dst)
         else:
             _rename_exclusive(src, dst)
     except OSError as error:
