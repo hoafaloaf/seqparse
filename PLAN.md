@@ -43,16 +43,49 @@ three OSes. See `CLAUDE.md` for commands and conventions.
 - [ ] **7. Negative frames.** Accept frames below 0 (`-0010-0005`, handles and
   pre-roll). Touches the regexes, `FrameChunk` and padding rules; decide how
   padding counts the sign. Benchmark before and after.
-- [ ] **8. API docs on GitHub Pages.** Generate a reference from the
-  docstrings (for example MkDocs with mkdocstrings), built and deployed by a
-  CI workflow. Pages is already enabled (currently serving the repo root of
-  `master`); switch its source to the workflow.
+## Agreed: do before the 2.0.0 release (in this order)
+
+- [ ] **8. API docs with pdoc, published to GitHub Pages.** Decisions (agreed
+  2026-11-22): pdoc (Google-style docstrings, honors `__all__`) rather than
+  MkDocs, whose ecosystem is in flux, or Sphinx; the docs are rebuilt and
+  deployed from `master` ("latest"). Pages is currently off.
+  - Make every docstring example a real doctest (12 of 40 failed) and test
+    them (`seqparse/test/test_docstrings.py`).
+  - Pin pdoc in a `docs` extra; a CI `docs` job builds the docs on every push;
+    `docs.yml` deploys on pushes to master and manual runs; the Pages source
+    is "GitHub Actions" (enable it only with the user's OK).
+  - Link the site from the README, `[project.urls]` and the repo homepage.
+- [ ] **9. Renumber, copy and move sequences.** Decisions (agreed 2026-11-22):
+  new module `seqparse/transfer.py` (the data model stays untouched) and two
+  commands, `seqcp` and `seqmv`; renumbering is a move in place with
+  `--offset` or `--start`.
+  - API: `transfer.plan_move()` / `plan_copy()` return a plan (`pairs` in a
+    safe order, `problems`); `plan.execute()` does the I/O and returns a
+    FileSequence for the result.
+  - CLI: `-n` dry run, `-f` overwrite, `--offset`, `--start`, `--name`,
+    `--pad`; the source is a sequence in the usual notation (a subset of
+    frames is allowed).
+  - Safety rules: (1) never overwrite without `--force`; (2) check everything
+    before touching a file: sources exist, no two sources share a destination,
+    no destination exists, names differing only by case collide on
+    case-insensitive filesystems; (3) order overlapping in-place ranges so no
+    source is overwritten before it moves (highest frame first for a positive
+    offset), and refuse what cannot be ordered; (4) on an error stop, report,
+    and undo completed renames best-effort (no atomicity promised); (5) `-n`
+    changes nothing; (6) cross-filesystem moves copy, then delete only after a
+    successful copy; (7) gaps stay gaps; (8) the pad grows when new frame
+    numbers need more digits, unless `--pad` is given; (9) refuse results below
+    frame 0 until item 7; (10) copies keep modification times and copy a
+    symlink's contents.
+  - Tests: real temp directories on all three OSes; a seeded randomized test
+    of the overlap ordering (every file's content must end up at the right
+    name); injected failures at the Nth file for the undo; a simulated
+    cross-filesystem error; Windows case collisions and in-use files;
+    mutation checks.
+  - Ship `2.0.0rc2` for real-world trials before 2.0.0.
 
 ## Discuss with the user before starting
 
-- [ ] **9. Renumber, copy and move sequences.** For example "shift 1–100 to
-  1001–1100", with a dry run, collision checks and Windows support. Touches
-  the filesystem, so agree on the API and safety rules first.
 - [ ] **10. Subframes** (`1001.25`) for motion-blur and simulation caches.
   Niche, and conflicts with the integer array storage that makes seqparse
   fast.
