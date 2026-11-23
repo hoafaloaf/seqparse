@@ -15,11 +15,13 @@ import unittest
 PUBLIC_MODULES = (
     "seqparse",
     "seqparse.cli.seqls",
+    "seqparse.cli.seqtransfer",
     "seqparse.containers",
     "seqparse.files",
     "seqparse.regex",
     "seqparse.seqparse",
     "seqparse.sequences",
+    "seqparse.transfer",
 )
 
 # Public-looking names that are deliberately not part of the API.

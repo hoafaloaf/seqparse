@@ -35,6 +35,8 @@ docs = ["pdoc==16.0.0"]
 
 [project.scripts]
 seqls = "seqparse.cli.seqls:run_main"
+seqcp = "seqparse.cli.seqtransfer:run_cp"
+seqmv = "seqparse.cli.seqtransfer:run_mv"
 
 [project.urls]
 Homepage = "https://github.com/hoafaloaf/seqparse"

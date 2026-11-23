@@ -224,6 +224,48 @@ with real paths. `-m`, `-S` and `--json` work as usual, with `null` sizes;
 `-a`, `--maxdepth` and `--mindepth` only apply to scanned paths, and `-l` and
 `--empty` need files on disk, so they are rejected together with `-`.
 
+### Copying, moving and renumbering
+
+`seqcp` and `seqmv` work like `cp` and `mv` for a whole sequence, and renumber
+or rename it on the way. Renumbering is a move that stays in the same
+directory. `-n` shows what would happen without touching anything:
+
+```console
+$ seqmv -n --offset 1000 shots/a/plate.0001-0005.exr
+shots/a/plate.0001.exr -> shots/a/plate.1001.exr
+shots/a/plate.0002.exr -> shots/a/plate.1002.exr
+shots/a/plate.0003.exr -> shots/a/plate.1003.exr
+shots/a/plate.0004.exr -> shots/a/plate.1004.exr
+shots/a/plate.0005.exr -> shots/a/plate.1005.exr
+would move 5 files: shots/a/plate.0001-0005.exr -> shots/a/plate.1001-1005.exr
+$ seqmv --offset 1000 shots/a/plate.0001-0005.exr
+moved 5 files: shots/a/plate.0001-0005.exr -> shots/a/plate.1001-1005.exr
+$ seqcp -p shots/a/plate.1001-1005.exr backup
+copied 5 files: shots/a/plate.1001-1005.exr -> backup/plate.1001-1005.exr
+```
+
+The source is a sequence in the usual notation (a range of frames moves only
+those frames). The options are `--offset N` (may be negative), `--start N`
+(the first frame becomes N, gaps are kept), `--name` and `--pad`, `-p` to
+create the destination directory, `-f` to replace existing files, and `-v` to
+list every file.
+
+It is built to be safe with your files:
+
+- Nothing is overwritten unless you pass `-f`.
+- Everything is checked before the first file is touched: the sources exist and
+  the destinations are free. If anything is wrong you get a list of problems
+  and no file has changed.
+- Overlapping renumbers (shifting 1-100 up by one) are processed in an order
+  that never overwrites a file that has not moved yet.
+- If something fails part way, the files that were already done are put back.
+- A move to another filesystem copies first and deletes the original only
+  after the copy succeeded.
+
+The same is available as a library: `seqparse.transfer.plan_move()` and
+`plan_copy()` return a plan with its `pairs` and `problems`, and
+`plan.execute()` does the work.
+
 ## The module
 
 Using the module is fairly simple:

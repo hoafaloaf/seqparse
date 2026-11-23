@@ -10,11 +10,13 @@ import unittest
 MODULES = (
     "seqparse",
     "seqparse.cli.seqls",
+    "seqparse.cli.seqtransfer",
     "seqparse.containers",
     "seqparse.files",
     "seqparse.regex",
     "seqparse.seqparse",
     "seqparse.sequences",
+    "seqparse.transfer",
 )
 
 # The file structure that the Seqparse docstring describes.

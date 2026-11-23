@@ -21,6 +21,11 @@ New features:
 * `seqls -` reads file names from standard input (one per line) and groups
   them without touching disk, eg `find . -name '*.exr' | seqls -`.
 * `seqls --json` prints machine-readable JSON (see the README for the fields).
+* `seqcp` and `seqmv` copy, move and renumber file sequences (`--offset`,
+  `--start`, `--name`, `--pad`), with a dry run (`-n`) and safety checks:
+  nothing is overwritten unless `-f` is given, everything is checked before the
+  first file is touched, and a failure part way is undone. `seqparse.transfer`
+  is the library API (`plan_move`, `plan_copy`).
 * `seqls --empty` lists the zero-byte frames of each sequence (the debris of a
   crashed render); `FileSequence.empty_files()` is the library equivalent.
 * Windows is supported: native paths, including drive letters, UNC shares and

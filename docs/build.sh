@@ -9,10 +9,12 @@ set -eu
 exec pdoc \
     seqparse \
     seqparse.cli.seqls \
+    seqparse.cli.seqtransfer \
     seqparse.containers \
     seqparse.files \
     seqparse.regex \
     seqparse.seqparse \
     seqparse.sequences \
+    seqparse.transfer \
     --docformat google \
     --output-directory "${1:-site}"
