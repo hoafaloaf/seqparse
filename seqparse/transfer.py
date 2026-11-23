@@ -51,10 +51,11 @@ The safety rules:
 from __future__ import annotations
 
 import collections
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 import contextlib
 import dataclasses
 import errno
+import functools
 import os
 import shutil
 import stat
@@ -186,7 +187,16 @@ class Plan:
         directory = self.result.path
         created: list[str] = []
         if self._context.options.parents and directory:
-            created = _make_directories(directory)
+            try:
+                created = _make_directories(directory)
+            except OSError as error:
+                raise TransferError(
+                    f"cannot create {directory}: {error}",
+                    [],
+                    ("", directory),
+                    True,
+                    [],
+                ) from error
 
         done: list[_Pair] = []
         for pair in self.pairs:
@@ -402,7 +412,7 @@ def _source_at(
     dst: str,
     info: os.stat_result,
     by_key: dict[str, int],
-    by_alias: dict[str, int],
+    aliases: Callable[[], dict[str, int]],
     stats: Sequence[os.stat_result | None],
 ) -> int | None:
     """
@@ -414,7 +424,7 @@ def _source_at(
     """
     index = by_key.get(_key(dst))
     if index is None:
-        candidate = by_alias.get(_alias(dst))
+        candidate = aliases().get(_alias(dst))
         if candidate is not None and _same_file(info, stats[candidate]):
             index = candidate
     return index
@@ -459,7 +469,10 @@ def _check_destinations(
         source), and the existing files that would be replaced.
     """
     by_key = {_key(src): i for i, (src, _) in enumerate(pairs)}
-    by_alias = {_alias(src): i for i, (src, _) in enumerate(pairs)}
+
+    @functools.cache  # only needed once something exists at a destination
+    def aliases() -> dict[str, int]:
+        return {_alias(src): i for i, (src, _) in enumerate(pairs)}
 
     dependencies: dict[int, set[int]] = {}
     preexisting: set[str] = set()
@@ -476,7 +489,7 @@ def _check_destinations(
             problems.append(f"destination is a directory: {dst}")
             continue
         # Is what is there one of the files we are about to move or copy?
-        other = _source_at(dst, info, by_key, by_alias, stats)
+        other = _source_at(dst, info, by_key, aliases, stats)
         if other is None:
             preexisting.add(dst)  # an unrelated file that would be replaced
             if not overwrite:
@@ -538,17 +551,36 @@ def _remove(path: str) -> None:
 
 
 def _make_directories(directory: str) -> list[str]:
-    """Create a directory (and parents); return the new ones, deepest first."""
-    new: list[str] = []
+    """
+    Create a directory and its parents, one level at a time.
+
+    Returns:
+        The directories that were new, deepest first. If one cannot be
+        created, the ones made so far are removed again and the error raised.
+    """
+    missing: list[str] = []
     current = os.path.abspath(directory)
     while not os.path.isdir(current):
-        new.append(current)
+        missing.append(current)
         parent = os.path.dirname(current)
         if parent == current:  # pragma: no cover (the root always exists)
             break
         current = parent
-    os.makedirs(directory, exist_ok=True)
-    return new
+
+    made: list[str] = []
+    try:
+        for path in reversed(missing):
+            try:
+                os.mkdir(path)
+            except FileExistsError:
+                if not os.path.isdir(path):
+                    raise
+                continue  # someone else made it meanwhile
+            made.append(path)
+    except OSError:
+        _remove_directories(made[::-1])
+        raise
+    return made[::-1]
 
 
 def _remove_directories(directories: Sequence[str]) -> None:
@@ -581,7 +613,10 @@ def _copy_file(
         return
     # Replace atomically: the old file survives a failed copy, a symlink at the
     # destination is replaced (not written through), and so is a hard link.
-    temporary = f"{dst}.{os.urandom(4).hex()}.tmp"
+    # A short name in the same directory (dst plus a suffix could be too long).
+    temporary = os.path.join(
+        os.path.dirname(dst), f".seqparse-{os.urandom(6).hex()}.tmp"
+    )
     _copy_exclusive(src, temporary, follow_symlinks)
     try:
         os.replace(temporary, dst)
@@ -617,11 +652,26 @@ def _rename_exclusive(src: str, dst: str) -> None:
         raise
 
 
+def _finish_if_linked(src: str, dst: str) -> None:
+    """
+    Remove the old name when a replace left it behind.
+
+    POSIX rename does nothing when both names are hard links of one file, so
+    the move would report success with the source still in place.
+    """
+    try:
+        if _same_file(os.lstat(src), os.lstat(dst)):  # pragma: no branch
+            os.unlink(src)
+    except FileNotFoundError:
+        pass  # the usual case: the source is gone
+
+
 def _move_file(src: str, dst: str, overwrite: bool) -> None:
     """Rename a file, copying it first when it crosses filesystems."""
     try:
         if overwrite:
             os.replace(src, dst)
+            _finish_if_linked(src, dst)
         else:
             _rename_exclusive(src, dst)
     except OSError as error:

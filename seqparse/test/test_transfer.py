@@ -870,3 +870,100 @@ class TestRenamePrimitives(_TempDirs):
             plan.execute()
         self.assertEqual(_listing(self.dst), ["plate.0001.exr"])
         self.assertEqual(_content(self.dst, "plate", 1), "old")
+
+
+class TestReviewedEdgeCases(_TempDirs):
+    """Found by code review: links, directories, long names."""
+
+    def setUp(self):
+        """Three frames to transfer."""
+        super().setUp()
+        _make(self.src, "plate", [1, 2, 3])
+        self.fseq = _seq(self.src, "plate", [1, 2, 3])
+
+    def _can_link(self):
+        """Skip unless hard links work here."""
+        try:
+            os.link(_name(self.src, "plate", 1), os.path.join(self.root, "z"))
+        except (OSError, NotImplementedError):
+            self.skipTest("hard links are not available")
+
+    def test_overwriting_a_hard_link_of_the_source_completes_the_move(self):
+        """rename() is a no-op for two names of one file; the move is not."""
+        self._can_link()
+        os.link(_name(self.src, "plate", 2), _name(self.dst, "plate", 2))
+        transfer.plan_move(self.fseq, self.dst, overwrite=True).execute()
+        self.assertEqual(_listing(self.src), [])
+        self.assertEqual(len(_listing(self.dst)), 3)
+        self.assertEqual(_content(self.dst, "plate", 2), "plate 2")
+
+    def test_a_blocked_parent_directory_is_a_transfer_error(self):
+        """parents=True under a plain file: reported, nothing left behind."""
+        with open(os.path.join(self.dst, "blocker"), "w") as handle:
+            handle.write("a file")
+        target = os.path.join(self.dst, "blocker", "deeper")
+        plan = transfer.plan_copy(self.fseq, target, parents=True)
+        with self.assertRaises(transfer.TransferError) as caught:
+            plan.execute()
+        error = caught.exception
+        self.assertEqual((error.done, error.failed[1]), ([], target))
+        self.assertTrue(error.rolled_back)
+        self.assertEqual(_listing(self.dst), ["blocker"])
+        self.assertEqual(len(_listing(self.src)), 3)
+
+    def test_directories_made_before_a_failure_are_removed(self):
+        """Creating a/b/c fails at c: a and b go away again."""
+        target = os.path.join(self.dst, "a", "b", "c")
+        real = os.mkdir
+        calls = []
+
+        def mkdir(path, *args, **kwargs):
+            calls.append(path)
+            if len(calls) == 3:
+                raise PermissionError(errno.EACCES, "denied", path)
+            return real(path, *args, **kwargs)
+
+        plan = transfer.plan_copy(self.fseq, target, parents=True)
+        with (
+            mock.patch("os.mkdir", mkdir),
+            self.assertRaises(transfer.TransferError),
+        ):
+            plan.execute()
+        self.assertEqual(_listing(self.dst), [])
+
+    def test_a_directory_made_by_someone_else_meanwhile_is_fine(self):
+        """mkdir loses a race: the directory is there, so carry on."""
+        target = os.path.join(self.dst, "raced")
+        real = os.mkdir
+
+        def mkdir(path, *args, **kwargs):
+            real(path, *args, **kwargs)
+            raise FileExistsError(errno.EEXIST, "exists", path)
+
+        plan = transfer.plan_copy(self.fseq, target, parents=True)
+        with mock.patch("os.mkdir", mkdir):
+            plan.execute()
+        self.assertEqual(len(_listing(target)), 3)
+
+    @unittest.skipIf(os.name == "nt", "path length limits differ")
+    def test_a_long_destination_name_can_be_overwritten(self):
+        """The temporary file must not be longer than the name it replaces."""
+        base = "x" * 235  # 244 characters with the frame and extension
+        long_src = os.path.join(self.root, "a")
+        long_dst = os.path.join(self.root, "b")
+        os.mkdir(long_src)
+        os.mkdir(long_dst)
+        _make(long_src, base, [1])
+        _make(long_dst, base, [1])
+        plan = transfer.plan_copy(
+            _seq(long_src, base, [1]), long_dst, overwrite=True
+        )
+        plan.execute()
+        self.assertEqual(len(_listing(long_dst)), 1)
+        self.assertEqual(_content(long_dst, base, 1), f"{base} 1")
+
+    def test_aliases_are_only_worked_out_when_needed(self):
+        """Nothing exists at the destinations: no alias lookups at all."""
+        with mock.patch.object(transfer, "_alias", side_effect=AssertionError):
+            plan = transfer.plan_move(self.fseq, self.dst)
+        self.assertEqual(plan.problems, [])
