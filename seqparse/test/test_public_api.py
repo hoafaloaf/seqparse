@@ -9,6 +9,7 @@ an implementation detail, listed in INTERNAL below.
 import ast
 import importlib
 import inspect
+import pathlib
 import unittest
 
 PUBLIC_MODULES = (
@@ -88,3 +89,17 @@ class TestAll(unittest.TestCase):
                 module = importlib.import_module(name)
                 self.assertLessEqual(internal, _defined_names(module))
                 self.assertEqual(internal & set(module.__all__), set())
+
+
+class TestDocsBuild(unittest.TestCase):
+    """pdoc only documents the modules that docs/build.sh names."""
+
+    def test_build_script_lists_every_public_module(self):
+        """A new public module must be added to docs/build.sh too."""
+        script = pathlib.Path(__file__).resolve().parents[2] / "docs/build.sh"
+        if not script.exists():
+            self.skipTest("docs/build.sh is not part of an installed package")
+        words = set(script.read_text().split())
+        for name in PUBLIC_MODULES:
+            with self.subTest(module=name):
+                self.assertIn(name, words)

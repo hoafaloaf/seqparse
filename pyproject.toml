@@ -31,12 +31,14 @@ dependencies = ["humanize"]
 
 [project.optional-dependencies]
 tests = ["coverage", "pytest"]
+docs = ["pdoc==16.0.0"]
 
 [project.scripts]
 seqls = "seqparse.cli.seqls:run_main"
 
 [project.urls]
 Homepage = "https://github.com/hoafaloaf/seqparse"
+Documentation = "https://hoafaloaf.github.io/seqparse/"
 Issues = "https://github.com/hoafaloaf/seqparse/issues"
 Changelog = "https://github.com/hoafaloaf/seqparse/blob/master/CHANGES.md"
 

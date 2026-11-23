@@ -21,7 +21,8 @@ singletons from the command line.
 
 If you're curious about the **regular expressions** used to determine
 what is and isn't a valid file sequence, take a look at the
-`seqparse.regex` module.
+`seqparse.regex` module. The API is documented at
+<https://hoafaloaf.github.io/seqparse/>.
 
 ### Requirements
 

@@ -63,6 +63,14 @@ CI (`.github/workflows/ci.yml`) runs on Linux, macOS and Windows with Python
 - `test_readme.py` doctests the Python examples in `README.md`, so README
   examples must be real output.
 
+## API docs
+
+Built with pdoc: `pip install ".[docs]"`, then `sh docs/build.sh site` (the
+output is git-ignored). CI builds them on every push (the `docs` job), and
+`.github/workflows/docs.yml` publishes them to GitHub Pages on pushes to
+master. pdoc honors `__all__`, so a new public module must also be added to
+the module list in `docs/build.sh` (a test checks this).
+
 ## Git and releases
 
 - Commit and push only when asked. Show the commit message for approval first.
