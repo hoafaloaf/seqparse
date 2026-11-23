@@ -161,6 +161,9 @@ $ seqls --empty
 superhero_cape_v0001.0501-0510.exr
 ```
 
+Only the frames of sequences are checked: a zero-byte file that is not part of
+a sequence is not reported (`seqls -l` shows every file's size).
+
 ### JSON output
 
 For scripts and pipelines, `--json` prints one JSON array instead of text,

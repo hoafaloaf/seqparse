@@ -368,6 +368,33 @@ class TestJsonOption(_RealFilesTestCase):
         for record in records.values():
             self.assertIsInstance(record["mtime"], float)
 
+    def test_first_and_last_of_an_empty_sequence(self):
+        """No frames: the bounds are 0 rather than an error."""
+        fseq = sequences.FileSequence(name="x", ext="exr", frames=[], pad=4)
+        (record,) = json.loads(seqls.json_output([fseq]))
+        self.assertEqual(
+            (record["count"], record["first"], record["last"]), (0, 0, 0)
+        )
+
+    def test_first_and_last_follow_the_frames(self):
+        """Gaps, steps, runs and a single frame."""
+        cases = (
+            ([1, 2, 4], 1, 4),
+            ([10, 20, 30], 10, 30),
+            ([7], 7, 7),
+            ([3, 4, 5, 9, 12, 15, 18, 40], 3, 40),
+            (range(1, 100_001), 1, 100_000),
+        )
+        for frames, first, last in cases:
+            with self.subTest(first=first, last=last):
+                fseq = sequences.FileSequence(
+                    name="x", ext="exr", frames=frames, pad=4
+                )
+                (record,) = json.loads(seqls.json_output([fseq]))
+                self.assertEqual(
+                    (record["first"], record["last"]), (first, last)
+                )
+
     def test_seqs_only(self):
         """-S leaves the singletons out."""
         self.assertEqual(set(self.records("--json", "-S")), {"plate", "comp"})

@@ -440,3 +440,62 @@ class TestEmptyFiles(unittest.TestCase):
             str(seq), os.path.join("renders", "plate.0001,0002.exr")
         )
         self.assertEqual(sorted(seq.stat()), [1, 2])
+
+
+class TestStandardSetMethods(unittest.TestCase):
+    """Iterating a FileSequence gives file names, so those must work back."""
+
+    def make(self):
+        """A three-frame sequence with cached stats."""
+        seq = sequences.FileSequence(
+            name=os.path.join("shots", "plate"),
+            ext="exr",
+            frames=[1, 2, 3],
+            pad=4,
+        )
+        for number in (1, 2, 3):
+            seq.cache_stat(number, _stat_of_size(number))
+        return seq
+
+    def test_discard_and_remove_accept_file_names(self):
+        """A member's file name removes the frame (and its stats)."""
+        seq = self.make()
+        name = os.path.join("shots", "plate.0002.exr")
+        seq.discard(name)
+        self.assertEqual(list(seq.frames), ["0001", "0003"])
+        self.assertEqual(sorted(seq.stat()), [1, 3])
+        seq.remove(os.path.join("shots", "plate.0001.exr"))
+        self.assertEqual(list(seq.frames), ["0003"])
+
+    def test_discarding_a_file_that_is_not_a_member_does_nothing(self):
+        """Per standard set semantics."""
+        seq = self.make()
+        seq.discard(os.path.join("shots", "plate.0009.exr"))
+        self.assertEqual(list(seq.frames), ["0001", "0002", "0003"])
+
+    def test_garbage_is_still_an_error(self):
+        """Only file names were added to what discard understands."""
+        for garbage in (
+            "not a frame",
+            os.path.join("elsewhere", "plate.0001.exr"),  # not one of ours
+        ):
+            with self.subTest(value=garbage), self.assertRaises(ValueError):
+                self.make().discard(garbage)
+
+    def test_pop_clear_and_in_place_difference_work(self):
+        """The inherited methods feed iterated names back into discard."""
+        seq = self.make()
+        self.assertEqual(seq.pop(), os.path.join("shots", "plate.0001.exr"))
+        other = sequences.FileSequence(
+            name=os.path.join("shots", "plate"), ext="exr", frames=[2], pad=4
+        )
+        seq -= other
+        self.assertEqual(list(seq.frames), ["0003"])
+        seq.clear()
+        self.assertEqual((len(seq), seq.stat()), (0, {}))
+
+    def test_empty_files_ignores_frames_that_are_not_members(self):
+        """Stats cached for a frame the sequence does not have."""
+        seq = sequences.FileSequence(name="plate", ext="exr", frames=[], pad=4)
+        seq.cache_stat(5, _stat_of_size(0))
+        self.assertFalse(seq.empty_files())

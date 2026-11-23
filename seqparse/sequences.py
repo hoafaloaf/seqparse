@@ -930,23 +930,30 @@ class FileSequence(FrameSequence):
             return super().__contains__(item)
         if not isinstance(item, str):
             return item in set(self)
+        number = self._frame_of_name(item)
+        return number is not None and self._has(number)
 
-        # A file name is a member when it is prefix + padded frame + suffix
-        # for one of our frames; check that directly instead of building
-        # every file name.
+    def _frame_of_name(self, item: str) -> int | None:
+        """
+        The frame number of a file name that is shaped like our files.
+
+        A name is shaped like ours when it is prefix + padded frame + suffix;
+        check that directly instead of building every file name. Whether the
+        frame is actually in the sequence is up to the caller.
+        """
         if os.altsep:  # Windows: either separator names the same file
             item = item.replace(os.altsep, os.sep)
         prefix, suffix = self._name_affixes()
         if len(item) <= len(prefix) + len(suffix):
-            return False
+            return None
         if not (item.startswith(prefix) and item.endswith(suffix)):
-            return False
+            return None
         frame = item[len(prefix) : len(item) - len(suffix)]
         digits = frame.removeprefix("-")  # negative frames render as "-005"
         if not (digits.isascii() and digits.isdigit()):
-            return False
+            return None
         number = int(frame)
-        return self._has(number) and frame == f"{number:0{self._pad}d}"
+        return number if frame == f"{number:0{self._pad}d}" else None
 
     def __eq__(self, other: object) -> bool:
         """Define equality between instances."""
@@ -1067,6 +1074,12 @@ class FileSequence(FrameSequence):
 
     def discard(self, value: SupportsInt | str) -> None:
         """Defining value discard logic (per standard set)."""
+        if isinstance(value, str) and not value.isdigit():
+            # Iterating gives file names, so the standard set methods that
+            # hand those back (pop, clear, -=, remove) must work with them.
+            named = self._frame_of_name(value)
+            if named is not None:
+                value = named
         super().discard(value)
         number = int(value) if isinstance(value, str) else _exact_frame(value)
         if number is not None:
@@ -1170,7 +1183,9 @@ class FileSequence(FrameSequence):
             cached stats.
         """
         empty = [
-            number for number, info in self._stat.items() if info.st_size == 0
+            number
+            for number, info in self._stat.items()
+            if info.st_size == 0 and self._has(number)
         ]
         found = FileSequence(frames=empty, ext=self._ext, pad=self.pad)
         found.path = self._path

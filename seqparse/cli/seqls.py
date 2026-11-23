@@ -12,6 +12,7 @@ import argparse
 from collections.abc import Iterable, Iterator, Sequence
 import json
 import os
+import re
 import sys
 import time
 from typing import Any
@@ -130,6 +131,25 @@ def _read_names(lines: Iterable[str]) -> Iterator[str]:
             yield name
 
 
+def _frame_bounds(frames: str) -> tuple[int, int]:
+    """
+    The first and last frame of a frame sequence in the usual notation.
+
+    Read from the notation ("0001-0500,0990-1000x5") rather than by going
+    through every frame, which for a long sequence costs far more than
+    everything else done for it.
+
+    Returns:
+        (0, 0) for an empty sequence.
+    """
+    if not frames:
+        return 0, 0
+    chunks = frames.split(",")
+    first = re.match(r"\d+", chunks[0])
+    last = re.findall(r"\d+", chunks[-1].partition("x")[0])
+    return int(first.group()) if first else 0, int(last[-1]) if last else 0
+
+
 def _empty_files(
     items: Iterable[files.File | sequences.FileSequence],
 ) -> Iterator[sequences.FileSequence]:
@@ -186,11 +206,7 @@ def json_output(
         if only_empty and not empty:
             continue
 
-        first = last = 0
-        for number, frame in enumerate(item.frames):
-            if number == 0:
-                first = int(frame)
-            last = int(frame)
+        first, last = _frame_bounds(item.pretty_frames)
 
         records.append(
             {
