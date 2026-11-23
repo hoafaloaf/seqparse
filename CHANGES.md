@@ -69,6 +69,7 @@ Project:
 * All packaging metadata lives in `pyproject.toml`, and the tests are no longer
   shipped in wheels.
 * README and changelog are Markdown; the stale Sphinx docs are gone.
+* The examples in the docstrings are tested (and the broken ones fixed).
 * GitHub Actions replaces Travis (ruff and mypy replace yapf, isort and pylint)
   and uploads coverage to Coveralls.
 * The test suite grew from 60 to 168 tests, and coverage is at 99%.

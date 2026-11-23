@@ -336,10 +336,14 @@ class FrameSequence(MutableSet[str], regex.SeqparseRegexMixin):
     Examples:
         All of the following will result in equivalent output:
 
-        >>> FrameSequence(range(1,6), pad=4)
+        >>> FrameSequence(range(1, 6), pad=4)
+        FrameSequence(pad=4, frames=set([1, 2, 3, 4, 5]))
         >>> FrameSequence(set([1, 2, 3, 4, 5]), pad=4)
+        FrameSequence(pad=4, frames=set([1, 2, 3, 4, 5]))
         >>> FrameSequence("0001-0005")
+        FrameSequence(pad=4, frames=set([1, 2, 3, 4, 5]))
         >>> FrameSequence(FrameChunk(first=1, last=5, pad=4))
+        FrameSequence(pad=4, frames=set([1, 2, 3, 4, 5]))
     """
 
     # __dict__ and __weakref__ keep custom attributes and weak references
@@ -824,12 +828,17 @@ class FileSequence(FrameSequence):
 
     1. Either clone a new instance from an existing one ...
 
+        >>> parent = FileSequence(frames="0001-0003", ext="exr")
         >>> clone = FileSequence(parent)
+        >>> clone == parent
+        True
 
     2. ... or create a valid instance by providing a file extension and at
        least one frame (the base name is optional in every sense of the word):
 
        >>> fseq = FileSequence(frames="0001", ext="exr")
+       >>> print(fseq)
+       0001.exr
 
     Args:
         name (str, optional): Base name (including containing directory) for

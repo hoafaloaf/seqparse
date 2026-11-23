@@ -155,16 +155,16 @@ class Seqparse(regex.SeqparseRegexMixin):
         >>> parser = Seqparse()
         >>> parser.scan_path("test_dir")
         >>> for item in parser.output():
-        ...     print str(item)
+        ...     print(item)
         ...
         test_dir/TEST_DIR.0001-0004,0010.tif
         test_dir/SINGLETON.jpg
         >>> for item in parser.output(seqs_only=True):
-        ...     print str(item)
+        ...     print(item)
         ...
         test_dir/TEST_DIR.0001-0004,0010.tif
         >>> for item in parser.output(missing=True):
-        ...     print str(item)
+        ...     print(item)
         ...
         test_dir/TEST_DIR.0005-0009.tif
     """
@@ -517,11 +517,11 @@ class Seqparse(regex.SeqparseRegexMixin):
         Examples:
             >>> from seqparse.seqparse import Seqparse
             >>> parser = Seqparse()
-            >>> print parser.validate_frame_sequence("0001-0001")
+            >>> print(parser.validate_frame_sequence("0001-0001"))
             0001
-            >>> print parser.validate_frame_sequence("0001-")
+            >>> print(parser.validate_frame_sequence("0001-"))
             None
-            >>> print parser.validate_frame_sequence("3,1,5,7")
+            >>> print(parser.validate_frame_sequence("3,1,5,7"))
             1-7x2
         """
         try:

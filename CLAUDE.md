@@ -57,6 +57,9 @@ CI (`.github/workflows/ci.yml`) runs on Linux, macOS and Windows with Python
   `test_legacy_pickles_are_portable` checks that.
 - `test_public_api.py` keeps every module's `__all__` complete: export a new
   public name there, or add it to the test's INTERNAL list.
+- `test_docstrings.py` runs every `>>>` example in the docstrings, so they
+  must show real output (the Seqparse examples run in a temp dir holding
+  `test_dir`).
 - `test_readme.py` doctests the Python examples in `README.md`, so README
   examples must be real output.
 
