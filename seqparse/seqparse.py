@@ -485,10 +485,15 @@ class Seqparse(regex.SeqparseRegexMixin):
         for entry in entries:
             if entry.name.startswith(".") and not self.scan_options["all"]:
                 continue
-            if entry.is_dir(follow_symlinks=follow_symlinks):
-                dir_entries.append(entry)
-            elif entry.is_file(follow_symlinks=follow_symlinks):
-                file_entries.append(entry)
+            try:
+                if entry.is_dir(follow_symlinks=follow_symlinks):
+                    dir_entries.append(entry)
+                elif entry.is_file(follow_symlinks=follow_symlinks):
+                    file_entries.append(entry)
+            except OSError:
+                # A link that loops or points somewhere unreadable (ELOOP,
+                # EACCES) must not abort the scan; skip it, like os.walk.
+                continue
 
         yield _level, dir_entries, file_entries
 

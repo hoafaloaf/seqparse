@@ -37,6 +37,12 @@ def _frame_number(item: Any) -> int:
     return int(item)
 
 
+def _contained_frame(item: Any) -> int | None:
+    """The frame a membership test asks about; None for 1.5 (not a frame)."""
+    number = _frame_number(item)
+    return number if isinstance(item, str) or number == item else None
+
+
 # Frames are stored as a sorted array of 64-bit ints (8 bytes per frame, no
 # int objects); frame numbers too big for that fall back to a list.
 FrameStore: TypeAlias = MutableSequence[int]
@@ -58,7 +64,7 @@ def _exact_frame(value: object) -> int | None:
     """value as a frame number if it is exactly one (1.0 is; 1.5 isn't)."""
     try:
         number = _frame_number(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return None
     return number if number == value else None
 
@@ -156,8 +162,8 @@ class FrameChunk:
 
     def __contains__(self, item: object) -> bool:
         """Whether the chunk contains the specified (non-)padded frame."""
-        frame_num = _frame_number(item)
-        if not self._first <= frame_num <= self._last:
+        frame_num = _contained_frame(item)
+        if frame_num is None or not self._first <= frame_num <= self._last:
             return False
         if (frame_num - self._first) % self.step:
             return False
@@ -416,12 +422,12 @@ class FrameSequence(MutableSet[str], regex.SeqparseRegexMixin):
 
     def __contains__(self, item: object) -> bool:
         """Defining containment logic (per standard set)."""
-        if self._has(_frame_number(item)):
-            if isinstance(item, str):
-                return _is_correctly_padded(item, self._pad)
-            return True
-
-        return False
+        number = _contained_frame(item)
+        if number is None or not self._has(number):
+            return False
+        if isinstance(item, str):
+            return _is_correctly_padded(item, self._pad)
+        return True
 
     def __iter__(self) -> Iterator[str]:
         """Defining item iteration logic (per standard set)."""
@@ -902,9 +908,6 @@ class FileSequence(FrameSequence):
                 name, frames, ext = file_seq_bits
                 pad = None
 
-        if frames is None:
-            frames = []
-
         super().__init__(frames, pad=pad)
 
         self.ext = ext
@@ -1090,8 +1093,8 @@ class FileSequence(FrameSequence):
                 value = named
         super().discard(value)
         number = int(value) if isinstance(value, str) else _exact_frame(value)
-        if number is not None:
-            self._stat.pop(number, None)
+        if number is not None and self._stat.pop(number, None) is not None:
+            self._dirty = True  # the cached aggregates covered this stat
 
     def update(self, iterable: Iterable[Any]) -> None:
         """Defining item update logic (per standard set)."""
@@ -1107,6 +1110,7 @@ class FileSequence(FrameSequence):
                     )
 
             self._stat.update(iterable.stat())
+            self._dirty = True  # the cached aggregates predate these stats
             # Frames are valid for this pad unless they carry leading zeros
             # of a different width; then take the slow path (which raises).
             iterable._sync()
@@ -1141,6 +1145,7 @@ class FileSequence(FrameSequence):
         """
         number = int(frame)
         self._stat[number] = seqparse.get_stat_result(input_stat)
+        self._dirty = True  # size/mtime/ctime aggregate the cached stats
         return self._stat[number]
 
     def calculate(self, force: bool = False) -> None:

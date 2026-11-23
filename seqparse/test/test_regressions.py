@@ -143,6 +143,13 @@ class TestScanning(_TempDirMixin, unittest.TestCase):
         self.assertEqual(len(list(parser.output())), 3)
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unsupported")
+    def test_self_referencing_symlink_does_not_abort_the_scan(self):
+        """A link pointing at itself (ELOOP) used to raise out of the scan."""
+        os.symlink("loop", os.path.join(self.root, "a", "loop"))
+        parser = self.scan()
+        self.assertEqual(len(list(parser.output())), 3)
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unsupported")
     def test_symlinked_directory_reported_under_both_paths(self):
         """The loop guard hid any directory reachable by a second path."""
         os.symlink(
@@ -267,6 +274,18 @@ class TestOutput(_TempDirMixin, unittest.TestCase):
 class TestFrameSequences(unittest.TestCase):
     """Regressions in FrameSequence."""
 
+    def test_non_integral_numbers_are_not_members(self):
+        """1.5 used to be truncated to frame 1 by `in`."""
+        self.assertNotIn(1.5, sequences.FrameSequence([1, 2, 3]))
+        self.assertNotIn(2.5, sequences.FrameChunk(1, 5))
+        self.assertIn(2.0, sequences.FrameSequence([1, 2, 3]))
+
+    def test_discard_ignores_infinity(self):
+        """discard(inf) raised OverflowError instead of being ignored."""
+        frames = sequences.FrameSequence([1, 2, 3])
+        frames.discard(float("inf"))
+        self.assertEqual(list(frames), ["1", "2", "3"])
+
     def test_range_and_generator_input(self):
         """range() and generators raised TypeError (docstring example)."""
         self.assertEqual(str(seqparse.get_sequence(range(5))), "0-4")
@@ -310,6 +329,19 @@ class TestFrameSequences(unittest.TestCase):
 
 ###############################################################################
 # File sequences
+
+
+class TestFileSequenceStats(unittest.TestCase):
+    """Aggregate stats follow the per-frame stats that feed them."""
+
+    def test_cached_stat_after_calculation_updates_size(self):
+        """cache_stat after calculate() left size None (not marked dirty)."""
+        file_seq = sequences.FileSequence(frames="1-3", ext="exr")
+        str(file_seq)  # calculate() and clear the dirty flag
+        file_seq.cache_stat(
+            1, os.stat_result((0o100644, 0, 0, 1, 0, 0, 42, 0, 7, 9))
+        )
+        self.assertEqual(file_seq.size, 42)
 
 
 class TestFileSequences(_TempDirMixin, unittest.TestCase):

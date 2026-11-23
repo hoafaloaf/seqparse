@@ -63,6 +63,13 @@ Bug fixes:
   parses.
 * *Bugfix:* `in` and `.get()` on sequence containers always succeeded and
   silently created empty entries, and so did `pop()` and `setdefault()`.
+* *Bugfix:* Scanning no longer aborts on a symlink that loops onto itself or
+  points somewhere unreadable; the entry is skipped.
+* *Bugfix:* `FileSequence.size`, `mtime` and `ctime` now follow stats cached
+  after the sequence was first formatted (they stayed `None` or stale).
+* *Bugfix:* `1.5 in FrameSequence(...)` and `in FrameChunk(...)` are now
+  `False` (1.5 was truncated to frame 1), and `discard(float("inf"))` is
+  ignored instead of raising `OverflowError`.
 * *Bugfix:* `seqls` output: blank lines from `--missing`, "----" shown as the
   size of 0-byte files, and the current time shown for entries without stats.
 * `File` objects are now hashable.
