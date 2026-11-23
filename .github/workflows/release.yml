@@ -2,8 +2,8 @@ name: Release
 
 # Publishes to PyPI when a version tag (v2.0.0, v2.0.0rc1, ...) is pushed.
 # Uses PyPI "trusted publishing": no API token is stored anywhere. One-time
-# setup (see "Releasing" in CLAUDE.md): a trusted publisher on PyPI for this
-# workflow and the "pypi" environment, and a "pypi" environment on GitHub
+# setup: a trusted publisher on PyPI (owner hoafaloaf, repository seqparse,
+# workflow release.yml, environment pypi), and a "pypi" environment on GitHub
 # that requires approval.
 
 on:
