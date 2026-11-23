@@ -45,7 +45,7 @@ three OSes. See `CLAUDE.md` for commands and conventions.
   padding counts the sign. Benchmark before and after.
 ## Agreed: do before the 2.0.0 release (in this order)
 
-- [ ] **8. API docs with pdoc, published to GitHub Pages.** Decisions (agreed
+- [x] **8. API docs with pdoc, published to GitHub Pages.** Decisions (agreed
   2026-11-22): pdoc (Google-style docstrings, honors `__all__`) rather than
   MkDocs, whose ecosystem is in flux, or Sphinx; the docs are rebuilt and
   deployed from `master` ("latest"). Pages is currently off.
