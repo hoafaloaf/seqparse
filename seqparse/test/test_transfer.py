@@ -474,9 +474,8 @@ class TestFailures(_TempDirs):
         _make(self.src, "plate", range(1, 6))
         self.fseq = _seq(self.src, "plate", range(1, 6))
 
-    def _flaky_rename(self, fail_from):
-        """An os.rename that fails from its Nth call on."""
-        real = os.rename
+    def _flaky(self, real, fail_from):
+        """A stand-in for os.rename or os.replace that fails from call N on."""
         calls = []
 
         def rename(src, dst):
@@ -517,7 +516,7 @@ class TestFailures(_TempDirs):
         """The error says what could not be put back."""
         plan = transfer.plan_move(self.fseq, self.dst)
         with (
-            mock.patch("os.rename", self._flaky_rename(3)),
+            mock.patch("os.rename", self._flaky(os.rename, 3)),
             self.assertRaises(transfer.TransferError) as caught,
         ):
             plan.execute()
@@ -569,7 +568,7 @@ class TestFailures(_TempDirs):
             handle.write("old")
         plan = transfer.plan_move(self.fseq, self.dst, overwrite=True)
         with (
-            mock.patch("os.replace", self._flaky_rename(3)),
+            mock.patch("os.replace", self._flaky(os.replace, 3)),
             self.assertRaises(transfer.TransferError) as caught,
         ):
             plan.execute()
