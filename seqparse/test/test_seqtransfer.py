@@ -8,6 +8,7 @@ import tempfile
 import unittest
 from unittest import mock
 
+from seqparse import transfer
 from seqparse.cli import seqtransfer
 
 
@@ -203,7 +204,7 @@ class TestSeqmv(_CommandTestCase):
 
     def test_a_failure_is_undone_and_reported(self):
         """Exit status 1, and the message says what happened."""
-        real = os.rename
+        real = transfer._rename_exclusive
         calls = []
 
         def rename(src, dst):
@@ -212,7 +213,7 @@ class TestSeqmv(_CommandTestCase):
                 raise PermissionError(errno.EACCES, "in use", src)
             return real(src, dst)
 
-        with mock.patch("os.rename", rename):
+        with mock.patch.object(transfer, "_rename_exclusive", rename):
             status, out, err = self.run_command(self.sequence(), self.dst)
         self.assertEqual((status, out), (1, []))
         self.assertIn("seqmv: everything done so far was undone", err)
@@ -221,7 +222,7 @@ class TestSeqmv(_CommandTestCase):
 
     def test_an_undo_that_fails_is_reported(self):
         """The messages say what could not be put back."""
-        real = os.rename
+        real = transfer._rename_exclusive
         calls = []
 
         def rename(src, dst):
@@ -230,7 +231,7 @@ class TestSeqmv(_CommandTestCase):
                 raise PermissionError(errno.EACCES, "in use", src)
             return real(src, dst)
 
-        with mock.patch("os.rename", rename):
+        with mock.patch.object(transfer, "_rename_exclusive", rename):
             status, _, err = self.run_command(self.sequence(), self.dst)
         self.assertEqual(status, 1)
         self.assertFalse(any("undone" in line for line in err))

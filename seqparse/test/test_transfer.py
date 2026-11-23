@@ -1,7 +1,9 @@
 """Tests for copying, moving and renumbering sequences (seqparse.transfer)."""
 
+import copy
 import errno
 import os
+import pickle
 import random
 import shutil
 import tempfile
@@ -475,7 +477,7 @@ class TestFailures(_TempDirs):
         self.fseq = _seq(self.src, "plate", range(1, 6))
 
     def _flaky(self, real, fail_from):
-        """A stand-in for os.rename or os.replace that fails from call N on."""
+        """A stand-in for a rename function that fails from call N on."""
         calls = []
 
         def rename(src, dst):
@@ -489,7 +491,7 @@ class TestFailures(_TempDirs):
     def test_a_failed_move_is_undone(self):
         """The completed renames are renamed back."""
         plan = transfer.plan_move(self.fseq, self.dst)
-        real = os.rename
+        real = transfer._rename_exclusive
         calls = []
 
         def rename(src, dst):
@@ -499,7 +501,7 @@ class TestFailures(_TempDirs):
             return real(src, dst)
 
         with (
-            mock.patch("os.rename", rename),
+            mock.patch.object(transfer, "_rename_exclusive", rename),
             self.assertRaises(transfer.TransferError) as caught,
         ):
             plan.execute()
@@ -516,7 +518,11 @@ class TestFailures(_TempDirs):
         """The error says what could not be put back."""
         plan = transfer.plan_move(self.fseq, self.dst)
         with (
-            mock.patch("os.rename", self._flaky(os.rename, 3)),
+            mock.patch.object(
+                transfer,
+                "_rename_exclusive",
+                self._flaky(transfer._rename_exclusive, 3),
+            ),
             self.assertRaises(transfer.TransferError) as caught,
         ):
             plan.execute()
@@ -581,7 +587,9 @@ class TestFailures(_TempDirs):
         os.utime(_name(self.src, "plate", 1), (1_000_000_000, 1_000_000_000))
         plan = transfer.plan_move(self.fseq, self.dst)
         cross_device = OSError(errno.EXDEV, "cross-device link")
-        with mock.patch("os.rename", side_effect=cross_device):
+        with mock.patch.object(
+            transfer, "_rename_exclusive", side_effect=cross_device
+        ):
             plan.execute()
         self.assertEqual(_listing(self.src), [])
         self.assertEqual(len(_listing(self.dst)), 5)
@@ -598,8 +606,10 @@ class TestFailures(_TempDirs):
 
         plan = transfer.plan_move(self.fseq, self.dst)
         with (
-            mock.patch(
-                "os.rename", side_effect=OSError(errno.EXDEV, "cross-device")
+            mock.patch.object(
+                transfer,
+                "_rename_exclusive",
+                side_effect=OSError(errno.EXDEV, "cross-device"),
             ),
             mock.patch("shutil.copy2", copy2),
             self.assertRaises(transfer.TransferError),
@@ -607,3 +617,247 @@ class TestFailures(_TempDirs):
             plan.execute()
         self.assertEqual(len(_listing(self.src)), 5)
         self.assertEqual(_listing(self.dst), [])
+
+
+class TestHazards(_TempDirs):
+    """Awkward things found at the destination, or in the arguments."""
+
+    def setUp(self):
+        """Three frames to transfer."""
+        super().setUp()
+        _make(self.src, "plate", [1, 2, 3])
+        self.fseq = _seq(self.src, "plate", [1, 2, 3])
+
+    def _can_link(self):
+        """Skip unless symlinks and hard links work here."""
+        try:
+            os.symlink(
+                os.path.join(self.root, "x"), os.path.join(self.root, "y")
+            )
+            os.link(_name(self.src, "plate", 1), os.path.join(self.root, "z"))
+        except (OSError, NotImplementedError):
+            self.skipTest("links are not available")
+
+    def test_a_file_that_appears_after_planning_is_not_overwritten(self):
+        """The check at plan time is not the only protection."""
+        for plan_for in (transfer.plan_move, transfer.plan_copy):
+            with self.subTest(plan_for=plan_for.__name__):
+                plan = plan_for(self.fseq, self.dst)
+                self.assertEqual(plan.problems, [])
+                late = _name(self.dst, "plate", 2)
+                with open(late, "w") as handle:
+                    handle.write("written by someone else")
+                with self.assertRaises(transfer.TransferError):
+                    plan.execute()
+                with open(late) as handle:
+                    self.assertEqual(handle.read(), "written by someone else")
+                self.assertEqual(len(_listing(self.src)), 3)
+                os.unlink(late)
+                for name in _listing(self.dst):
+                    os.unlink(os.path.join(self.dst, name))
+
+    def test_a_symlink_destination_is_replaced_not_followed(self):
+        """-f replaces the link; it never writes through it."""
+        self._can_link()
+        target = os.path.join(self.root, "target.txt")
+        with open(target, "w") as handle:
+            handle.write("precious")
+        os.symlink(target, _name(self.dst, "plate", 2))
+        transfer.plan_copy(self.fseq, self.dst, overwrite=True).execute()
+        with open(target) as handle:
+            self.assertEqual(handle.read(), "precious")
+        self.assertFalse(os.path.islink(_name(self.dst, "plate", 2)))
+        self.assertEqual(_content(self.dst, "plate", 2), "plate 2")
+
+    def test_a_hard_linked_destination_is_not_written_through(self):
+        """Replacing a hard link must not change the other names."""
+        self._can_link()
+        other = os.path.join(self.root, "other.txt")
+        with open(other, "w") as handle:
+            handle.write("shared")
+        os.link(other, _name(self.dst, "plate", 2))
+        transfer.plan_copy(self.fseq, self.dst, overwrite=True).execute()
+        with open(other) as handle:
+            self.assertEqual(handle.read(), "shared")
+
+    def test_a_directory_destination_is_a_problem(self):
+        """Even with overwrite: a file cannot replace a directory."""
+        os.mkdir(_name(self.dst, "plate", 3))
+        for overwrite in (False, True):
+            plan = transfer.plan_copy(self.fseq, self.dst, overwrite=overwrite)
+            self.assertIn(
+                f"destination is a directory: {_name(self.dst, 'plate', 3)}",
+                plan.problems,
+            )
+
+    def test_a_hard_link_of_a_source_is_an_unrelated_file(self):
+        """It is not "one of ours" just because it is the same inode."""
+        self._can_link()
+        os.link(_name(self.src, "plate", 2), _name(self.dst, "plate", 1001))
+        plan = transfer.plan_move(self.fseq, self.dst, offset=1000)
+        self.assertEqual(
+            plan.problems,
+            [f"destination exists: {_name(self.dst, 'plate', 1001)}"],
+        )
+
+    def test_a_name_may_not_contain_a_directory(self):
+        """Use dest for that; the result's path would be wrong."""
+        for bad in ("sub/q", "sub" + os.sep + "q"):
+            with self.subTest(name=bad), self.assertRaises(ValueError):
+                transfer.plan_move(self.fseq, self.dst, name=bad)
+
+    def test_the_same_directory_spelled_differently_is_the_same(self):
+        """./a and a/../a are one directory: a no-op, not a problem."""
+        spelled = os.path.join(self.src, "..", "src")
+        plan = transfer.plan_move(self.fseq, spelled)
+        self.assertEqual((plan.pairs, plan.problems), ([], []))
+        plan = transfer.plan_copy(self.fseq, spelled)
+        self.assertEqual(len(plan.problems), 3)
+
+    def test_a_transfer_error_survives_pickling_and_copying(self):
+        """Worker processes pass exceptions around."""
+        error = transfer.TransferError(
+            "it broke", [("a", "b")], ("c", "d"), False, ["x"]
+        )
+        for clone in (pickle.loads(pickle.dumps(error)), copy.copy(error)):
+            self.assertEqual(str(clone), "it broke")
+            self.assertEqual(
+                (
+                    clone.done,
+                    clone.failed,
+                    clone.rolled_back,
+                    clone.rollback_errors,
+                ),
+                ([("a", "b")], ("c", "d"), False, ["x"]),
+            )
+
+    def test_a_failed_transfer_removes_the_directories_it_created(self):
+        """parents=True is undone too."""
+        target = os.path.join(self.dst, "new", "deeper")
+        real = shutil.copy2
+        calls = []
+
+        def copy2(src, dst, **kwargs):
+            calls.append(src)
+            if len(calls) == 2:
+                raise OSError(errno.ENOSPC, "no space left", src)
+            return real(src, dst, **kwargs)
+
+        plan = transfer.plan_copy(self.fseq, target, parents=True)
+        with (
+            mock.patch("shutil.copy2", copy2),
+            self.assertRaises(transfer.TransferError),
+        ):
+            plan.execute()
+        self.assertEqual(_listing(self.dst), [])
+
+    def test_moving_a_symlink_across_filesystems_over_an_existing_file(self):
+        """The copy fallback must replace the destination like os.replace."""
+        self._can_link()
+        target = os.path.join(self.root, "target.txt")
+        with open(target, "w") as handle:
+            handle.write("t")
+        link = _name(self.src, "link", 1)
+        os.symlink(target, link)
+        with open(_name(self.dst, "link", 1), "w") as handle:
+            handle.write("old")
+        plan = transfer.plan_move(
+            _seq(self.src, "link", [1]), self.dst, overwrite=True
+        )
+        real = os.replace
+
+        def replace(src, dst):
+            if src == link:  # only moving the original crosses a device
+                raise OSError(errno.EXDEV, "cross-device link", src)
+            return real(src, dst)
+
+        with mock.patch("os.replace", replace):
+            plan.execute()
+        self.assertTrue(os.path.islink(_name(self.dst, "link", 1)))
+        self.assertFalse(os.path.lexists(link))
+
+
+class TestRenamePrimitives(_TempDirs):
+    """_rename_exclusive and the copy that replaces atomically."""
+
+    def setUp(self):
+        """One file to move."""
+        super().setUp()
+        _make(self.src, "plate", [1])
+        self.a = _name(self.src, "plate", 1)
+        self.b = _name(self.dst, "plate", 1)
+
+    @unittest.skipIf(os.name == "nt", "POSIX rename semantics")
+    def test_an_existing_destination_is_never_replaced(self):
+        """Where plain rename would silently replace it."""
+        with open(self.b, "w") as handle:
+            handle.write("theirs")
+        with self.assertRaises(FileExistsError):
+            transfer._rename_exclusive(self.a, self.b)
+        self.assertEqual(_content(self.dst, "plate", 1), "theirs")
+        self.assertEqual(_content(self.src, "plate", 1), "plate 1")
+
+    @unittest.skipIf(os.name == "nt", "POSIX rename semantics")
+    def test_without_hard_links_it_falls_back_to_rename(self):
+        """Some filesystems cannot link; the move still works."""
+        for failure in (
+            OSError(errno.EPERM, "not permitted"),
+            NotImplementedError("no follow_symlinks"),
+        ):
+            with self.subTest(failure=type(failure).__name__):
+                with mock.patch("os.link", side_effect=failure):
+                    transfer._rename_exclusive(self.a, self.b)
+                self.assertEqual(_content(self.dst, "plate", 1), "plate 1")
+                os.rename(self.b, self.a)
+
+    @unittest.skipIf(os.name == "nt", "POSIX rename semantics")
+    def test_crossing_a_device_is_left_to_the_caller(self):
+        """EXDEV is passed on, so the move can fall back to copying."""
+        exdev = OSError(errno.EXDEV, "device")
+        with (
+            mock.patch("os.link", side_effect=exdev),
+            self.assertRaises(OSError) as caught,
+        ):
+            transfer._rename_exclusive(self.a, self.b)
+        self.assertEqual(caught.exception.errno, errno.EXDEV)
+
+    @unittest.skipIf(os.name == "nt", "POSIX rename semantics")
+    def test_a_name_that_cannot_be_removed_leaves_no_second_name(self):
+        """If unlinking the old name fails, the new link is removed again."""
+        real = os.unlink
+
+        def unlink(path, *args, **kwargs):
+            if path == self.a:
+                raise PermissionError(errno.EACCES, "in use", path)
+            return real(path, *args, **kwargs)
+
+        with (
+            mock.patch("os.unlink", unlink),
+            self.assertRaises(PermissionError),
+        ):
+            transfer._rename_exclusive(self.a, self.b)
+        self.assertEqual(_listing(self.dst), [])
+        self.assertEqual(_content(self.src, "plate", 1), "plate 1")
+
+    def test_windows_uses_a_plain_rename(self):
+        """os.rename already refuses to replace there."""
+        with mock.patch.object(transfer.os, "name", "nt"):
+            transfer._rename_exclusive(self.a, self.b)
+        self.assertEqual(_content(self.dst, "plate", 1), "plate 1")
+
+    def test_a_failed_replace_cleans_up_the_temporary_file(self):
+        """An overwriting copy leaves neither a temp file nor damage."""
+        with open(self.b, "w") as handle:
+            handle.write("old")
+        plan = transfer.plan_copy(
+            _seq(self.src, "plate", [1]), self.dst, overwrite=True
+        )
+        with (
+            mock.patch(
+                "os.replace", side_effect=PermissionError(errno.EACCES, "no")
+            ),
+            self.assertRaises(transfer.TransferError),
+        ):
+            plan.execute()
+        self.assertEqual(_listing(self.dst), ["plate.0001.exr"])
+        self.assertEqual(_content(self.dst, "plate", 1), "old")

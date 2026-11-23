@@ -21,7 +21,12 @@ else:
 
 The safety rules:
 
-1. Nothing is overwritten unless `overwrite` is set.
+1. Nothing is overwritten unless `overwrite` is set. Files are created
+   exclusively, so even a file that appears after the plan was made is left
+   alone (on a filesystem without hard links a move can only use a plain
+   rename, which cannot check). With `overwrite`, a copy is written to a
+   temporary file and renamed over the destination: a symlink there is
+   replaced, never written through, and a failed copy leaves the old file.
 2. Everything is checked before any file is touched: the sources exist, no two
    files go to the same destination, and no destination exists. Names that
    differ only by case collide on case-insensitive filesystems, because the
@@ -53,7 +58,8 @@ import errno
 import os
 import shutil
 import stat
-from typing import Literal
+from typing import Any, Literal
+import unicodedata
 
 from seqparse import sequences
 
@@ -88,6 +94,19 @@ class TransferError(OSError):
         self.failed = failed
         self.rolled_back = rolled_back
         self.rollback_errors = rollback_errors
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        """Make the exception picklable and copyable (OSError cannot)."""
+        return (
+            type(self),
+            (
+                self.args[0],
+                self.done,
+                self.failed,
+                self.rolled_back,
+                self.rollback_errors,
+            ),
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -165,8 +184,9 @@ class Plan:
                 + "\n  ".join(self.problems)
             )
         directory = self.result.path
+        created: list[str] = []
         if self._context.options.parents and directory:
-            os.makedirs(directory, exist_ok=True)
+            created = _make_directories(directory)
 
         done: list[_Pair] = []
         for pair in self.pairs:
@@ -174,6 +194,7 @@ class Plan:
                 self._transfer(*pair)
             except OSError as error:
                 errors = self._undo(done)
+                _remove_directories(created)
                 raise TransferError(
                     f"{self.kind} failed at {pair[0]}: {error}",
                     done,
@@ -295,12 +316,7 @@ def plan_copy(  # noqa: PLR0913
 
 def _plan(kind: _Kind, fseq: sequences.FileSequence, options: _Options) -> Plan:
     """Work out what a transfer of the sequence would do."""
-    if options.start is not None and options.offset:
-        raise ValueError("use either offset or start, not both")
-    if options.pad is not None and options.pad < 1:
-        raise ValueError("pad must be at least 1")
-    if fseq.ext is None:
-        raise ValueError("the file sequence has no extension")
+    ext = _validate(fseq, options)
 
     numbers = [int(frame) for frame in fseq.frames]
     sources = list(fseq)
@@ -316,8 +332,8 @@ def _plan(kind: _Kind, fseq: sequences.FileSequence, options: _Options) -> Plan:
     pairs: list[_Pair] = []
     problems: list[str] = []
     for src, number in zip(sources, numbers, strict=True):
-        dst = _file_name(directory, base, number + shift, pad, fseq.ext)
-        if src != dst:
+        dst = _file_name(directory, base, number + shift, pad, ext)
+        if _key(src) != _key(dst):
             pairs.append((src, dst))
         elif kind == "copy":
             problems.append(f"source and destination are the same: {src}")
@@ -332,12 +348,26 @@ def _plan(kind: _Kind, fseq: sequences.FileSequence, options: _Options) -> Plan:
     ordered = _order(pairs, dependencies, problems)
 
     result = sequences.FileSequence(
-        frames=[number + shift for number in numbers], ext=fseq.ext, pad=pad
+        frames=[number + shift for number in numbers], ext=ext, pad=pad
     )
     result.path = directory or None
     result.name = base
     context = _Context(options, frozenset(preexisting))
     return Plan(kind, ordered, problems, result, context)
+
+
+def _validate(fseq: sequences.FileSequence, options: _Options) -> str:
+    """Refuse contradictory or impossible arguments; return the extension."""
+    if options.start is not None and options.offset:
+        raise ValueError("use either offset or start, not both")
+    if options.pad is not None and options.pad < 1:
+        raise ValueError("pad must be at least 1")
+    if fseq.ext is None:
+        raise ValueError("the file sequence has no extension")
+    name = options.name or ""
+    if os.sep in name or (os.altsep and os.altsep in name):
+        raise ValueError("name must not contain a directory (use dest)")
+    return fseq.ext
 
 
 def _file_name(
@@ -353,9 +383,40 @@ def _key(path: str) -> str:
     return os.path.normcase(os.path.abspath(path))
 
 
-def _file_id(info: os.stat_result) -> tuple[int, int] | None:
-    """Identify a file by device and inode (None if the OS has none)."""
-    return (info.st_dev, info.st_ino) if info.st_ino else None
+def _alias(path: str) -> str:
+    """A name that is the same for names that a case-blind filesystem merges."""
+    return unicodedata.normalize("NFC", _key(path)).casefold()
+
+
+def _same_file(info: os.stat_result, other: os.stat_result | None) -> bool:
+    """Whether two stat results are for one file (same device and inode)."""
+    return (
+        other is not None
+        and bool(info.st_ino)
+        and (info.st_dev, info.st_ino) == (other.st_dev, other.st_ino)
+    )
+
+
+def _source_at(
+    dst: str,
+    info: os.stat_result,
+    by_key: dict[str, int],
+    by_alias: dict[str, int],
+    stats: Sequence[os.stat_result | None],
+) -> int | None:
+    """
+    The pair whose source is what is at the destination (None: unrelated).
+
+    A hard link of a source somewhere else is an unrelated file. Only a name
+    that a case-insensitive filesystem merges with the source's name, and that
+    really is the same file, counts as the source itself.
+    """
+    index = by_key.get(_key(dst))
+    if index is None:
+        candidate = by_alias.get(_alias(dst))
+        if candidate is not None and _same_file(info, stats[candidate]):
+            index = candidate
+    return index
 
 
 def _stat_sources(
@@ -397,11 +458,7 @@ def _check_destinations(
         source), and the existing files that would be replaced.
     """
     by_key = {_key(src): i for i, (src, _) in enumerate(pairs)}
-    by_id: dict[tuple[int, int], int] = {}
-    for i, info in enumerate(stats):
-        file_id = _file_id(info) if info is not None else None
-        if file_id is not None:
-            by_id[file_id] = i
+    by_alias = {_alias(src): i for i, (src, _) in enumerate(pairs)}
 
     dependencies: dict[int, set[int]] = {}
     preexisting: set[str] = set()
@@ -414,11 +471,11 @@ def _check_destinations(
             info = os.lstat(dst)
         except OSError:  # nothing there (or unreadable: the transfer will say)
             continue
+        if stat.S_ISDIR(info.st_mode):
+            problems.append(f"destination is a directory: {dst}")
+            continue
         # Is what is there one of the files we are about to move or copy?
-        other = by_key.get(_key(dst))
-        file_id = _file_id(info)
-        if other is None and file_id is not None:
-            other = by_id.get(file_id)
+        other = _source_at(dst, info, by_key, by_alias, stats)
         if other is None:
             preexisting.add(dst)  # an unrelated file that would be replaced
             if not overwrite:
@@ -479,15 +536,83 @@ def _remove(path: str) -> None:
         os.unlink(path)
 
 
+def _make_directories(directory: str) -> list[str]:
+    """Create a directory (and parents); return the new ones, deepest first."""
+    new: list[str] = []
+    current = os.path.abspath(directory)
+    while not os.path.isdir(current):
+        new.append(current)
+        parent = os.path.dirname(current)
+        if parent == current:  # pragma: no cover (the root always exists)
+            break
+        current = parent
+    os.makedirs(directory, exist_ok=True)
+    return new
+
+
+def _remove_directories(directories: Sequence[str]) -> None:
+    """Remove directories we created (deepest first), if they are empty."""
+    for directory in directories:
+        with contextlib.suppress(OSError):
+            os.rmdir(directory)
+
+
+def _copy_exclusive(src: str, dst: str, follow_symlinks: bool) -> None:
+    """Copy a file to a name that must not exist yet."""
+    if not follow_symlinks and os.path.islink(src):
+        os.symlink(os.readlink(src), dst)  # fails if the name is taken
+        return
+    # Claim the name first, so a file that appeared meanwhile is never touched.
+    os.close(os.open(dst, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o666))
+    try:
+        shutil.copy2(src, dst)
+    except OSError:
+        _remove(dst)  # do not leave a partial copy behind
+        raise
+
+
 def _copy_file(
     src: str, dst: str, overwrite: bool, *, follow_symlinks: bool
 ) -> None:
-    """Copy a file with its modification time; clean up if it fails."""
+    """Copy a file with its modification time."""
+    if not overwrite:
+        _copy_exclusive(src, dst, follow_symlinks)
+        return
+    # Replace atomically: the old file survives a failed copy, a symlink at the
+    # destination is replaced (not written through), and so is a hard link.
+    temporary = f"{dst}.{os.urandom(4).hex()}.tmp"
+    _copy_exclusive(src, temporary, follow_symlinks)
     try:
-        shutil.copy2(src, dst, follow_symlinks=follow_symlinks)
+        os.replace(temporary, dst)
     except OSError:
-        if not overwrite:
-            _remove(dst)  # do not leave a partial copy behind
+        _remove(temporary)
+        raise
+
+
+def _rename_exclusive(src: str, dst: str) -> None:
+    """
+    Rename a file, never replacing an existing destination.
+
+    POSIX rename silently replaces, so the file is hard-linked to its new name
+    first (which fails if the name is taken) and the old name removed. Where
+    hard links are not available a plain rename is the best that can be done.
+    """
+    if os.name == "nt":  # rename refuses to replace on Windows already
+        os.rename(src, dst)
+        return
+    try:
+        os.link(src, dst, follow_symlinks=False)
+    except FileExistsError:
+        raise
+    except (NotImplementedError, OSError) as error:
+        if isinstance(error, OSError) and error.errno == errno.EXDEV:
+            raise
+        os.rename(src, dst)
+        return
+    try:
+        os.unlink(src)
+    except OSError:
+        _remove(dst)
         raise
 
 
@@ -497,7 +622,7 @@ def _move_file(src: str, dst: str, overwrite: bool) -> None:
         if overwrite:
             os.replace(src, dst)
         else:
-            os.rename(src, dst)
+            _rename_exclusive(src, dst)
     except OSError as error:
         if error.errno != errno.EXDEV:
             raise
