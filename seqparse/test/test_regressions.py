@@ -7,6 +7,7 @@ and path handling are exactly what the mocks could not exercise.
 
 import base64
 import os
+import pathlib
 import pickle
 import tempfile
 import unittest
@@ -56,6 +57,46 @@ class _TempDirMixin:
 
 ###############################################################################
 # Directory scanning
+
+
+class TestPathlibObjects(_TempDirMixin, unittest.TestCase):
+    """pathlib objects work wherever a path is accepted (GitHub issue #2).
+
+    With 1.0.1, scan_path(Path) raised AttributeError.
+    """
+
+    def setUp(self):
+        """Three frames."""
+        super().setUp()
+        self.make_files("plate.0001.exr", "plate.0002.exr", "plate.0003.exr")
+        self.root_path = pathlib.Path(self.root)
+
+    def test_scan_path_takes_a_path(self):
+        """A single Path."""
+        parser = self.scan(self.root_path)
+        self.assertEqual(self.rel(parser.output()), ["plate.0001-0003.exr"])
+
+    def test_scan_path_takes_a_list_of_paths(self):
+        """A list of Paths, and a subdirectory."""
+        parser = seqparse.get_parser()
+        parser.scan_path([self.root_path, self.root_path / "."])
+        self.assertEqual(self.rel(parser.output()), ["plate.0001-0003.exr"])
+
+    def test_add_file_takes_a_path(self):
+        """Files added one by one."""
+        parser = seqparse.get_parser()
+        for number in (1, 2):
+            parser.add_file(self.root_path / f"plate.{number:04d}.exr")
+        self.assertEqual(self.rel(parser.output()), ["plate.0001,0002.exr"])
+
+    def test_the_classes_take_paths_too(self):
+        """FileSequence and File."""
+        fseq = sequences.FileSequence(
+            name=self.root_path / "plate", ext="exr", frames=[1, 2], pad=4
+        )
+        self.assertEqual(self.rel([fseq]), ["plate.0001,0002.exr"])
+        file = files.File(self.root_path / "plate.0001.exr")
+        self.assertEqual(self.rel([file]), ["plate.0001.exr"])
 
 
 class TestScanning(_TempDirMixin, unittest.TestCase):

@@ -30,12 +30,67 @@ _MODULES = (
 )
 
 
+class DirEntry:
+    """A directory entry of a fake tree (seqparse recognises it by name)."""
+
+    def __init__(self, path, is_file):
+        """Initialise the instance."""
+        self.path = path
+        self.name = ntpath.basename(path)
+        self._is_file = is_file
+
+    def is_file(self, follow_symlinks=True):
+        """Whether this entry is a file."""
+        return self._is_file
+
+    def is_dir(self, follow_symlinks=True):
+        """Whether this entry is a directory."""
+        return not self._is_file
+
+    def stat(self, follow_symlinks=True):
+        """Some stats."""
+        return os.stat_result((0o100644, 0, 0, 1, 0, 0, 10, 1, 1, 1))
+
+
+def _offline(fake_os, tree):
+    """
+    Serve a tree of {directory: [(name, is_file), ...]} from memory.
+
+    Nothing here may reach a real filesystem or the network: on a real
+    Windows machine stat-ing a UNC path with an IP address would try to
+    connect to it.
+    """
+
+    def no_such_file(path, *args, **kwargs):
+        raise FileNotFoundError(path)
+
+    def scandir(path):
+        entries = tree[ntpath.normpath(path)]
+        return iter(
+            [DirEntry(ntpath.join(path, name), f) for name, f in entries]
+        )
+
+    offline_path = types.SimpleNamespace(**vars(ntpath))
+    offline_path.isfile = lambda path: False
+    offline_path.isdir = lambda path: ntpath.normpath(path) in tree
+    offline_path.realpath = ntpath.abspath
+    fake_os.path = offline_path
+    fake_os.scandir = scandir
+    fake_os.stat = fake_os.lstat = no_such_file
+
+
 @contextlib.contextmanager
-def windows_paths() -> Iterator[None]:
-    """Make seqparse use Windows path rules for the duration."""
+def windows_paths(tree=None) -> Iterator[None]:
+    """
+    Make seqparse use Windows path rules for the duration.
+
+    With a tree (see `_offline`) directory scans are served from memory.
+    """
     fake_os = types.SimpleNamespace(**vars(os))
     fake_os.path = ntpath
     fake_os.sep, fake_os.altsep = "\\", "/"
+    if tree is not None:
+        _offline(fake_os, tree)
     with contextlib.ExitStack() as stack:
         for module in _MODULES:
             stack.enter_context(mock.patch.object(module, "os", fake_os))
@@ -143,3 +198,59 @@ class TestPosixRoots(unittest.TestCase):
         self.assertEqual(strip("//"), "//")
         self.assertEqual(strip("/a/b//"), "/a/b")
         self.assertEqual(strip("a\\"), "a\\")  # backslash is a filename char
+
+
+class TestWindowsScanning(unittest.TestCase):
+    """Scanning like Windows does: mixed separators, UNC shares, IP servers."""
+
+    # GitHub issue #2: with the 1.0.1 code a UNC path with an IP address
+    # came out as "//10.11.11,1001-1073.102/ohufx/..." (the server's digits
+    # read as a frame number).
+    ROOTS = (
+        "//10.11.11.102/ohufx/jobs/show/20220907",
+        "\\\\10.11.11.102\\ohufx\\jobs\\show\\20220907",
+        "//10.11.11.102/ohufx/jobs/show/20220907/",
+        "//server/share/jobs/show/20220907",
+        "C:/shots/show/20220907",
+    )
+    FILES = ("plate.1001.jpg", "plate.1002.jpg", "plate.1003.jpg", "notes.txt")
+
+    def test_unc_paths_with_ip_addresses_are_scanned_correctly(self):
+        """The sequence is found and the server's name is left alone."""
+        for root in self.ROOTS:
+            with self.subTest(root=root):
+                top = ntpath.normpath(root)
+                inner = ntpath.join(top, "folder_name")
+                tree = {
+                    top: [("folder_name", False)],
+                    inner: [(name, True) for name in self.FILES],
+                }
+                with windows_paths(tree):
+                    parser = seqparse.get_parser()
+                    parser.scan_path(root)
+                    found = [str(item) for item in parser.output()]
+                    locations = sorted(parser.locations)
+                self.assertEqual(
+                    found,
+                    [
+                        ntpath.join(inner, "plate.1001-1003.jpg"),
+                        ntpath.join(inner, "notes.txt"),
+                    ],
+                )
+                self.assertEqual(locations, [inner])
+
+    def test_names_with_mixed_separators_share_one_directory(self):
+        """Forward and backward slashes name the same directory."""
+        with windows_paths():
+            parser = seqparse.get_parser()
+            parser.add_file(
+                "//10.11.11.102/ohufx/jobs/20220907\\f\\plate.1001.jpg"
+            )
+            parser.add_file(
+                "//10.11.11.102/ohufx/jobs/20220907/f/plate.1002.jpg"
+            )
+            found = [str(item) for item in parser.output()]
+        self.assertEqual(
+            found,
+            ["\\\\10.11.11.102\\ohufx\\jobs\\20220907\\f\\plate.1001,1002.jpg"],
+        )
