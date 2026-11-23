@@ -8,6 +8,7 @@ import os
 import shlex
 import tempfile
 import time
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -15,6 +16,12 @@ import seqparse
 from seqparse import sequences, test
 from seqparse.cli import seqls
 from seqparse.test import test_windows_paths
+
+
+def _debug_main(args, **kwargs) -> Any:
+    """Run seqls.main, returning its result (typed loosely for the tests)."""
+    return seqls.main(args, _debug=True, **kwargs)
+
 
 ###############################################################################
 # class: TestFrameSequences
@@ -78,7 +85,7 @@ class TestSeqls(unittest.TestCase):
         mock_api_call.side_effect = test.mock_scandir_deep
 
         args = seqls.parse_args(["--version"])
-        version = seqls.main(args, _debug=True)
+        version = _debug_main(args)
         self.assertEqual(version, seqparse.get_version(pretty=True))
 
         print("\n  SEQUENCES\n  ---------")
@@ -86,7 +93,7 @@ class TestSeqls(unittest.TestCase):
             os.path.join(os.getcwd(), self._test_root)
         )
         args = seqls.parse_args(["test_dir"])
-        seqs = list(seqls.main(args, _debug=True))
+        seqs = list(_debug_main(args))
         for seq in seqs:
             print(" ", seq)
 
@@ -98,7 +105,7 @@ class TestSeqls(unittest.TestCase):
             args = seqls.parse_args(
                 shlex.split(f"test_dir --maxdepth {max_levels:d}")
             )
-            seqs = list(seqls.main(args, _debug=True))
+            seqs = list(_debug_main(args))
 
             expected_seqs = max_levels + 2
             if max_levels == -1:
@@ -119,7 +126,7 @@ class TestSeqls(unittest.TestCase):
             args = seqls.parse_args(
                 shlex.split(f"test_dir --mindepth {min_levels:d}")
             )
-            seqs = list(seqls.main(args, _debug=True))
+            seqs = list(_debug_main(args))
 
             # Level 0 holds two sequences, each deeper level holds one.
             expected_seqs = 4 - min_levels
@@ -147,12 +154,12 @@ class TestSeqls(unittest.TestCase):
         mock_api_call.return_value = iter(entries)
 
         args = seqls.parse_args(["test_dir"])
-        file_names = list(seqls.main(args, _debug=True))
+        file_names = list(_debug_main(args))
         self.assertEqual(sorted(file_names), output)
 
         # Test seqs_only option ...
         args = seqls.parse_args(["test_dir", "-S"])
-        file_names = list(seqls.main(args, _debug=True))
+        file_names = list(_debug_main(args))
         self.assertEqual(file_names, [])
 
     @mock.patch("seqparse.seqparse.os.scandir")
@@ -175,7 +182,7 @@ class TestSeqls(unittest.TestCase):
         )
 
         args = seqls.parse_args(["test_dir", "-m"])
-        inverted = seqls.main(args, _debug=True)
+        inverted = _debug_main(args)
 
         self.assertEqual(len(inverted), 1)
 
@@ -214,7 +221,7 @@ class TestSeqls(unittest.TestCase):
         mock_api_call.return_value = input_entries
 
         args = seqls.parse_args(["test_dir", "-l"])
-        output = seqls.main(args, _debug=True)
+        output = _debug_main(args)
         expected = [
             "36520  {fseq_date}  {root}/test.0001-0004,0006.py",
             "9436   {file_date}  {root}/pony.py",
@@ -225,7 +232,7 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(output, expected)
 
         args = seqls.parse_args(["test_dir", "-l", "-H"])
-        output = seqls.main(args, _debug=True)
+        output = _debug_main(args)
         expected = [
             "35.7K  {fseq_date}  {root}/test.0001-0004,0006.py",
             "9.2K   {file_date}  {root}/pony.py",
@@ -236,7 +243,7 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(output, expected)
 
         args = seqls.parse_args(["test_dir", "-l", "-m"])
-        output = seqls.main(args, _debug=True)
+        output = _debug_main(args)
 
         # Missing files have no disk stats: no size, no modification time.
         opts = {"root": root_dir}
@@ -266,7 +273,7 @@ class TestSeqls(unittest.TestCase):
         mock_api_call.return_value = input_entries
 
         args = seqls.parse_args(["test_dir"])
-        output = seqls.main(args, _debug=True)
+        output = _debug_main(args)
 
         expected = [
             os.path.join(root_dir, ".test.0001-0004,0006.py"),
@@ -277,7 +284,7 @@ class TestSeqls(unittest.TestCase):
         self.assertEqual(output[0], expected[1])
 
         args = seqls.parse_args(["test_dir", "-a"])
-        output = seqls.main(args, _debug=True)
+        output = _debug_main(args)
 
         self.assertEqual(len(output), 2)
         self.assertEqual(output, expected)
@@ -306,7 +313,7 @@ class _RealFilesTestCase(unittest.TestCase):
     def run_seqls(self, *options):
         """Run seqls on the temporary directory; return its text result."""
         args = seqls.parse_args([*options, self.root])
-        return seqls.main(args, _debug=True)
+        return _debug_main(args)
 
 
 class TestJsonOption(_RealFilesTestCase):
@@ -417,7 +424,8 @@ class TestJsonOption(_RealFilesTestCase):
             ("0001-0500,0600-0800,0990-1000x5", (1, 1000)),
         ):
             with self.subTest(notation=notation):
-                self.assertEqual(seqls._frame_bounds(Fake(notation)), bounds)
+                fake: Any = Fake(notation)  # not a real FileSequence
+                self.assertEqual(seqls._frame_bounds(fake), bounds)
 
     def test_bounds_fall_back_to_the_frames_for_an_unknown_notation(self):
         """Never wrong, only slower."""
@@ -426,7 +434,8 @@ class TestJsonOption(_RealFilesTestCase):
             pretty_frames = "some other notation"
             frames = iter(["0003", "0009", "0005"])
 
-        self.assertEqual(seqls._frame_bounds(Odd()), (3, 9))
+        odd: Any = Odd()  # not a real FileSequence
+        self.assertEqual(seqls._frame_bounds(odd), (3, 9))
 
     def test_seqs_only(self):
         """-S leaves the singletons out."""
@@ -444,7 +453,7 @@ class TestJsonOption(_RealFilesTestCase):
         with tempfile.TemporaryDirectory() as empty_dir:
             for options in (["--json"], ["--json", "-m"]):
                 args = seqls.parse_args([*options, empty_dir])
-                self.assertEqual(json.loads(seqls.main(args, _debug=True)), [])
+                self.assertEqual(json.loads(_debug_main(args)), [])
         # A directory with only gap-free sequences has nothing for -m.
         for name in os.listdir(self.root):
             if name.startswith("plate") or name == "notes.txt":
@@ -536,10 +545,10 @@ class TestEmptyOption(_RealFilesTestCase):
 class TestStdinInput(_RealFilesTestCase):
     """seqls - reads file names from standard input."""
 
-    def run_stdin(self, lines, *options):
+    def run_stdin(self, lines, *options) -> Any:
         """Run seqls on the lines (no scanning); return posix-style text."""
         args = seqls.parse_args([*options, "-"])
-        result = seqls.main(args, _debug=True, stdin=lines)
+        result = _debug_main(args, stdin=lines)
         if isinstance(result, str):
             return result
         return [line.replace(os.sep, "/") for line in result]
@@ -594,7 +603,7 @@ class TestStdinInput(_RealFilesTestCase):
         """No stdin argument: the real standard input."""
         args = seqls.parse_args(["-"])
         with mock.patch("sys.stdin", io.StringIO("a.0001.exr\na.0002.exr\n")):
-            result = seqls.main(args, _debug=True)
+            result = _debug_main(args)
         self.assertEqual(result, ["a.0001,0002.exr"])
 
     def test_does_not_scan_disk_unless_asked(self):
@@ -604,7 +613,7 @@ class TestStdinInput(_RealFilesTestCase):
             scan.assert_not_called()
         self.touch("real.0001.exr", "real.0002.exr")
         args = seqls.parse_args([self.root, "-"])
-        result = seqls.main(args, _debug=True, stdin=["other.0001.exr\n"])
+        result = _debug_main(args, stdin=["other.0001.exr\n"])
         self.assertEqual(
             sorted(os.path.basename(line) for line in result),
             ["other.0001.exr", "real.0001,0002.exr"],

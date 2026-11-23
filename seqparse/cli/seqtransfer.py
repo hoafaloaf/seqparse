@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Sequence
 import sys
-from typing import TextIO
+from typing import cast, TextIO
 
 from seqparse import seqparse as seqparse_module
 from seqparse import sequences, transfer
@@ -176,7 +176,7 @@ def main(
         The exit status: 0 for success, 1 for a problem or a failure.
     """
     out = sys.stdout if out is None else out
-    err = sys.stderr if err is None else err
+    err = cast(TextIO, sys.stderr) if err is None else err
     prog = "seqcp" if copy else "seqmv"
 
     made = _make_plan(args, copy, err)

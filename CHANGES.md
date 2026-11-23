@@ -50,6 +50,9 @@ Performance:
 
 Bug fixes:
 
+* *Bugfix:* Type annotations: `scan_path()`, `add_file()`, `File` and
+  `FileSequence` accept `os.PathLike` (eg `pathlib.Path`) as they always did
+  at runtime, so type checkers no longer reject it.
 * *Bugfix:* Scanning: depth limits were ignored for lists of paths,
   `--mindepth` was off by one, a trailing slash shifted depths, symlink loops
   caused infinite recursion, and one unreadable subdirectory aborted the whole

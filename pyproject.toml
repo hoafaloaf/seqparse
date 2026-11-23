@@ -112,3 +112,17 @@ exclude_also = [
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
 ]
+
+[tool.pyright]
+include = ["seqparse", "benchmarks"]
+pythonVersion = "3.11"
+
+# Tests read Optional results (stat(), regex matches, ...) right after setting
+# them up, so asserting on each one adds noise without protecting anything.
+[[tool.pyright.executionEnvironments]]
+root = "seqparse/test"
+extraPaths = ["."]
+reportOptionalMemberAccess = false
+reportOptionalSubscript = false
+reportOptionalIterable = false
+reportOptionalOperand = false

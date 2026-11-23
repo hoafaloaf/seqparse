@@ -35,7 +35,9 @@ class File:
     _stat: os.stat_result | None
 
     def __init__(
-        self, file_name: str, stat: seqparse.StatLike | None = None
+        self,
+        file_name: str | os.PathLike[str],
+        stat: seqparse.StatLike | None = None,
     ) -> None:
         """Initialise the instance."""
         self._stat = None
@@ -135,13 +137,14 @@ class File:
             self._stat = seqparse.get_stat_result(input_stat)
         return self._stat
 
-    def _set_name(self, full_name: str) -> None:
+    def _set_name(self, full_name: str | os.PathLike[str]) -> None:
         """
         Set all name-related fields on the instance.
 
         Args:
             full_name (str): Full path to the contained file.
         """
+        full_name = os.fspath(full_name)
         self._path, self._name = os.path.split(full_name)
         self._full = full_name
 

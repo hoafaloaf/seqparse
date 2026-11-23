@@ -874,7 +874,7 @@ class FileSequence(FrameSequence):
 
     def __init__(
         self,
-        name: FileSequence | str | None = None,
+        name: FileSequence | str | os.PathLike[str] | None = None,
         frames: Frames | None = None,
         ext: str | None = None,
         pad: SupportsInt | None = 1,
@@ -1096,7 +1096,11 @@ class FileSequence(FrameSequence):
         if number is not None and self._stat.pop(number, None) is not None:
             self._dirty = True  # the cached aggregates covered this stat
 
-    def update(self, iterable: Iterable[Any]) -> None:
+    # The parameter name differs from FrameSequence.update (as in 1.0.x), and
+    # callers may pass it by keyword, so it cannot be renamed.
+    def update(  # pyright: ignore[reportIncompatibleMethodOverride]
+        self, iterable: Iterable[Any]
+    ) -> None:
         """Defining item update logic (per standard set)."""
         if isinstance(iterable, FileSequence):
             for attr in ("ext", "full_name"):

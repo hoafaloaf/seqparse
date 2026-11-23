@@ -56,7 +56,7 @@ class TestAll(unittest.TestCase):
             with self.subTest(module=name):
                 module = importlib.import_module(name)
                 exported = getattr(module, "__all__", None)
-                self.assertIsNotNone(exported, f"{name} has no __all__")
+                assert exported is not None, f"{name} has no __all__"
                 self.assertEqual(len(exported), len(set(exported)))
                 for attr in exported:
                     self.assertTrue(hasattr(module, attr), attr)

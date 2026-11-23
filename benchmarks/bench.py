@@ -94,7 +94,7 @@ def w_seqparse_missing():
     return [str(x) for x in parser.output(missing=True)]
 
 
-SCAN_DIR = None
+SCAN_DIR = ""
 
 
 def w_scan_stat():

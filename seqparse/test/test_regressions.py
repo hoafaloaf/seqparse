@@ -10,6 +10,7 @@ import os
 import pathlib
 import pickle
 import tempfile
+from typing import Any
 import unittest
 from unittest import mock
 import weakref
@@ -25,7 +26,7 @@ def _posix(path):
     return path.replace(os.sep, "/")
 
 
-class _TempDirMixin:
+class _TempDirMixin(unittest.TestCase):
     """Provide a temporary directory and a helper for creating files."""
 
     def setUp(self):
@@ -643,19 +644,20 @@ class TestSlotsCompatibility(unittest.TestCase):
 
     def test_weakrefs_and_custom_attributes(self):
         """Weak references and ad-hoc attributes still work."""
-        for obj in (
+        objects: list[Any] = [
             files.File("/r/a.txt"),
             sequences.FrameChunk(1, 5),
             sequences.FrameSequence([1, 2]),
             sequences.FileSequence(name="a", ext="exr", frames=[1]),
-        ):
+        ]
+        for obj in objects:
             self.assertIs(weakref.ref(obj)(), obj)
             obj.custom = 1
             self.assertEqual(obj.custom, 1)
 
     def test_round_trip_pickle(self):
         """Current pickles round-trip, including custom attributes."""
-        seq = sequences.FileSequence(
+        seq: Any = sequences.FileSequence(
             name="/r/plate", ext="exr", frames=[1, 3], pad=4
         )
         seq.custom = "x"
@@ -724,7 +726,7 @@ class TestSequenceEdgeCases(unittest.TestCase):
         self.assertEqual(str(seq), "1-3")
         seq.discard(2.0)
         self.assertEqual(str(seq), "1,3")
-        seq.discard(None)
+        seq.discard(None)  # pyright: ignore[reportArgumentType]
         self.assertEqual(str(seq), "1,3")
 
     def test_negative_frame_file_names(self):

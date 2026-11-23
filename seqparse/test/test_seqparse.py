@@ -1,6 +1,7 @@
 """Test file sequence discovery on disk."""
 
 import os
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -472,7 +473,7 @@ class TestSeqparseModule(unittest.TestCase):
         parser = seqparse.get_parser()
         parser.scan_options["stat"] = True
         parser.scan_path(self._test_root)
-        output = list(parser.output())
+        output: list[Any] = list(parser.output())
         expected = [
             os.path.join(self._test_root, "test.0001-0004,0006.py"),
             os.path.join(self._test_root, "pony.py"),
@@ -511,6 +512,6 @@ class TestSeqparseModule(unittest.TestCase):
         self.assertEqual(str(inverted), str(expected))
 
         with self.assertRaises(TypeError):
-            seqparse.invert(seqparse.get_parser())
+            seqparse.invert(seqparse.get_parser())  # pyright: ignore[reportArgumentType]
 
         self.assertEqual(seqparse.get_version(), seqparse.__version__)

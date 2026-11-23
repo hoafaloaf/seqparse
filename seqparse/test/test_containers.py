@@ -7,6 +7,13 @@ from unittest import mock
 import seqparse
 from seqparse import containers, sequences, test
 
+
+def _container(parser, fseq):
+    """The container the parser holds for the file sequence."""
+    assert fseq.path is not None and fseq.name is not None
+    return parser.sequences[fseq.path][fseq.name]
+
+
 ###############################################################################
 # class: TestSingletonContainer
 
@@ -151,9 +158,7 @@ class TestFileSequenceContainer(unittest.TestCase):
 
             # Add in the source FileSequence files one-by-one.
             parser.scan_path([str(x) for x in input_seq])
-            seq_containers.append(
-                parser.sequences[input_seq.path][input_seq.name]
-            )
+            seq_containers.append(_container(parser, input_seq))
 
         self.assertEqual(seq_containers[0], seq_containers[1])
         self.assertEqual(seq_containers[2], seq_containers[3])
@@ -181,7 +186,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
         parser.scan_path([str(x) for x in input_seq])
-        container = parser.sequences[input_seq.path][input_seq.name]
+        container = _container(parser, input_seq)
 
         # Wrong type of value.
         with self.assertRaises(TypeError):
@@ -213,7 +218,7 @@ class TestFileSequenceContainer(unittest.TestCase):
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
         parser.scan_path([str(x) for x in input_seq])
-        container = parser.sequences[input_seq.path][input_seq.name]
+        container = _container(parser, input_seq)
 
         self.assertEqual(container.path, input_seq.path)
         self.assertEqual(container.name, input_seq.name)
@@ -262,7 +267,7 @@ class TestFileExtension(unittest.TestCase):
         # Add in the source FileSequence files one-by-one.
         input_seq = self._input_seqs[0]
         parser.scan_path([str(x) for x in input_seq])
-        container = parser.sequences[input_seq.path][input_seq.name]
+        container = _container(parser, input_seq)
 
         file_ext = container[self._test_ext]
         self.assertEqual(input_seq.ext, file_ext.name)
@@ -281,7 +286,7 @@ class TestFileExtension(unittest.TestCase):
             ext=self._test_ext, frames=frames1, name=full_name
         )
         parser.scan_path([str(x) for x in input_seq1])
-        container = parser.sequences[input_seq1.path][input_seq1.name]
+        container = _container(parser, input_seq1)
 
         file_ext = container[self._test_ext]
 
@@ -320,7 +325,7 @@ class TestFileExtension(unittest.TestCase):
             ext=self._test_ext, frames=frames1, name=full_name
         )
         parser.scan_path([str(x) for x in input_seq1])
-        container = parser.sequences[input_seq1.path][input_seq1.name]
+        container = _container(parser, input_seq1)
 
         file_ext = container[self._test_ext]
         output = "\n".join(str(x) for x in file_ext.output())

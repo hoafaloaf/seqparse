@@ -16,7 +16,7 @@ from seqparse import sequences as sequences_module
 
 __all__ = ("Location", "ScanOptions", "Seqparse")
 
-PathLike = str | os.DirEntry[str]
+PathLike = str | os.PathLike[str]
 
 
 class Location(TypedDict):
@@ -216,8 +216,8 @@ class Seqparse(regex.SeqparseRegexMixin):
         Add a file to the parser instance.
 
         Args:
-            file_name (str): The name of the file you'd like to add to the
-                parser.
+            file_name (str or PathLike): The name of the file you'd like to
+                add to the parser.
 
         Returns:
             None
@@ -225,7 +225,7 @@ class Seqparse(regex.SeqparseRegexMixin):
         if _is_dir_entry(file_name):
             self._add_path(file_name.path, True, file_name)
         else:
-            self._add_path(str(file_name), False, None)
+            self._add_path(os.fspath(file_name), False, None)
 
     def _add_path(
         self, path: str, on_disk: bool, entry: os.DirEntry[str] | None
@@ -344,7 +344,10 @@ class Seqparse(regex.SeqparseRegexMixin):
 
     def scan_path(
         self,
-        search_paths: str | list[str] | set[str] | tuple[str, ...],
+        search_paths: PathLike
+        | list[PathLike]
+        | set[PathLike]
+        | tuple[PathLike, ...],
         max_levels: int = -1,
         min_levels: int = -1,
     ) -> None:
@@ -352,8 +355,8 @@ class Seqparse(regex.SeqparseRegexMixin):
         Scan supplied path, add all discovered files to the instance.
 
         Args:
-            search_paths (str): The location(s) on disk you'd like to scan for
-                file sequences and singletons.
+            search_paths (str or PathLike): The location(s) on disk you'd like
+                to scan for file sequences and singletons.
             max_levels (int, optional): Descend at most the specified number (a
                 non- negative integer) of directories below the starting point.
                 max_levels == 0 means only scan the starting-point itself.
@@ -370,6 +373,7 @@ class Seqparse(regex.SeqparseRegexMixin):
                     search_path, max_levels=max_levels, min_levels=min_levels
                 )
             return
+        search_paths = os.fspath(search_paths)
         if os.path.isfile(search_paths):
             # Treat it exactly as a directory scan would treat the same file.
             self._add_path(search_paths, True, None)

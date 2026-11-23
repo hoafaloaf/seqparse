@@ -338,11 +338,14 @@ class TestProblems(_TempDirs):
         )
 
     def test_a_file_waits_for_everything_it_depends_on(self):
-        """Pair 2 may only run after both pair 0 and pair 1."""
+        """Pair 0 may only run after both pair 1 and pair 2."""
         problems = []
-        pairs = [("a", "1"), ("b", "2"), ("c", "3")]
-        ordered = transfer._order(pairs, {2: {0, 1}}, problems)
-        self.assertEqual((ordered, problems), (pairs, []))
+        pairs = [("c", "3"), ("a", "1"), ("b", "2")]
+        ordered = transfer._order(pairs, {0: {1, 2}}, problems)
+        self.assertEqual(
+            (ordered, problems),
+            ([("a", "1"), ("b", "2"), ("c", "3")], []),
+        )
 
     def test_unorderable_moves_are_refused(self):
         """A swap cannot be done without overwriting a source."""
@@ -850,8 +853,13 @@ class TestRenamePrimitives(_TempDirs):
 
     def test_windows_uses_a_plain_rename(self):
         """os.rename already refuses to replace there."""
-        with mock.patch.object(transfer.os, "name", "nt"):
+        with (
+            mock.patch.object(transfer.os, "name", "nt"),
+            mock.patch("os.link", side_effect=AssertionError("used link")),
+            mock.patch("os.rename", wraps=os.rename) as rename,
+        ):
             transfer._rename_exclusive(self.a, self.b)
+        rename.assert_called_once_with(self.a, self.b)
         self.assertEqual(_content(self.dst, "plate", 1), "plate 1")
 
     def test_a_failed_replace_cleans_up_the_temporary_file(self):

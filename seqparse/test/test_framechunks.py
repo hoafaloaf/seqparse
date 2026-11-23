@@ -21,7 +21,7 @@ class TestFrameChunks(unittest.TestCase):
         ("0001", "0005", 3, 1, 2),
         ("0001", "0005", 3, 2, 2),
     )
-    bad_bits = (("0005", "0001", None, 1),)
+    bad_bits = (("0005", "0001", None, 1), ("abc", "0005", 1, 1))
 
     def test_chunk_length(self):
         """FrameChunk: Test chunk length (number of included frames)."""
@@ -33,12 +33,9 @@ class TestFrameChunks(unittest.TestCase):
 
         print("\n  BAD CHUNKS\n  -------------")
         for bit in self.bad_bits:
-            try:
-                chunk = sequences.FrameChunk(*bit)
-
-            except ValueError as error:
-                print(f"  o EXPECTED ERROR: {bit} --> {error}")
-                assert True
+            with self.assertRaises(ValueError) as cm:
+                sequences.FrameChunk(*bit)
+            print(f"  o EXPECTED ERROR: {bit} --> {cm.exception}")
 
     def test_containment(self):
         """FrameChunk: Test if a frame is contained by a chunk."""

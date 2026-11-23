@@ -21,7 +21,7 @@ class TestFrameSequences(unittest.TestCase):
         # Tuples indicate "frames" and "pad"; complex data types don't need a
         # specified pad.
         data = [
-            ("wow", None, 1),
+            ("wow", ValueError, 1),
             ("4", "4", 1),
             (3, "3", 1),
             (sequences.FrameChunk(first=2, pad=4), "0002", None),
@@ -40,13 +40,15 @@ class TestFrameSequences(unittest.TestCase):
             print(f"  o iterable: {iterable!r}", end=" ")
             print("" if pad is None else f"pad: {pad:d}")
 
-            try:
-                seq = sequences.FrameSequence(frames=iterable, pad=pad)
-            except ValueError as error:
-                print(f"    - EXPECTED ERROR: {iterable} --> {error}")
-            else:
-                print(f"    - GOOD: {seq}")
-                self.assertEqual(str(seq), expected)
+            if expected is ValueError:
+                with self.assertRaises(ValueError) as cm:
+                    sequences.FrameSequence(frames=iterable, pad=pad)
+                print(f"    - EXPECTED ERROR: {iterable} --> {cm.exception}")
+                continue
+
+            seq = sequences.FrameSequence(frames=iterable, pad=pad)
+            print(f"    - GOOD: {seq}")
+            self.assertEqual(str(seq), expected)
 
     def test_basic_containment(self):
         """FrameSequence: Test basic containment of sequences."""
@@ -154,34 +156,43 @@ class TestFrameSequences(unittest.TestCase):
         self.assertEqual(set(chunk3), set(seq))
         self.assertEqual(set(frames3), set(seq))
 
-        # Add additional data types.
-        data = [
-            "wow",
-            "05",
+        # Add additional data types: these must all be accepted ...
+        accepted = [
             "4",
             3,
-            "010-020x2",
-            "010,,020",
             "0010,,0020",
             sequences.FrameChunk(first=2, pad=4),
-            sequences.FrameChunk(first=10, last=20, step=2, pad=2),
             sequences.FrameChunk(first=10, last=20, step=2, pad=4),
             sequences.FrameSequence([1], pad=4),
-            sequences.FrameSequence(list(range(30, 41, 2)), pad=2),
             sequences.FrameSequence(list(range(30, 41, 2)), pad=4),
+        ]
+        # ... and these must all be rejected (the wrong kind of data, or a
+        # pad that disagrees with the sequence's).
+        rejected = [
+            ("wow", ValueError),
+            ("05", sequences.SeqparsePadError),
+            ("010-020x2", sequences.SeqparsePadError),
+            ("010,,020", sequences.SeqparsePadError),
+            (
+                sequences.FrameChunk(first=10, last=20, step=2, pad=2),
+                sequences.SeqparsePadError,
+            ),
+            (
+                sequences.FrameSequence(list(range(30, 41, 2)), pad=2),
+                sequences.SeqparsePadError,
+            ),
         ]
 
         print("")
-        for item in data:
+        for item in accepted:
             print(f"  o Testing {type(item).__name__}: {item}")
+            seq.add(item)
 
-            try:
+        for item, error_type in rejected:
+            print(f"  o Testing {type(item).__name__}: {item}")
+            with self.assertRaises(error_type) as cm:
                 seq.add(item)
-            except ValueError as error:
-                print(f"    - EXPECTED ERROR: {item} --> {error}")
-                assert True
-            except sequences.SeqparsePadError as error:
-                print(f"    - EXPECTED ERROR: {item} --> {error}")
+            print(f"    - EXPECTED ERROR: {item} --> {cm.exception}")
 
         self.assertEqual(
             str(seq), "0001-0004,0010-0020x2,0030-0040x2,0091-0101x2"
