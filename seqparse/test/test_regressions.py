@@ -90,7 +90,7 @@ class TestPathlibObjects(_TempDirMixin, unittest.TestCase):
         self.assertEqual(self.rel(parser.output()), ["plate.0001-0003.exr"])
         for bad in (5, 1.5, None):
             with self.subTest(bad=bad), self.assertRaises(TypeError) as caught:
-                seqparse.get_parser().scan_path(bad)
+                seqparse.get_parser().scan_path(bad)  # pyright: ignore[reportArgumentType]
             self.assertIn("scan_path() takes a path", str(caught.exception))
 
     def test_add_file_takes_a_path(self):

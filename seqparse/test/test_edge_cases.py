@@ -173,7 +173,7 @@ class TestMembershipOfNonFrames(unittest.TestCase):
     def test_a_bad_frame_string_is_still_an_error(self):
         """Only numbers are quietly not-members."""
         with self.assertRaises(ValueError):
-            "not a frame" in sequences.FrameSequence([1])  # noqa: B015
+            _ = "not a frame" in sequences.FrameSequence([1])
 
     def test_discard_agrees_with_membership(self):
         """The same inputs are ignored."""
