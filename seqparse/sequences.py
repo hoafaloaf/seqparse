@@ -39,7 +39,14 @@ def _frame_number(item: Any) -> int:
 
 def _contained_frame(item: Any) -> int | None:
     """The frame a membership test asks about; None for 1.5 (not a frame)."""
-    number = _frame_number(item)
+    try:
+        number = _frame_number(item)
+    except OverflowError:  # float("inf")
+        return None
+    except ValueError:
+        if isinstance(item, str):
+            raise  # a bad frame string is an error
+        return None  # float("nan")
     return number if isinstance(item, str) or number == item else None
 
 
@@ -889,6 +896,9 @@ class FileSequence(FrameSequence):
         self._path: str | None = None
         self._stat: dict[int, os.stat_result] = {}
 
+        if isinstance(name, os.PathLike):
+            name = os.fspath(name)  # a Path means its text, like the str
+
         source = None
         if isinstance(name, FileSequence):
             source = name
@@ -1040,6 +1050,8 @@ class FileSequence(FrameSequence):
     @name.setter
     def name(self, val: object) -> None:
         self._name = None
+        if isinstance(val, os.PathLike):
+            val = os.fspath(val)
         text = str(val) if val else ""
         if text:
             # If it's a file path (complete with directory prefix), set the
@@ -1148,9 +1160,20 @@ class FileSequence(FrameSequence):
             stat_result that was successfully cached.
         """
         number = int(frame)
-        self._stat[number] = seqparse.get_stat_result(input_stat)
-        self._dirty = True  # size/mtime/ctime aggregate the cached stats
-        return self._stat[number]
+        info = seqparse.get_stat_result(input_stat)
+        previous = self._stat.get(number)
+        self._stat[number] = info
+        if not self._dirty and self._has(number):
+            if previous is not None:
+                # A replaced stat can lower the newest times: recompute.
+                self._dirty = True
+            else:
+                # Keep the aggregates current. Marking everything dirty would
+                # make reading size after each cache_stat quadratic.
+                self._size = (self._size or 0) + info.st_size
+                self._mtime = max(self._mtime or 0, info.st_mtime)
+                self._ctime = max(self._ctime or 0, info.st_ctime)
+        return info
 
     def calculate(self, force: bool = False) -> None:
         """
@@ -1282,6 +1305,7 @@ class FileSequence(FrameSequence):
         ctime: float = 0
         mtime: float = 0
         size = 0
+        counted = False
         self._sync()
         for frame in self._frames:
             stat = stats.get(frame)
@@ -1290,8 +1314,12 @@ class FileSequence(FrameSequence):
             ctime = max(ctime, stat.st_ctime)
             mtime = max(mtime, stat.st_mtime)
             size += stat.st_size
+            counted = True
 
-        self._ctime, self._mtime, self._size = ctime, mtime, size
+        # None (not 0) when none of our own files has been stat'd, whatever
+        # stats are cached for frames that are not in the sequence.
+        if counted:
+            self._ctime, self._mtime, self._size = ctime, mtime, size
 
     def _name_affixes(self) -> tuple[str, str]:
         """

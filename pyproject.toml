@@ -95,7 +95,14 @@ ban-relative-imports = "all"
 python_version = "3.11"
 strict = true
 files = ["seqparse"]
-exclude = ['^seqparse/test/']
+# The tests are not type-checked, except typing_examples.py (see there).
+exclude = ['^seqparse/test/(__init__|test_[^/]*)\.py$']
+
+# mypy always reads a package's __init__ for a module inside it; these are the
+# untyped test helpers, so do not report on them.
+[[tool.mypy.overrides]]
+module = "seqparse.test"
+ignore_errors = true
 
 [tool.coverage.run]
 source = ["seqparse"]

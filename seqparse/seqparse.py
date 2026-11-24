@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import collections
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Set as AbstractSet
 import operator
 import os
 from typing import Any, Literal, overload, TypedDict, TypeGuard
@@ -344,10 +345,7 @@ class Seqparse(regex.SeqparseRegexMixin):
 
     def scan_path(
         self,
-        search_paths: PathLike
-        | list[PathLike]
-        | set[PathLike]
-        | tuple[PathLike, ...],
+        search_paths: PathLike | Sequence[PathLike] | AbstractSet[PathLike],
         max_levels: int = -1,
         min_levels: int = -1,
     ) -> None:
@@ -367,12 +365,17 @@ class Seqparse(regex.SeqparseRegexMixin):
         Returns:
             None
         """
-        if isinstance(search_paths, (list, set, tuple)):
+        if isinstance(search_paths, (list, set, frozenset, tuple)):
             for search_path in search_paths:
                 self.scan_path(
                     search_path, max_levels=max_levels, min_levels=min_levels
                 )
             return
+        if not isinstance(search_paths, (str, os.PathLike)):
+            raise TypeError(
+                "scan_path() takes a path, or a list, set or tuple of paths, "
+                f"not {type(search_paths).__name__}"
+            )
         search_paths = os.fspath(search_paths)
         if os.path.isfile(search_paths):
             # Treat it exactly as a directory scan would treat the same file.

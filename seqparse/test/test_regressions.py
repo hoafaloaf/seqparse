@@ -83,6 +83,16 @@ class TestPathlibObjects(_TempDirMixin, unittest.TestCase):
         parser.scan_path([self.root_path, self.root_path / "."])
         self.assertEqual(self.rel(parser.output()), ["plate.0001-0003.exr"])
 
+    def test_scan_path_takes_a_frozenset_and_rejects_other_types(self):
+        """Collections of paths, not just list/set/tuple; a clear error else."""
+        parser = seqparse.get_parser()
+        parser.scan_path(frozenset([self.root_path]))
+        self.assertEqual(self.rel(parser.output()), ["plate.0001-0003.exr"])
+        for bad in (5, 1.5, None):
+            with self.subTest(bad=bad), self.assertRaises(TypeError) as caught:
+                seqparse.get_parser().scan_path(bad)
+            self.assertIn("scan_path() takes a path", str(caught.exception))
+
     def test_add_file_takes_a_path(self):
         """Files added one by one."""
         parser = seqparse.get_parser()

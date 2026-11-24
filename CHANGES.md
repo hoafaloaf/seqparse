@@ -71,8 +71,13 @@ Bug fixes:
 * *Bugfix:* `FileSequence.size`, `mtime` and `ctime` now follow stats cached
   after the sequence was first formatted (they stayed `None` or stale).
 * *Bugfix:* `1.5 in FrameSequence(...)` and `in FrameChunk(...)` are now
-  `False` (1.5 was truncated to frame 1), and `discard(float("inf"))` is
-  ignored instead of raising `OverflowError`.
+  `False` (1.5 was truncated to frame 1), and `float("nan")` and
+  `float("inf")` are `False` too instead of raising; `discard()` of them is
+  ignored.
+* *Bugfix:* `scan_path()` takes any list, set, tuple or frozenset of paths
+  without type checkers rejecting a `list[str]` or `list[Path]`, and raises a
+  clear `TypeError` for anything else; `FileSequence(name=Path(...))` reads a
+  sequence string in the path like the `str` does.
 * *Bugfix:* `seqls` output: blank lines from `--missing`, "----" shown as the
   size of 0-byte files, and the current time shown for entries without stats.
 * `File` objects are now hashable.
